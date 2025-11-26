@@ -257,7 +257,6 @@ export default function SwipeDeck({
   // Calculate current transform
   const baseOffset = getBaseOffset()
   const currentOffset = baseOffset + dragDelta
-  const isDraggingActive = gestureRef.current.isGestureActive
   
   return (
     <div 

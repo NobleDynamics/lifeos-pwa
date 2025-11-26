@@ -4,18 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './index.css'
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('SW registered:', registration.scope)
-      })
-      .catch((error) => {
-        console.log('SW registration failed:', error)
-      })
-  })
-}
+// Service Worker is registered automatically by vite-plugin-pwa
 
 const queryClient = new QueryClient({
   defaultOptions: {

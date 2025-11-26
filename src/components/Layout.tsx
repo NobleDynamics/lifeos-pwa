@@ -95,7 +95,7 @@ const ANIMATION_DURATION = 300 // ms
 
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
 function DrawerWithSwipe() {
-  const { isDrawerOpen, closeDrawer, openDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
+  const { isDrawerOpen, closeDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
   
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -211,19 +211,11 @@ function DrawerWithSwipe() {
   const handleEnd = useCallback(() => {
     if (!isDragging) return
     
-    const { startY, startTime, lastY, lastTime, isFromBottomEdge } = gestureRef.current
+    const { startY, startTime, lastY, isFromBottomEdge } = gestureRef.current
     const totalElapsed = Date.now() - startTime
-    const recentElapsed = Date.now() - lastTime
     
-    // Calculate velocity from recent movement for better flick detection
-    let velocity: number
-    if (recentElapsed < 100) {
-      // Use recent velocity for flick detection
-      const recentDeltaY = lastY - gestureRef.current.lastY
-      velocity = (startY - lastY) / Math.max(1, totalElapsed)
-    } else {
-      velocity = (startY - lastY) / Math.max(1, totalElapsed)
-    }
+    // Calculate velocity - positive = moving down, negative = moving up
+    const velocity = (startY - lastY) / Math.max(1, totalElapsed)
     
     setIsDragging(false)
     

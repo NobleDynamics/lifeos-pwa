@@ -89,8 +89,8 @@ const drawerQuickLinks = [
 ]
 
 // Physics-based drawer configuration
-const VELOCITY_THRESHOLD = 0.5 // px/ms for flick detection (higher = need faster flick)
-const CLOSE_THRESHOLD = 0.5 // 50% - drawer stays open above 50%, closes below
+const VELOCITY_THRESHOLD = 0.3 // px/ms for flick detection (lower = easier to flick close)
+const CLOSE_THRESHOLD = 0.75 // 75% - closes if dragged to 75% or below (only need to drag 25% down)
 const ANIMATION_DURATION = 300 // ms
 
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
@@ -346,8 +346,8 @@ function DrawerWithSwipe() {
       {/* Bottom edge swipe zone - always present when drawer closed */}
       {!showDrawer && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-30 touch-none"
-          style={{ height: '60px' }}
+          className="fixed bottom-0 left-0 right-0 z-30"
+          style={{ height: '80px' }}
           onTouchStart={handleBottomEdgeTouchStart}
           onTouchMove={handleBottomEdgeTouchMove}
           onTouchEnd={handleTouchEnd}

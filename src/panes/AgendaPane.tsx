@@ -31,7 +31,6 @@ const mockRoutines = [
 
 function ScheduleTab() {
   const now = new Date()
-  const currentHour = now.getHours()
   
   return (
     <div className="p-4 space-y-4">
@@ -48,7 +47,7 @@ function ScheduleTab() {
         {/* Now line */}
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-dark-300" />
         
-        {mockEvents.map((event, i) => {
+        {mockEvents.map((event) => {
           const isLinked = event.linkedType !== null
           const Icon = event.linkedType === 'recipe' ? ChefHat : event.linkedType === 'workout' ? Dumbbell : CheckCircle
           

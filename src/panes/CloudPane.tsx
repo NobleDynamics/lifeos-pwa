@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import { Cloud, Image, FileText, FolderOpen } from 'lucide-react'
 import CategoryPane from '@/components/CategoryPane'
 

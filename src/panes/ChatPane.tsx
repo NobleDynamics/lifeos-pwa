@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import { MessageSquare, GripHorizontal } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 

@@ -144,7 +144,7 @@ export const useAppStore = create<AppState>()(
       },
       
       swipeLeft: () => {
-        const { currentPaneIndex, paneOrder } = get()
+        const { currentPaneIndex } = get()
         if (currentPaneIndex > 0) {
           set({ currentPaneIndex: currentPaneIndex - 1 })
         }

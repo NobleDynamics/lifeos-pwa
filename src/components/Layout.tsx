@@ -135,7 +135,7 @@ function AppDrawer() {
   
   // Find nearest snap point (only closed or full now)
   const findNearestSnap = useCallback((height: number, velocity: number): number => {
-    const snapPoints = [DRAWER_SNAP_POINTS.closed, DRAWER_SNAP_POINTS.full]
+    // Using DRAWER_SNAP_POINTS directly instead of local array
     
     // If strong velocity, bias towards direction
     if (Math.abs(velocity) > VELOCITY_THRESHOLD) {

@@ -255,26 +255,6 @@ function HygieneTab() {
 }
 
 export default function HealthPane() {
-  const { subViews } = useAppStore()
-  
-  // Determine if we need sub-view buttons (only for Brain tab)
-  const brainSubViewButtons = (
-    <div className="flex gap-1 p-1 bg-dark-100 rounded-xl">
-      {brainViews.map((view) => (
-        <button
-          key={view.id}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-all ${
-            subViews.brain === view.id 
-              ? 'bg-primary/20 text-primary' 
-              : 'text-dark-500 hover:text-white'
-          }`}
-        >
-          <view.icon size={12} />
-        </button>
-      ))}
-    </div>
-  )
-  
   return (
     <CategoryPane
       title="Health"

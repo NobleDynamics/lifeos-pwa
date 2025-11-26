@@ -398,21 +398,17 @@ function DrawerWithSwipe() {
     return () => scrollEl.removeEventListener('scroll', handleScroll)
   }, [])
   
-  // Calculate pixel height
-  const heightPx = Math.min(currentHeight, 1) * getMaxHeight()
-  const showDrawer = isVisible || isDragging
+  // Calculate pixel height - always show at least the handle (60px)
+  const HANDLE_HEIGHT = 60
+  const fullHeightPx = Math.min(currentHeight, 1) * getMaxHeight()
+  const heightPx = currentHeight > 0 ? fullHeightPx : HANDLE_HEIGHT
+  const showDrawer = true // Always show drawer (at least the handle)
+  const isExpanded = isVisible || isDragging || currentHeight > 0
   
   return (
     <>
-      {/* Visual indicator at bottom - subtle affordance */}
-      {!showDrawer && (
-        <div className="fixed bottom-3 left-0 right-0 z-50 flex justify-center pointer-events-none">
-          <div className="w-10 h-1 rounded-full bg-dark-400/30" />
-        </div>
-      )}
-      
-      {/* Backdrop */}
-      {showDrawer && (
+      {/* Backdrop - only show when expanded */}
+      {isExpanded && currentHeight > 0.05 && (
         <div
           onClick={() => animateToHeight(0)}
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
@@ -424,32 +420,32 @@ function DrawerWithSwipe() {
         />
       )}
       
-      {/* Drawer */}
-      {showDrawer && (
+      {/* Drawer - always visible, at least showing handle */}
+      <div
+        ref={containerRef}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-dark-50/98 backdrop-blur-xl rounded-t-3xl border-t border-white/10 overflow-hidden"
+        style={{
+          height: `${Math.max(heightPx, HANDLE_HEIGHT)}px`,
+          transition: isDragging ? 'none' : `height ${ANIMATION_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1)`,
+          willChange: 'height',
+        }}
+      >
+        {/* Drag Handle Area - always grabbable */}
         <div
-          ref={containerRef}
-          className="fixed bottom-0 left-0 right-0 z-50 bg-dark-50/98 backdrop-blur-xl rounded-t-3xl border-t border-white/10 overflow-hidden"
-          style={{
-            height: `${Math.max(heightPx, 0)}px`,
-            transition: isDragging ? 'none' : `height ${ANIMATION_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1)`,
-            willChange: 'height',
-          }}
+          className="cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
         >
-          {/* Drag Handle Area */}
-          <div
-            className="cursor-grab active:cursor-grabbing touch-none select-none"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-          >
-            {/* Handle visual */}
-            <div className="flex justify-center pt-4 pb-3">
-              <div className="w-12 h-1.5 rounded-full bg-dark-400" />
-            </div>
-            
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 pb-4">
+          {/* Handle visual */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-dark-400" />
+          </div>
+          
+          {/* Header - only show when expanded */}
+          {currentHeight > 0.1 && (
+            <div className="flex items-center justify-between px-6 pb-3">
               <h2 className="text-lg font-semibold">Quick Navigation</h2>
               <button 
                 onClick={(e) => {
@@ -461,9 +457,11 @@ function DrawerWithSwipe() {
                 <X size={20} />
               </button>
             </div>
-          </div>
+          )}
+        </div>
           
-          {/* Scrollable content */}
+        {/* Scrollable content - only show when expanded */}
+        {currentHeight > 0.1 && (
           <div 
             ref={scrollRef}
             className="overflow-y-auto px-4 pb-8 overscroll-contain"
@@ -522,8 +520,8 @@ function DrawerWithSwipe() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   )
 }

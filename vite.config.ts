@@ -42,6 +42,9 @@ export default defineConfig({
         categories: ['productivity', 'lifestyle', 'utilities']
       },
       workbox: {
+        // Force new SW to activate immediately
+        skipWaiting: true,
+        clientsClaim: true,
         // Auto-clean old caches on new deployment
         cleanupOutdatedCaches: true,
         // Precache all built assets

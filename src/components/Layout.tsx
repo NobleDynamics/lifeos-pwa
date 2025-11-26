@@ -95,7 +95,7 @@ const ANIMATION_DURATION = 300 // ms
 
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
 function DrawerWithSwipe() {
-  const { isDrawerOpen, closeDrawer, openDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
+  const { isDrawerOpen, closeDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
   
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)

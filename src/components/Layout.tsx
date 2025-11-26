@@ -94,6 +94,7 @@ const DRAWER_SNAP_POINTS = {
   full: 1.0,     // 100% fullscreen
 }
 const VELOCITY_THRESHOLD = 0.3 // px/ms for flick detection
+const CLOSE_THRESHOLD = 0.75 // Must drag below 75% to close (makes it harder to accidentally close)
 
 // App Drawer component with physics
 function AppDrawer() {
@@ -135,12 +136,10 @@ function AppDrawer() {
   
   // Find nearest snap point (only closed or full now)
   const findNearestSnap = useCallback((height: number, velocity: number): number => {
-    // Using DRAWER_SNAP_POINTS directly instead of local array
-    
     // If strong velocity, bias towards direction
     if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
       if (velocity > 0) {
-        // Swiping down (closing)
+        // Swiping down (closing) - need strong velocity to close
         return DRAWER_SNAP_POINTS.closed
       } else {
         // Swiping up (opening)
@@ -148,8 +147,9 @@ function AppDrawer() {
       }
     }
     
-    // Otherwise, snap to nearest (threshold at 50%)
-    return height > 0.5 ? DRAWER_SNAP_POINTS.full : DRAWER_SNAP_POINTS.closed
+    // Otherwise, use CLOSE_THRESHOLD (75%) - drawer stays open unless dragged below 25%
+    // This makes it harder to accidentally close the drawer
+    return height >= (1 - CLOSE_THRESHOLD) ? DRAWER_SNAP_POINTS.full : DRAWER_SNAP_POINTS.closed
   }, [])
   
   // Handle drag start
@@ -428,6 +428,70 @@ function AppDrawer() {
   )
 }
 
+// Bottom edge swipe detector - detects upswipes from the drawer handle area
+function BottomEdgeSwipeDetector() {
+  const { openDrawer, isDrawerOpen } = useAppStore()
+  
+  const gestureRef = useRef({
+    startY: 0,
+    startTime: 0,
+    isActive: false,
+  })
+  
+  const SWIPE_THRESHOLD = 30 // Minimum upward swipe distance
+  const VELOCITY_THRESHOLD = 0.2 // Minimum velocity (px/ms)
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (isDrawerOpen) return
+    
+    gestureRef.current = {
+      startY: e.touches[0].clientY,
+      startTime: Date.now(),
+      isActive: true,
+    }
+  }, [isDrawerOpen])
+  
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!gestureRef.current.isActive || isDrawerOpen) return
+    
+    const deltaY = gestureRef.current.startY - e.touches[0].clientY
+    
+    // If swiping up significantly, prevent default to take over
+    if (deltaY > SWIPE_THRESHOLD / 2) {
+      e.preventDefault()
+    }
+  }, [isDrawerOpen])
+  
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!gestureRef.current.isActive || isDrawerOpen) return
+    
+    const { startY, startTime } = gestureRef.current
+    const endY = e.changedTouches[0].clientY
+    const deltaY = startY - endY // Positive = swiped up
+    const elapsed = Date.now() - startTime
+    const velocity = deltaY / elapsed
+    
+    gestureRef.current.isActive = false
+    
+    // Check if it was a valid upward swipe
+    if (deltaY > SWIPE_THRESHOLD || velocity > VELOCITY_THRESHOLD) {
+      openDrawer()
+    }
+  }, [isDrawerOpen, openDrawer])
+  
+  if (isDrawerOpen) return null
+  
+  return (
+    <div
+      className="fixed bottom-0 left-0 right-0 z-30 touch-none"
+      style={{ height: '60px' }} // Swipe detection zone at bottom
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    />
+  )
+}
+
 export default function Layout({ children }: LayoutProps) {
   return (
     <div className="h-screen w-screen bg-dark text-white overflow-hidden">
@@ -435,6 +499,9 @@ export default function Layout({ children }: LayoutProps) {
       <main className="h-full w-full">
         {children}
       </main>
+      
+      {/* Bottom edge swipe detector for opening drawer */}
+      <BottomEdgeSwipeDetector />
       
       {/* App Drawer */}
       <AppDrawer />

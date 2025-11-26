@@ -402,7 +402,6 @@ function DrawerWithSwipe() {
   const HANDLE_HEIGHT = 60
   const fullHeightPx = Math.min(currentHeight, 1) * getMaxHeight()
   const heightPx = currentHeight > 0 ? fullHeightPx : HANDLE_HEIGHT
-  const showDrawer = true // Always show drawer (at least the handle)
   const isExpanded = isVisible || isDragging || currentHeight > 0
   
   return (

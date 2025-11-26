@@ -95,7 +95,7 @@ const ANIMATION_DURATION = 300 // ms
 
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
 function DrawerWithSwipe() {
-  const { isDrawerOpen, closeDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
+  const { isDrawerOpen, closeDrawer, openDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
   
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -346,12 +346,16 @@ function DrawerWithSwipe() {
       {/* Bottom edge swipe zone - always present when drawer closed */}
       {!showDrawer && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-30"
+          className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center"
           style={{ height: '80px' }}
+          onClick={() => openDrawer()}
           onTouchStart={handleBottomEdgeTouchStart}
           onTouchMove={handleBottomEdgeTouchMove}
           onTouchEnd={handleTouchEnd}
-        />
+        >
+          {/* Visual indicator - subtle line */}
+          <div className="w-16 h-1 rounded-full bg-dark-400/50" />
+        </div>
       )}
       
       {/* Backdrop */}

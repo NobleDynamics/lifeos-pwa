@@ -105,6 +105,29 @@ function DrawerWithSwipe() {
   const [isAtScrollTop, setIsAtScrollTop] = useState(true)
   const [isVisible, setIsVisible] = useState(false) // Controls whether drawer renders
   
+  // Global touch handler for bottom edge detection
+  useEffect(() => {
+    const BOTTOM_ZONE_HEIGHT = 100 // px from bottom of screen
+    
+    const handleGlobalTouchStart = (e: TouchEvent) => {
+      // Ignore if drawer is already open
+      if (isDrawerOpen || isVisible || isDragging) return
+      
+      const touch = e.touches[0]
+      const screenHeight = window.innerHeight
+      const touchY = touch.clientY
+      
+      // Check if touch started in bottom zone
+      if (touchY > screenHeight - BOTTOM_ZONE_HEIGHT) {
+        // Open drawer on tap in bottom zone
+        openDrawer()
+      }
+    }
+    
+    document.addEventListener('touchstart', handleGlobalTouchStart, { passive: true })
+    return () => document.removeEventListener('touchstart', handleGlobalTouchStart)
+  }, [isDrawerOpen, isVisible, isDragging, openDrawer])
+  
   // Gesture tracking
   const gestureRef = useRef({
     startY: 0,
@@ -343,18 +366,10 @@ function DrawerWithSwipe() {
   
   return (
     <>
-      {/* Bottom edge swipe zone - always present when drawer closed */}
+      {/* Visual indicator at bottom - subtle affordance */}
       {!showDrawer && (
-        <div
-          className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center"
-          style={{ height: '80px' }}
-          onClick={() => openDrawer()}
-          onTouchStart={handleBottomEdgeTouchStart}
-          onTouchMove={handleBottomEdgeTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Visual indicator - subtle line */}
-          <div className="w-16 h-1 rounded-full bg-dark-400/50" />
+        <div className="fixed bottom-3 left-0 right-0 z-50 flex justify-center pointer-events-none">
+          <div className="w-10 h-1 rounded-full bg-dark-400/30" />
         </div>
       )}
       

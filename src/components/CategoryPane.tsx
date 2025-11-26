@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
-import { GripHorizontal, LucideIcon } from 'lucide-react'
+import { LucideIcon } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
+import { DRAWER_HANDLE_HEIGHT } from './Layout'
 
 interface Tab {
   id: string
@@ -23,7 +24,7 @@ export default function CategoryPane({
   tabKey,
   children 
 }: CategoryPaneProps) {
-  const { tabs: tabState, setTab, openDrawer } = useAppStore()
+  const { tabs: tabState, setTab } = useAppStore()
   const activeTab = tabState[tabKey]
   
   return (
@@ -41,41 +42,30 @@ export default function CategoryPane({
         {children(activeTab)}
       </div>
       
-      {/* Bottom Tab Bar + Drawer Handle */}
-      <div className="flex-shrink-0">
-        {/* Tab Bar */}
-        <div className="px-3 pb-2">
-          <div className="flex p-1 bg-dark-100/80 backdrop-blur rounded-xl">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id
-              const TabIcon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setTab(tabKey, tab.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-primary/20 text-primary shadow-sm' 
-                      : 'text-dark-500 hover:text-white hover:bg-dark-200/50'
-                  }`}
-                >
-                  <TabIcon size={16} />
-                  <span className={`${isActive ? '' : 'hidden sm:inline'}`}>{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-        
-        {/* Drawer Handle */}
-        <div 
-          className="py-2 flex justify-center cursor-pointer hover:bg-dark-100/50 transition-colors safe-bottom"
-          onClick={openDrawer}
-        >
-          <div className="flex flex-col items-center gap-0.5">
-            <GripHorizontal size={18} className="text-dark-400" />
-            <div className="w-8 h-1 rounded-full bg-dark-400" />
-          </div>
+      {/* Bottom Tab Bar - with padding for drawer handle */}
+      <div 
+        className="flex-shrink-0 px-3 pb-2"
+        style={{ paddingBottom: `${DRAWER_HANDLE_HEIGHT + 8}px` }}
+      >
+        <div className="flex p-1 bg-dark-100/80 backdrop-blur rounded-xl">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id
+            const TabIcon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setTab(tabKey, tab.id as any)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  isActive 
+                    ? 'bg-primary/20 text-primary shadow-sm' 
+                    : 'text-dark-500 hover:text-white hover:bg-dark-200/50'
+                }`}
+              >
+                <TabIcon size={16} />
+                <span className={`${isActive ? '' : 'hidden sm:inline'}`}>{tab.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

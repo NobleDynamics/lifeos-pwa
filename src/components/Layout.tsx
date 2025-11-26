@@ -22,7 +22,9 @@ import {
   Banknote,
   PiggyBank,
   Image,
-  FileText
+  FileText,
+  Camera,
+  Mic
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -93,6 +95,18 @@ const VELOCITY_THRESHOLD = 0.5 // px/ms for flick detection
 const CLOSE_THRESHOLD = 0.25 // Close if height drops below 25%
 const ANIMATION_DURATION = 300 // ms
 
+// Cyan glow style for the handle elements
+const cyanGlowStyle = {
+  color: '#00eaff',
+  textShadow: '0 0 4px #00eaff, 0 0 8px #00eaff, 0 0 12px #00eaff, 0 0 18px rgba(0, 234, 255, 0.7), 0 0 24px rgba(0, 234, 255, 0.5)',
+  filter: 'drop-shadow(0 0 6px #00eaff)',
+}
+
+const cyanGlowBarStyle = {
+  backgroundColor: '#00eaff',
+  boxShadow: '0 0 4px #00eaff, 0 0 8px #00eaff, 0 0 12px #00eaff, 0 0 18px rgba(0, 234, 255, 0.7)',
+}
+
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
 function DrawerWithSwipe() {
   const { isDrawerOpen, closeDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
@@ -104,6 +118,8 @@ function DrawerWithSwipe() {
   const [isAnimating, setIsAnimating] = useState(false)
   const [isAtScrollTop, setIsAtScrollTop] = useState(true)
   const [isVisible, setIsVisible] = useState(false) // Controls whether drawer renders
+  const [showCameraPopup, setShowCameraPopup] = useState(false)
+  const [isMicListening, setIsMicListening] = useState(false)
   
   // Global touch handler for bottom edge detection - now starts a drag instead of instant open
   useEffect(() => {
@@ -429,17 +445,55 @@ function DrawerWithSwipe() {
           willChange: 'height',
         }}
       >
-        {/* Drag Handle Area - always grabbable */}
-        <div
-          className="cursor-grab active:cursor-grabbing select-none"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onMouseDown={handleMouseDown}
-        >
-          {/* Handle visual */}
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-dark-400" />
+        {/* Drag Handle Area - with Camera, Handle, Mic */}
+        <div className="select-none">
+          {/* Handle row with Camera, grip line, Mic */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            {/* Camera button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowCameraPopup(true)
+                setTimeout(() => setShowCameraPopup(false), 2000)
+              }}
+              className="p-2 rounded-full active:scale-95 transition-transform"
+              style={cyanGlowStyle}
+            >
+              <Camera size={22} />
+            </button>
+            
+            {/* Draggable handle area */}
+            <div
+              className="flex-1 flex justify-center cursor-grab active:cursor-grabbing py-2 mx-4"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleMouseDown}
+            >
+              <div 
+                className="w-16 h-1 rounded-full"
+                style={cyanGlowBarStyle}
+              />
+            </div>
+            
+            {/* Mic button */}
+            <button
+              onTouchStart={(e) => {
+                e.stopPropagation()
+                setIsMicListening(true)
+              }}
+              onTouchEnd={() => setIsMicListening(false)}
+              onMouseDown={(e) => {
+                e.stopPropagation()
+                setIsMicListening(true)
+              }}
+              onMouseUp={() => setIsMicListening(false)}
+              onMouseLeave={() => setIsMicListening(false)}
+              className="p-2 rounded-full active:scale-95 transition-transform"
+              style={cyanGlowStyle}
+            >
+              <Mic size={22} />
+            </button>
           </div>
           
           {/* Header - only show when expanded */}
@@ -521,9 +575,30 @@ function DrawerWithSwipe() {
           </div>
         )}
       </div>
+      
+      {/* Camera coming soon popup */}
+      {showCameraPopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
+          <div className="bg-dark-100 border border-cyan-500/30 rounded-2xl px-6 py-4 shadow-lg" style={{ boxShadow: '0 0 20px rgba(0, 234, 255, 0.3)' }}>
+            <p className="text-cyan-400 font-medium">📷 Camera coming soon</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Mic listening popup */}
+      {isMicListening && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
+          <div className="bg-dark-100 border border-cyan-500/30 rounded-2xl px-6 py-4 shadow-lg animate-pulse" style={{ boxShadow: '0 0 20px rgba(0, 234, 255, 0.3)' }}>
+            <p className="text-cyan-400 font-medium">🎙️ Listening...</p>
+          </div>
+        </div>
+      )}
     </>
   )
 }
+
+// Export drawer height for use in other components
+export const DRAWER_HANDLE_HEIGHT = 60
 
 export default function Layout({ children }: LayoutProps) {
   return (

@@ -292,17 +292,6 @@ function DrawerWithSwipe() {
     }
   }, [isDragging, isAtScrollTop, handleMove])
   
-  // Touch events for bottom edge (to open)
-  const handleBottomEdgeTouchStart = useCallback((e: React.TouchEvent) => {
-    if (isDrawerOpen || isVisible) return
-    handleStart(e.touches[0].clientY, false, true)
-  }, [isDrawerOpen, isVisible, handleStart])
-  
-  const handleBottomEdgeTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging) return
-    e.preventDefault()
-    handleMove(e.touches[0].clientY)
-  }, [isDragging, handleMove])
   
   // Mouse events for handle
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

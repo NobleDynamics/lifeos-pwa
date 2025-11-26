@@ -95,11 +95,10 @@ const VELOCITY_THRESHOLD = 0.5 // px/ms for flick detection
 const CLOSE_THRESHOLD = 0.25 // Close if height drops below 25%
 const ANIMATION_DURATION = 300 // ms
 
-// Cyan glow style for the handle elements
+// Cyan glow style for the handle elements - dark icon with cyan glow behind
 const cyanGlowStyle = {
-  color: '#00eaff',
-  textShadow: '0 0 4px #00eaff, 0 0 8px #00eaff, 0 0 12px #00eaff, 0 0 18px rgba(0, 234, 255, 0.7), 0 0 24px rgba(0, 234, 255, 0.5)',
-  filter: 'drop-shadow(0 0 6px #00eaff)',
+  color: '#0a0a0f', // Dark icon
+  filter: 'drop-shadow(0 0 4px #00eaff) drop-shadow(0 0 8px #00eaff) drop-shadow(0 0 12px #00eaff)',
 }
 
 const cyanGlowBarStyle = {

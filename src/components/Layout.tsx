@@ -88,9 +88,9 @@ const drawerQuickLinks = [
   },
 ]
 
-// Physics-based drawer configuration
-const VELOCITY_THRESHOLD = 0.3 // px/ms for flick detection (lower = easier to flick close)
-const CLOSE_THRESHOLD = 0.75 // 75% - closes if dragged to 75% or below (only need to drag 25% down)
+// Drawer configuration
+const VELOCITY_THRESHOLD = 0.5 // px/ms for flick detection
+const CLOSE_THRESHOLD = 0.25 // Close if height drops below 25%
 const ANIMATION_DURATION = 300 // ms
 
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
@@ -105,28 +105,72 @@ function DrawerWithSwipe() {
   const [isAtScrollTop, setIsAtScrollTop] = useState(true)
   const [isVisible, setIsVisible] = useState(false) // Controls whether drawer renders
   
-  // Global touch handler for bottom edge detection
+  // Global touch handler for bottom edge detection - now starts a drag instead of instant open
   useEffect(() => {
-    const BOTTOM_ZONE_HEIGHT = 100 // px from bottom of screen
+    const BOTTOM_ZONE_HEIGHT = 80 // px from bottom of screen
+    let startY = 0
+    let startTime = 0
+    let isBottomSwipe = false
     
     const handleGlobalTouchStart = (e: TouchEvent) => {
-      // Ignore if drawer is already open
+      // Ignore if drawer is already open/visible
       if (isDrawerOpen || isVisible || isDragging) return
       
       const touch = e.touches[0]
       const screenHeight = window.innerHeight
-      const touchY = touch.clientY
       
       // Check if touch started in bottom zone
-      if (touchY > screenHeight - BOTTOM_ZONE_HEIGHT) {
-        // Open drawer on tap in bottom zone
-        openDrawer()
+      if (touch.clientY > screenHeight - BOTTOM_ZONE_HEIGHT) {
+        startY = touch.clientY
+        startTime = Date.now()
+        isBottomSwipe = true
       }
     }
     
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (!isBottomSwipe || isDrawerOpen || isVisible) return
+      
+      const touch = e.touches[0]
+      const deltaY = startY - touch.clientY // Positive = swiping up
+      
+      // Need to swipe up at least 20px to start opening
+      if (deltaY > 20) {
+        // Start opening drawer - show it and set initial height based on drag
+        setIsVisible(true)
+        const screenHeight = window.innerHeight
+        const height = Math.min(1, deltaY / screenHeight)
+        setCurrentHeight(height)
+        setIsDragging(true)
+        
+        // Update gesture ref for proper end handling
+        gestureRef.current = {
+          startY: startY,
+          startHeight: 0,
+          startTime: startTime,
+          lastY: touch.clientY,
+          lastTime: Date.now(),
+          isFromContent: false,
+          isFromBottomEdge: true,
+        }
+        
+        isBottomSwipe = false // Transition to drawer's own gesture handling
+      }
+    }
+    
+    const handleGlobalTouchEnd = () => {
+      isBottomSwipe = false
+    }
+    
     document.addEventListener('touchstart', handleGlobalTouchStart, { passive: true })
-    return () => document.removeEventListener('touchstart', handleGlobalTouchStart)
-  }, [isDrawerOpen, isVisible, isDragging, openDrawer])
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: true })
+    document.addEventListener('touchend', handleGlobalTouchEnd, { passive: true })
+    
+    return () => {
+      document.removeEventListener('touchstart', handleGlobalTouchStart)
+      document.removeEventListener('touchmove', handleGlobalTouchMove)
+      document.removeEventListener('touchend', handleGlobalTouchEnd)
+    }
+  }, [isDrawerOpen, isVisible, isDragging])
   
   // Gesture tracking
   const gestureRef = useRef({
@@ -158,16 +202,20 @@ function DrawerWithSwipe() {
   
   // Find nearest snap point based on position and velocity
   const findNearestSnap = useCallback((height: number, velocity: number): number => {
-    // Strong downward velocity = close
-    if (velocity > VELOCITY_THRESHOLD) {
-      return 0
+    // Velocity check: positive = finger moving down (closing), negative = moving up (opening)
+    // Note: in handleEnd, velocity is calculated as (startY - lastY) / time
+    // If dragging down: lastY > startY, so velocity is negative
+    // If dragging up: lastY < startY, so velocity is positive
+    
+    // Strong velocity in either direction takes priority
+    if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
+      // Velocity > 0 means finger moved UP (startY > lastY), which is OPENING
+      // Velocity < 0 means finger moved DOWN (startY < lastY), which is CLOSING
+      return velocity > 0 ? 1 : 0
     }
-    // Strong upward velocity = open
-    if (velocity < -VELOCITY_THRESHOLD) {
-      return 1
-    }
-    // Otherwise use position threshold
-    return height >= CLOSE_THRESHOLD ? 1 : 0
+    
+    // Otherwise use position threshold - close if below 25% height
+    return height > CLOSE_THRESHOLD ? 1 : 0
   }, [])
   
   // Handle drag start (from handle when open, or from bottom edge when closed)
@@ -234,22 +282,23 @@ function DrawerWithSwipe() {
   const handleEnd = useCallback(() => {
     if (!isDragging) return
     
-    const { startY, startTime, lastY, isFromBottomEdge } = gestureRef.current
-    const totalElapsed = Date.now() - startTime
+    const { startY, lastY, isFromBottomEdge } = gestureRef.current
     
-    // Calculate velocity - positive = moving down, negative = moving up
-    const velocity = (startY - lastY) / Math.max(1, totalElapsed)
+    // Calculate velocity based on last movement direction
+    // Positive velocity = finger moved UP from start (opening direction)
+    // Negative velocity = finger moved DOWN from start (closing direction)
+    const deltaY = startY - lastY
+    const velocity = deltaY / 100 // Normalize
     
     setIsDragging(false)
     
-    // If barely moved during bottom edge open, close it
-    if (isFromBottomEdge && currentHeight < 0.1) {
+    // If barely opened during bottom edge swipe, close it
+    if (isFromBottomEdge && currentHeight < 0.15) {
       animateToHeight(0)
       return
     }
     
-    // Find target snap point (0 = closed, 1 = open)
-    // velocity: positive = moving down (closing), negative = moving up (opening)
+    // Find target snap point based on current height and direction
     const targetSnap = findNearestSnap(currentHeight, velocity)
     animateToHeight(targetSnap)
   }, [isDragging, currentHeight, findNearestSnap, animateToHeight])

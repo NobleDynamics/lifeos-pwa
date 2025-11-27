@@ -54,6 +54,7 @@ interface AppState {
   // Pane navigation
   paneOrder: PaneType[]
   currentPaneIndex: number
+  paneHistory: number[] // History of pane indices for back navigation
   
   // Tab state per pane
   tabs: TabState
@@ -74,6 +75,8 @@ interface AppState {
   navigateToPaneTab: (pane: PaneType, tab: string) => void
   swipeLeft: () => void
   swipeRight: () => void
+  goBack: () => boolean // Returns true if navigated back, false if at root
+  canGoBack: () => boolean
   
   setTab: <K extends keyof TabState>(pane: K, tab: TabState[K]) => void
   setSubView: <K extends keyof SubViewState>(key: K, view: SubViewState[K]) => void
@@ -93,6 +96,7 @@ export const useAppStore = create<AppState>()(
       // Initial state
       paneOrder: DEFAULT_PANE_ORDER,
       currentPaneIndex: DEFAULT_PANE_ORDER.indexOf('dashboard'), // Start at dashboard
+      paneHistory: [], // Empty history at start
       
       tabs: {
         health: 'nutrition',
@@ -116,15 +120,25 @@ export const useAppStore = create<AppState>()(
       setCurrentPaneIndex: (index) => set({ currentPaneIndex: index }),
       
       navigateToPane: (pane) => {
-        const { paneOrder } = get()
+        const { paneOrder, currentPaneIndex, paneHistory } = get()
         const index = paneOrder.indexOf(pane)
-        if (index !== -1) {
-          set({ currentPaneIndex: index, isDrawerOpen: false, drawerHeight: 0 })
+        if (index !== -1 && index !== currentPaneIndex) {
+          // Add current pane to history before navigating
+          const newHistory = [...paneHistory, currentPaneIndex].slice(-10) // Keep last 10
+          set({ 
+            currentPaneIndex: index, 
+            paneHistory: newHistory,
+            isDrawerOpen: false, 
+            drawerHeight: 0 
+          })
+        } else if (index !== -1) {
+          // Same pane, just close drawer
+          set({ isDrawerOpen: false, drawerHeight: 0 })
         }
       },
       
       navigateToPaneTab: (pane, tab) => {
-        const { paneOrder, tabs } = get()
+        const { paneOrder, tabs, currentPaneIndex, paneHistory } = get()
         const index = paneOrder.indexOf(pane)
         if (index !== -1) {
           // Update the tab for the target pane
@@ -134,9 +148,15 @@ export const useAppStore = create<AppState>()(
           if (pane === 'agenda') newTabs.agenda = tab as AgendaTab
           if (pane === 'cloud') newTabs.cloud = tab as CloudTab
           
+          // Add current pane to history if navigating to different pane
+          const newHistory = index !== currentPaneIndex 
+            ? [...paneHistory, currentPaneIndex].slice(-10)
+            : paneHistory
+          
           set({ 
             currentPaneIndex: index, 
             tabs: newTabs,
+            paneHistory: newHistory,
             isDrawerOpen: false, 
             drawerHeight: 0 
           })
@@ -155,6 +175,46 @@ export const useAppStore = create<AppState>()(
         if (currentPaneIndex < paneOrder.length - 1) {
           set({ currentPaneIndex: currentPaneIndex + 1 })
         }
+      },
+      
+      goBack: () => {
+        const { paneHistory, paneOrder, isDrawerOpen } = get()
+        
+        // Priority 1: Close drawer if open
+        if (isDrawerOpen) {
+          set({ isDrawerOpen: false, drawerHeight: 0 })
+          return true
+        }
+        
+        // Priority 2: Go to previous pane in history
+        if (paneHistory.length > 0) {
+          const newHistory = [...paneHistory]
+          const previousIndex = newHistory.pop()!
+          set({ 
+            currentPaneIndex: previousIndex,
+            paneHistory: newHistory
+          })
+          return true
+        }
+        
+        // Priority 3: Go to dashboard if not already there
+        const dashboardIndex = paneOrder.indexOf('dashboard')
+        const { currentPaneIndex } = get()
+        if (currentPaneIndex !== dashboardIndex) {
+          set({ currentPaneIndex: dashboardIndex })
+          return true
+        }
+        
+        // Already at dashboard with no history
+        return false
+      },
+      
+      canGoBack: () => {
+        const { paneHistory, paneOrder, currentPaneIndex, isDrawerOpen } = get()
+        if (isDrawerOpen) return true
+        if (paneHistory.length > 0) return true
+        const dashboardIndex = paneOrder.indexOf('dashboard')
+        return currentPaneIndex !== dashboardIndex
       },
       
       setTab: (pane, tab) => set((state) => ({

@@ -1,5 +1,6 @@
 import { ReactNode, useRef, useState, useCallback, useEffect } from 'react'
 import { useAppStore, type PaneType } from '@/store/useAppStore'
+import { useBackButton } from '@/hooks/useBackButton'
 import { 
   Home, 
   Dumbbell,
@@ -600,6 +601,9 @@ function DrawerWithSwipe() {
 export const DRAWER_HANDLE_HEIGHT = 60
 
 export default function Layout({ children }: LayoutProps) {
+  // Initialize back button handler for Android hardware back button
+  useBackButton()
+  
   return (
     <div className="h-screen w-screen bg-dark text-white overflow-hidden">
       {/* Main content area */}

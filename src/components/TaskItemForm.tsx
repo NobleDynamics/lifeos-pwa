@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Calendar, MapPin } from 'lucide-react'
 import { TodoItem, TodoStatus } from '@/types/database'
 import { useTodoData } from '@/hooks/useTodoData'
 import { useTodoUI, useTodoNavigation } from '@/store/useTodoStore'
 import { cn } from '@/lib/utils'
+import { useBackButton } from '@/hooks/useBackButton'
 
 interface TaskItemFormProps {
   editingItem?: TodoItem | null
@@ -24,6 +25,19 @@ export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColo
   const [isShared, setIsShared] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Handle back button to close form
+  const handleClose = useCallback(() => {
+    setShowForm(null)
+    onClose?.()
+  }, [setShowForm, onClose])
+
+  useBackButton({
+    onCloseModal: () => {
+      handleClose()
+      return true
+    }
+  })
 
   // Initialize form with editing data
   useEffect(() => {
@@ -82,11 +96,6 @@ export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColo
     }
   }
 
-  const handleClose = () => {
-    setShowForm(null)
-    onClose?.()
-  }
-
   const isEditing = !!(editingItemProp || editingItem)
 
   const statusOptions: { value: TodoStatus; label: string; color: string }[] = [
@@ -113,7 +122,7 @@ export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColo
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 pb-20 space-y-4">
           {/* Error Message */}
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">

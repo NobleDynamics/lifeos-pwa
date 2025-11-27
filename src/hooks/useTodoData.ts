@@ -21,17 +21,25 @@ export function useTodoData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch all categories
+  // Fetch all categories for the current user
   const fetchCategories = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      console.log('fetchCategories: No user available')
+      return
+    }
+    
+    console.log('fetchCategories: Fetching for user:', user.id)
     
     try {
       const { data, error } = await supabase
         .from('todo_categories')
         .select('*')
+        .eq('user_id', user.id)  // Filter by user_id
         .is('deleted_at', null)
         .order('name', { ascending: true })
 
+      console.log('fetchCategories: Result:', { data, error })
+      
       if (error) throw error
       setCategories(data || [])
     } catch (err) {
@@ -44,14 +52,19 @@ export function useTodoData() {
   const fetchLists = useCallback(async (categoryId: string) => {
     if (!user) return
     
+    console.log('fetchLists: Fetching for category:', categoryId)
+    
     try {
       const { data, error } = await supabase
         .from('todo_lists')
         .select('*')
         .eq('category_id', categoryId)
+        .eq('user_id', user.id)  // Filter by user_id
         .is('deleted_at', null)
         .order('name', { ascending: true })
 
+      console.log('fetchLists: Result:', { data, error })
+      
       if (error) throw error
       setLists(data || [])
     } catch (err) {
@@ -64,14 +77,19 @@ export function useTodoData() {
   const fetchItems = useCallback(async (listId: string) => {
     if (!user) return
     
+    console.log('fetchItems: Fetching for list:', listId)
+    
     try {
       const { data, error } = await supabase
         .from('todo_items')
         .select('*')
         .eq('list_id', listId)
+        .eq('user_id', user.id)  // Filter by user_id
         .is('deleted_at', null)
         .order('created_at', { ascending: true })
 
+      console.log('fetchItems: Result:', { data, error })
+      
       if (error) throw error
       setItems(data || [])
     } catch (err) {
@@ -97,7 +115,7 @@ export function useTodoData() {
       setAnalytics(data || [])
     } catch (err) {
       console.error('Error fetching analytics:', err)
-      setError('Failed to fetch analytics')
+      // Don't set error for analytics - it's optional
     }
   }, [user])
 
@@ -116,27 +134,44 @@ export function useTodoData() {
       setPieData(data || [])
     } catch (err) {
       console.error('Error fetching pie data:', err)
-      setError('Failed to fetch pie data')
+      // Don't set error for pie data - it's optional
     }
   }, [user])
 
   // Create category
   const createCategory = async (category: Partial<TodoCategory>) => {
-    if (!user) return null
+    if (!user) {
+      console.error('createCategory: No user available')
+      return null
+    }
+    
+    const insertData = {
+      name: category.name,
+      description: category.description || null,
+      color: category.color || '#00EAFF',
+      is_shared: category.is_shared || false,
+      user_id: user.id,
+      created_by: user.id
+    }
+    
+    console.log('createCategory: Inserting:', insertData)
     
     try {
       const { data, error } = await supabase
         .from('todo_categories')
-        .insert({
-          ...category,
-          user_id: user.id,
-          created_by: user.id
-        } as any)
+        .insert(insertData as any)
         .select()
         .single()
 
-      if (error) throw error
+      console.log('createCategory: Result:', { data, error })
+      
+      if (error) {
+        console.error('createCategory: Supabase error:', error)
+        throw error
+      }
+      
       if (data) {
+        console.log('createCategory: Success, updating state')
         setCategories(prev => [...prev, data])
       }
       return data
@@ -149,19 +184,33 @@ export function useTodoData() {
 
   // Create list
   const createList = async (list: Partial<TodoList>) => {
-    if (!user) return null
+    if (!user) {
+      console.error('createList: No user available')
+      return null
+    }
+    
+    const insertData = {
+      name: list.name,
+      description: list.description || null,
+      category_id: list.category_id,
+      due_date: list.due_date || null,
+      location_name: list.location_name || null,
+      is_shared: list.is_shared || false,
+      user_id: user.id,
+      created_by: user.id
+    }
+    
+    console.log('createList: Inserting:', insertData)
     
     try {
       const { data, error } = await supabase
         .from('todo_lists')
-        .insert({
-          ...list,
-          user_id: user.id,
-          created_by: user.id
-        } as any)
+        .insert(insertData as any)
         .select()
         .single()
 
+      console.log('createList: Result:', { data, error })
+      
       if (error) throw error
       if (data) {
         setLists(prev => [...prev, data])
@@ -176,19 +225,34 @@ export function useTodoData() {
 
   // Create item
   const createItem = async (item: Partial<TodoItem>) => {
-    if (!user) return null
+    if (!user) {
+      console.error('createItem: No user available')
+      return null
+    }
+    
+    const insertData = {
+      name: item.name,
+      description: item.description || null,
+      list_id: item.list_id,
+      status: item.status || 'not_started',
+      due_date: item.due_date || null,
+      location_name: item.location_name || null,
+      is_shared: item.is_shared || false,
+      user_id: user.id,
+      created_by: user.id
+    }
+    
+    console.log('createItem: Inserting:', insertData)
     
     try {
       const { data, error } = await supabase
         .from('todo_items')
-        .insert({
-          ...item,
-          user_id: user.id,
-          created_by: user.id
-        } as any)
+        .insert(insertData as any)
         .select()
         .single()
 
+      console.log('createItem: Result:', { data, error })
+      
       if (error) throw error
       if (data) {
         setItems(prev => [...prev, data])
@@ -203,15 +267,20 @@ export function useTodoData() {
 
   // Update category
   const updateCategory = async (id: string, updates: Partial<TodoCategory>) => {
+    console.log('updateCategory:', { id, updates })
+    
     try {
-      const { data, error } = await supabase
+      // @ts-ignore - Supabase type mismatch with partial updates
+      const { data, error } = await (supabase as any)
         .from('todo_categories')
-        // @ts-ignore - Type mismatch with Supabase generated types
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user?.id)  // Ensure user owns it
         .select()
         .single()
 
+      console.log('updateCategory: Result:', { data, error })
+      
       if (error) throw error
       if (data) {
         setCategories(prev => prev.map(cat => cat.id === id ? data : cat))
@@ -226,15 +295,20 @@ export function useTodoData() {
 
   // Update list
   const updateList = async (id: string, updates: Partial<TodoList>) => {
+    console.log('updateList:', { id, updates })
+    
     try {
-      const { data, error } = await supabase
+      // @ts-ignore - Supabase type mismatch with partial updates
+      const { data, error } = await (supabase as any)
         .from('todo_lists')
-        // @ts-ignore - Type mismatch with Supabase generated types
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user?.id)
         .select()
         .single()
 
+      console.log('updateList: Result:', { data, error })
+      
       if (error) throw error
       if (data) {
         setLists(prev => prev.map(list => list.id === id ? data : list))
@@ -249,15 +323,20 @@ export function useTodoData() {
 
   // Update item
   const updateItem = async (id: string, updates: Partial<TodoItem>) => {
+    console.log('updateItem:', { id, updates })
+    
     try {
-      const { data, error } = await supabase
+      // @ts-ignore - Supabase type mismatch with partial updates
+      const { data, error } = await (supabase as any)
         .from('todo_items')
-        // @ts-ignore - Type mismatch with Supabase generated types
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user?.id)
         .select()
         .single()
 
+      console.log('updateItem: Result:', { data, error })
+      
       if (error) throw error
       if (data) {
         setItems(prev => prev.map(item => item.id === id ? data : item))
@@ -272,12 +351,15 @@ export function useTodoData() {
 
   // Delete category (soft delete)
   const deleteCategory = async (id: string) => {
+    console.log('deleteCategory:', id)
+    
     try {
-      // @ts-ignore - Type mismatch with Supabase generated types
+      // @ts-ignore - Supabase type mismatch with partial updates
       const { error } = await (supabase as any)
         .from('todo_categories')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('user_id', user?.id)
 
       if (error) throw error
       setCategories(prev => prev.filter(cat => cat.id !== id))
@@ -291,12 +373,15 @@ export function useTodoData() {
 
   // Delete list (soft delete)
   const deleteList = async (id: string) => {
+    console.log('deleteList:', id)
+    
     try {
-      // @ts-ignore - Type mismatch with Supabase generated types
+      // @ts-ignore - Supabase type mismatch with partial updates
       const { error } = await (supabase as any)
         .from('todo_lists')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('user_id', user?.id)
 
       if (error) throw error
       setLists(prev => prev.filter(list => list.id !== id))
@@ -310,12 +395,15 @@ export function useTodoData() {
 
   // Delete item (soft delete)
   const deleteItem = async (id: string) => {
+    console.log('deleteItem:', id)
+    
     try {
-      // @ts-ignore - Type mismatch with Supabase generated types
+      // @ts-ignore - Supabase type mismatch with partial updates
       const { error } = await (supabase as any)
         .from('todo_items')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('user_id', user?.id)
 
       if (error) throw error
       setItems(prev => prev.filter(item => item.id !== id))
@@ -478,14 +566,22 @@ export function useTodoData() {
     return lists.filter(list => list.category_id === categoryId).length
   }
 
+  // Refresh categories (for manual refresh after form submission)
+  const refreshCategories = async () => {
+    console.log('refreshCategories: Called')
+    await fetchCategories()
+  }
+
   // Initialize data
   useEffect(() => {
     if (user) {
+      console.log('useTodoData: User available, fetching data:', user.id)
       fetchCategories()
-      fetchPieData()
       setLoading(false)
+    } else {
+      console.log('useTodoData: No user, skipping fetch')
     }
-  }, [user, fetchCategories, fetchPieData])
+  }, [user, fetchCategories])
 
   return {
     categories,
@@ -500,6 +596,7 @@ export function useTodoData() {
     fetchItems,
     fetchAnalytics,
     fetchPieData,
+    refreshCategories,
     createCategory,
     createList,
     createItem,
@@ -515,5 +612,4 @@ export function useTodoData() {
     getCompletedItemCount,
     getListCount
   }
-
 }

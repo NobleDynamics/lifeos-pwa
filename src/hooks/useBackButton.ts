@@ -27,7 +27,7 @@ export function useBackButton(options?: {
       hasSetupHistory.current = true
     }
 
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = (_e: PopStateEvent) => {
       // Check if modal needs closing first (via callback)
       if (options?.onCloseModal?.()) {
         // Modal was closed, re-push history entry
@@ -60,4 +60,3 @@ export function useBackButton(options?: {
 
   return { canGoBack }
 }
-

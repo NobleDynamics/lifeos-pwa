@@ -6,10 +6,10 @@ import type { User } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Development Test User ID - matches user in public.user_profiles
+// Development Test User ID - matches user in auth.users table
 // Set to true to bypass authentication and use test user
 const USE_DEV_TEST_USER = true
-const DEV_TEST_USER_ID = 'ed6c2930-c87a-4f3b-9e25-429cdbc06ac3'
+const DEV_TEST_USER_ID = '11111111-1111-1111-1111-111111111111'
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Missing Supabase environment variables. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.')

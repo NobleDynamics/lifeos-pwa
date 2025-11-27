@@ -1,0 +1,32 @@
+# LifeOS Project Rules & Context
+
+## 1. Design System & Components (The "DRY" Law)
+* **Check First:** Before building *any* UI, check `src/components/shared/` and `src/components/ui/`.
+* **Extend, Don't Duplicate:** If a component is close to what you need, add a prop rather than creating a duplicate.
+* **Shadcn First:** Always compose interfaces using Shadcn primitives.
+* **Mandatory Wrappers (Do NOT build raw Modals or Pages):**
+    * **Forms/Modals** → Must use `<FormSheet>` (handles backdrop, animations, close buttons).
+    * **Page Views** → Must use `<ViewShell>` (handles headers, breadcrumbs, spacing).
+    * **Content Cards** → Must use `<CyberCard>` (handles neon glow/glassmorphism).
+    * **Lists** → Must use `<DataList>` (handles virtualized rows).
+    * **Filters** → Must use `<FilterBar>` (handles search/date inputs).
+
+## 2. Documentation Synchronization (The "Memory" Law)
+* **Backend Sync:** If you write SQL or modify Supabase tables, you **MUST** immediately update `02_Backend_Schema.md` to reflect the change.
+* **Component Registry:** If you create a new `shared` component, add a brief entry to the 'Component Library' section in `01_Frontend_PWA.md`.
+* **Status Update:** If a feature (e.g., "Household > Todo") is completed, mark it as [Done] in `01_Frontend_PWA.md`.
+
+## 3. Session Hand-off Protocol
+* **Start of Task:** ALWAYS read `01_Frontend_PWA.md` and `02_Backend_Schema.md` to understand the current state before coding.
+* **End of Task:** Before finishing, verify that the documentation matches the code you just wrote. This ensures the next agent doesn't hallucinate missing features.
+
+## 4. Terminal & Environment (PowerShell)
+* **Command Separators:** Use `;` to separate commands. NEVER use `&&`.
+* **Git Workflow:** `git add -A; git commit -m "Message"; git push`
+* **File Write Fix:** If a file appears truncated (missing closing brackets), fix it using: `Set-Location "Adhoc-App/lifeos-pwa"; Add-Content src/path/to/file.tsx "}"`
+
+## 5. Tech Stack Standards
+* **State:** TanStack Query (Server State), Zustand (Global UI State).
+* **Styling:** Tailwind CSS with CSS variables (Cyberpunk theme: Cyan/Dark).
+* **Charts:** Recharts (via Shadcn/UI Charts).
+* **Icons:** Lucide-React.

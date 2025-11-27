@@ -1,19 +1,13 @@
 import { Home, ClipboardList, ShoppingCart, BarChart3, ChefHat, List, Barcode } from 'lucide-react'
 import CategoryPane from '@/components/CategoryPane'
 import { useAppStore } from '@/store/useAppStore'
+import { TodoPane } from '@/components/TodoPane'
 
 const tabs = [
   { id: 'todo', label: 'To-Do', icon: ClipboardList },
   { id: 'shopping', label: 'Shopping', icon: ShoppingCart },
   { id: 'stock', label: 'Stock', icon: BarChart3 },
   { id: 'recipes', label: 'Recipes', icon: ChefHat },
-]
-
-// Mock data
-const mockTodos = [
-  { id: 1, title: 'Fix leaky faucet', due: 'Today', overdue: true },
-  { id: 2, title: 'Pay electricity bill', due: 'Tomorrow', overdue: false },
-  { id: 3, title: 'Clean garage', due: 'Sat', overdue: false },
 ]
 
 const mockShoppingItems = [
@@ -35,36 +29,7 @@ const mockRecipes = [
 ]
 
 function TodoTab() {
-  return (
-    <div className="p-4 space-y-4">
-      {/* Household Toggle */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm">View:</span>
-        <div className="flex gap-1 p-1 bg-dark-200 rounded-lg">
-          <button className="px-3 py-1 text-xs rounded bg-primary/20 text-primary">Shared</button>
-          <button className="px-3 py-1 text-xs rounded text-dark-500">Private</button>
-        </div>
-      </div>
-      
-      {/* Task List */}
-      <div className="space-y-2">
-        {mockTodos.map((task) => (
-          <div key={task.id} className="glass-card p-3 flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full border-2 border-dark-400" />
-            <div className="flex-1">
-              <p className="text-sm">{task.title}</p>
-              <p className={`text-xs ${task.overdue ? 'text-accent-red' : 'text-dark-500'}`}>{task.due}</p>
-            </div>
-            <button className="text-xs text-primary">Schedule</button>
-          </div>
-        ))}
-      </div>
-      
-      <button className="w-full glass-card p-3 text-sm text-primary hover:bg-primary/10 transition-colors">
-        + Add Task
-      </button>
-    </div>
-  )
+  return <TodoPane accentColor="#00EAFF" chartColors={['#00EAFF', '#00D4FF', '#00BFFF', '#0099FF', '#0077FF', '#0055FF']} />
 }
 
 function ShoppingTab() {

@@ -12,12 +12,13 @@
     * **Filters** → Must use `<FilterBar>` (handles search/date inputs).
 
 ## 2. Documentation Synchronization (The "Memory" Law)
-* **Backend Sync:** If you write SQL or modify Supabase tables, you **MUST** immediately update `02_Backend_Schema.md` to reflect the change.
-* **Component Registry:** If you create a new `shared` component, add a brief entry to the 'Component Library' section in `01_Frontend_PWA.md`.
-* **Status Update:** If a feature (e.g., "Household > Todo") is completed, mark it as [Done] in `01_Frontend_PWA.md`.
+* **Docs Location:** All documentation lives in `docs/` folder within this repo.
+* **Backend Sync:** If you write SQL or modify Supabase tables, you **MUST** immediately update `docs/02_Backend_Schema.md` to reflect the change.
+* **Component Registry:** If you create a new `shared` component, add a brief entry to the 'Component Library' section in `docs/01_Frontend_PWA.md`.
+* **Status Update:** If a feature (e.g., "Household > Todo") is completed, mark it as [Done] in `docs/01_Frontend_PWA.md`.
 
 ## 3. Session Hand-off Protocol
-* **Start of Task:** ALWAYS read `01_Frontend_PWA.md` and `02_Backend_Schema.md` to understand the current state before coding.
+* **Start of Task:** ALWAYS read `docs/01_Frontend_PWA.md` and `docs/02_Backend_Schema.md` to understand the current state before coding.
 * **End of Task:** Before finishing, verify that the documentation matches the code you just wrote. This ensures the next agent doesn't hallucinate missing features.
 
 ## 4. Terminal & Environment (PowerShell)

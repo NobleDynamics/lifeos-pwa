@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Plus, Target, List } from 'lucide-react'
 import { TodoList } from '@/types/database'
 import { useTodoData } from '@/hooks/useTodoData'
@@ -10,9 +10,17 @@ interface TodoListsViewProps {
 }
 
 export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
-  const { lists, loading, getItemCount, getCompletedItemCount } = useTodoData()
+  const { lists, loading, fetchLists, getItemCount, getCompletedItemCount } = useTodoData()
   const { selectedCategoryId, navigateToList } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
+
+  // Fetch lists when the component mounts or category changes
+  useEffect(() => {
+    if (selectedCategoryId) {
+      console.log('TodoListsView: Fetching lists for category:', selectedCategoryId)
+      fetchLists(selectedCategoryId)
+    }
+  }, [selectedCategoryId, fetchLists])
 
   const handleCreateList = () => {
     setEditingItem(null)

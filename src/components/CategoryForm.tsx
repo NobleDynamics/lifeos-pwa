@@ -180,8 +180,8 @@ export function CategoryForm({ editingCategory, onClose, accentColor = '#00EAFF'
           >
             <span
               className={cn(
-                "absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200",
-                isShared ? "translate-x-6" : "translate-x-0.5"
+                "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200",
+                isShared && "translate-x-6"
               )}
             />
           </button>

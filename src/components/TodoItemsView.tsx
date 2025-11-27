@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react'
-import { Plus, CheckCircle, Clock, Circle, PlayCircle } from 'lucide-react'
-import { TodoItem } from '@/types/database'
+import { Plus, CheckCircle, Circle, PlayCircle } from 'lucide-react'
+import { TodoItem, TodoStatus } from '@/types/database'
 import { useTodoData } from '@/hooks/useTodoData'
 import { useTodoNavigation, useTodoUI } from '@/store/useTodoStore'
+import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
 
 interface TodoItemsViewProps {
@@ -27,14 +28,19 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
     setShowForm('item')
   }
 
-  const handleItemClick = (item: TodoItem) => {
-    setEditingItem(item)
-    setShowForm('item')
+  // Cycle status: not_started -> in_progress -> completed -> not_started
+  const cycleStatus = async (item: TodoItem) => {
+    const statusOrder: TodoStatus[] = ['not_started', 'in_progress', 'completed']
+    const currentIndex = statusOrder.indexOf(item.status)
+    const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length]
+    
+    await cycleItemStatus(item.id)
   }
 
-  const handleStatusClick = (e: React.MouseEvent, itemId: string) => {
-    e.stopPropagation()
-    cycleItemStatus(itemId)
+  // Long press opens edit form
+  const handleLongPress = (item: TodoItem) => {
+    setEditingItem(item)
+    setShowForm('item')
   }
 
   const getStatusIcon = (status: string) => {
@@ -43,8 +49,6 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
         return <CheckCircle className="w-5 h-5 text-green-500" />
       case 'in_progress':
         return <PlayCircle className="w-5 h-5 text-blue-500" />
-      case 'started':
-        return <Clock className="w-5 h-5 text-yellow-500" />
       default:
         return <Circle className="w-5 h-5 text-dark-400" />
     }
@@ -56,8 +60,6 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
         return 'text-green-500'
       case 'in_progress':
         return 'text-blue-500'
-      case 'started':
-        return 'text-yellow-500'
       default:
         return 'text-dark-400'
     }
@@ -108,56 +110,84 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
   return (
     <div className="space-y-3">
       {items.map((item) => (
-        <div
+        <ItemCard
           key={item.id}
-          className={cn(
-            "bg-dark-100 rounded-lg shadow-sm border border-dark-300",
-            "p-4 cursor-pointer transition-all duration-200 hover:shadow-md",
-            "hover:border-dark-200",
-            item.status === 'completed' && 'opacity-60'
-          )}
-          onClick={() => handleItemClick(item)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={(e) => handleStatusClick(e, item.id)}
-                className="hover:scale-110 transition-transform"
-              >
-                {getStatusIcon(item.status)}
-              </button>
-              <div className="flex-1">
-                <h3 className={cn(
-                  "text-sm font-medium text-white",
-                  item.status === 'completed' && 'line-through'
-                )}>
-                  {item.name}
-                </h3>
-                {item.description && (
-                  <p className="text-xs text-dark-500 mt-1">
-                    {item.description}
-                  </p>
-                )}
-                <div className="flex items-center space-x-4 mt-2">
-                  <span className={`text-xs capitalize ${getStatusColor(item.status)}`}>
-                    {item.status.replace('_', ' ')}
-                  </span>
-                  {item.due_date && (
-                    <span className="text-xs text-dark-400">
-                      Due: {new Date(item.due_date).toLocaleDateString()}
-                    </span>
-                  )}
-                  {item.location_name && (
-                    <span className="text-xs text-dark-400">
-                      📍 {item.location_name}
-                    </span>
-                  )}
-                </div>
-              </div>
+          item={item}
+          accentColor={accentColor}
+          onTap={() => cycleStatus(item)}
+          onLongPress={() => handleLongPress(item)}
+          getStatusIcon={getStatusIcon}
+          getStatusColor={getStatusColor}
+        />
+      ))}
+    </div>
+  )
+}
+
+// Separate component to use the hook properly
+function ItemCard({
+  item,
+  accentColor,
+  onTap,
+  onLongPress,
+  getStatusIcon,
+  getStatusColor
+}: {
+  item: TodoItem
+  accentColor: string
+  onTap: () => void
+  onLongPress: () => void
+  getStatusIcon: (status: string) => React.ReactNode
+  getStatusColor: (status: string) => string
+}) {
+  const longPressHandlers = useLongPress(onLongPress, { threshold: 500 })
+
+  return (
+    <div
+      className={cn(
+        "bg-dark-100 rounded-lg shadow-sm border border-dark-300",
+        "p-4 cursor-pointer transition-all duration-200 hover:shadow-md select-none",
+        "hover:border-dark-200 active:scale-[0.98]",
+        item.status === 'completed' && 'opacity-60'
+      )}
+      onClick={onTap}
+      {...longPressHandlers}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="pointer-events-none">
+            {getStatusIcon(item.status)}
+          </div>
+          <div className="flex-1">
+            <h3 className={cn(
+              "text-sm font-medium text-white",
+              item.status === 'completed' && 'line-through'
+            )}>
+              {item.name}
+            </h3>
+            {item.description && (
+              <p className="text-xs text-dark-500 mt-1">
+                {item.description}
+              </p>
+            )}
+            <div className="flex items-center space-x-4 mt-2">
+              <span className={`text-xs capitalize ${getStatusColor(item.status)}`}>
+                {item.status.replace('_', ' ')}
+              </span>
+              {item.due_date && (
+                <span className="text-xs text-dark-400">
+                  Due: {new Date(item.due_date).toLocaleDateString()}
+                </span>
+              )}
+              {item.location_name && (
+                <span className="text-xs text-dark-400">
+                  📍 {item.location_name}
+                </span>
+              )}
             </div>
           </div>
         </div>
-      ))}
+      </div>
     </div>
   )
 }

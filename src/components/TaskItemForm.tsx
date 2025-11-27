@@ -26,16 +26,25 @@ export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColo
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Initialize form with editing data
+  // Initialize form with editing data OR reset for new item
   useEffect(() => {
     const itemToEdit = editingItemProp || (editingItem as TodoItem)
-    if (itemToEdit) {
+    if (itemToEdit?.id) {
+      // Editing existing item
       setName(itemToEdit.name || '')
       setDescription(itemToEdit.description || '')
       setStatus(itemToEdit.status || 'not_started')
       setDueDate(itemToEdit.due_date ? itemToEdit.due_date.split('T')[0] : '')
       setLocationName(itemToEdit.location_name || '')
       setIsShared(itemToEdit.is_shared || false)
+    } else {
+      // Creating new item - reset all fields
+      setName('')
+      setDescription('')
+      setStatus('not_started')
+      setDueDate('')
+      setLocationName('')
+      setIsShared(false)
     }
   }, [editingItemProp, editingItem])
 
@@ -92,8 +101,7 @@ export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColo
 
   const statusOptions: { value: TodoStatus; label: string; color: string }[] = [
     { value: 'not_started', label: 'Not Started', color: '#6B7280' },
-    { value: 'started', label: 'Started', color: '#3B82F6' },
-    { value: 'in_progress', label: 'In Progress', color: '#F59E0B' },
+    { value: 'in_progress', label: 'In Progress', color: '#3B82F6' },
     { value: 'completed', label: 'Completed', color: '#10B981' },
   ]
 
@@ -213,8 +221,8 @@ export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColo
           >
             <span
               className={cn(
-                "absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200",
-                isShared ? "translate-x-6" : "translate-x-0.5"
+                "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200",
+                isShared && "translate-x-6"
               )}
             />
           </button>

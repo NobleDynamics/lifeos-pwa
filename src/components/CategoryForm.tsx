@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Check, Palette } from 'lucide-react'
 import { TodoCategory } from '@/types/database'
-import { useTodoData } from '@/hooks/useTodoData'
+import { useCreateCategory, useUpdateCategory } from '@/hooks/useTodoData'
 import { useTodoUI } from '@/store/useTodoStore'
 import { cn } from '@/lib/utils'
 import { FormSheet } from '@/components/shared/FormSheet'
@@ -27,7 +27,8 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ editingCategory, onClose, accentColor = '#00EAFF' }: CategoryFormProps) {
-  const { createCategory, updateCategory, refreshCategories } = useTodoData()
+  const createCategoryMutation = useCreateCategory()
+  const updateCategoryMutation = useUpdateCategory()
   const { setShowForm, editingItem } = useTodoUI()
   
   const [name, setName] = useState('')
@@ -75,14 +76,12 @@ export function CategoryForm({ editingCategory, onClose, accentColor = '#00EAFF'
       const categoryToEdit = editingCategory || (editingItem as TodoCategory)
       
       if (categoryToEdit?.id) {
-        await updateCategory(categoryToEdit.id, categoryData)
+        await updateCategoryMutation.mutateAsync({ id: categoryToEdit.id, updates: categoryData })
       } else {
-        await createCategory(categoryData)
+        await createCategoryMutation.mutateAsync(categoryData)
       }
 
-      // Refresh the list to show the new/updated category
-      await refreshCategories()
-      
+      // TanStack Query automatically invalidates and refetches
       handleClose()
     } catch (err) {
       console.error('Error saving category:', err)

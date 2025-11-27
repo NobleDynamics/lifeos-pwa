@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react'
+import React, { useCallback } from 'react'
 import { Plus, BarChart3, ArrowLeft } from 'lucide-react'
 import { TodoAnalytics } from './TodoAnalytics'
 import { TodoCategoryList } from './TodoCategoryList'
@@ -11,8 +11,8 @@ import { TodoDetailSheet } from './TodoDetailSheet'
 import { CategoryForm } from './CategoryForm'
 import { TaskListForm } from './TaskListForm'
 import { TaskItemForm } from './TaskItemForm'
-import { useTodoData } from '@/hooks/useTodoData'
-import { useTodoNavigation, useTodoUI, useTodoSearch, useTodoFilters } from '@/store/useTodoStore'
+import { useCategories } from '@/hooks/useTodoData'
+import { useTodoNavigation, useTodoUI } from '@/store/useTodoStore'
 import { useAuth } from '@/lib/supabase'
 import { useBackButton } from '@/hooks/useBackButton'
 import { cn } from '@/lib/utils'
@@ -24,42 +24,19 @@ interface TodoPaneProps {
 
 export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#00D4FF', '#00BFFF', '#0099FF', '#0077FF', '#0055FF'] }: TodoPaneProps) {
   const { user } = useAuth()
-  const { currentView, selectedCategoryId, selectedListId, navigateBack } = useTodoNavigation()
+  const { currentView, navigateBack, getCurrentTitle } = useTodoNavigation()
   const { showAnalytics, showForm, setShowForm } = useTodoUI()
-  const { categories, loading, fetchLists, fetchItems } = useTodoData()
+  const { data: categories = [], isLoading: loading } = useCategories()
 
   // Handle Android back button - navigate through todo hierarchy
   const handleBackButton = useCallback(() => {
-    // If viewing items, go back to lists
-    if (currentView === 'items') {
-      navigateBack()
-      return true
-    }
-    // If viewing lists, go back to categories
-    if (currentView === 'lists') {
-      navigateBack()
-      return true
-    }
-    // At categories level, let the app's default back handler take over
-    return false
-  }, [currentView, navigateBack])
+    // navigateBack returns false if at root level
+    return navigateBack()
+  }, [navigateBack])
 
   useBackButton({
     onCloseModal: handleBackButton
   })
-
-  // Fetch data when navigating
-  useEffect(() => {
-    if (selectedCategoryId) {
-      fetchLists(selectedCategoryId)
-    }
-  }, [selectedCategoryId, fetchLists])
-
-  useEffect(() => {
-    if (selectedListId) {
-      fetchItems(selectedListId)
-    }
-  }, [selectedListId, fetchItems])
 
   if (!user) {
     return (
@@ -113,14 +90,14 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
           <div className="flex items-center space-x-3">
             {currentView !== 'categories' && (
               <button
-                onClick={navigateBack}
+                onClick={() => navigateBack()}
                 className="p-2 text-dark-500 hover:text-white rounded-lg hover:bg-dark-200"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
             <h2 className="text-lg font-semibold text-white">
-              To-Do Lists
+              {getCurrentTitle()}
             </h2>
           </div>
           <div className="flex items-center space-x-2">

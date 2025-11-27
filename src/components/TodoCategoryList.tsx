@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
-import { Plus, MoreVertical, Target, List, CheckCircle, Clock } from 'lucide-react'
+import React from 'react'
+import { Plus, MoreVertical, Target, List } from 'lucide-react'
 import { TodoCategory } from '@/types/database'
-import { useTodoData } from '@/hooks/useTodoData'
+import { useCategories, useAllLists } from '@/hooks/useTodoData'
 import { useTodoNavigation, useTodoUI, useTodoContextMenu } from '@/store/useTodoStore'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
@@ -11,13 +11,19 @@ interface TodoCategoryListProps {
 }
 
 export function TodoCategoryList({ accentColor = '#00EAFF' }: TodoCategoryListProps) {
-  const { categories, loading, getListCount } = useTodoData()
+  const { data: categories = [], isLoading: loading } = useCategories()
+  const { data: allLists = [] } = useAllLists()
   const { navigateToCategory } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
   const { showContextMenu, hideContextMenu } = useTodoContextMenu()
 
-  const handleCategoryClick = (categoryId: string) => {
-    navigateToCategory(categoryId)
+  // Get list count for a category
+  const getListCount = (categoryId: string): number => {
+    return allLists.filter(list => list.category_id === categoryId).length
+  }
+
+  const handleCategoryClick = (category: TodoCategory) => {
+    navigateToCategory(category.id, category.name)
   }
 
   const handleCreateCategory = () => {
@@ -96,7 +102,7 @@ export function TodoCategoryList({ accentColor = '#00EAFF' }: TodoCategoryListPr
               "p-4 cursor-pointer transition-all duration-200 hover:shadow-md",
               "hover:border-dark-200"
             )}
-            onClick={() => handleCategoryClick(category.id)}
+            onClick={() => handleCategoryClick(category)}
             onContextMenu={(e) => handleCategoryContextMenu(e, category)}
             onMouseDown={(e) => longPressHandlers.onMouseDown(e, category)}
             onTouchStart={(e) => longPressHandlers.onTouchStart(e, category)}
@@ -175,5 +181,4 @@ function ChevronRight({ className }: { className?: string }) {
       />
     </svg>
   )
-
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, MapPin } from 'lucide-react'
 import { TodoList } from '@/types/database'
-import { useTodoData } from '@/hooks/useTodoData'
+import { useCreateList, useUpdateList } from '@/hooks/useTodoData'
 import { useTodoUI, useTodoNavigation } from '@/store/useTodoStore'
 import { cn } from '@/lib/utils'
 import { FormSheet } from '@/components/shared/FormSheet'
@@ -13,7 +13,8 @@ interface TaskListFormProps {
 }
 
 export function TaskListForm({ editingList, onClose, accentColor = '#00EAFF' }: TaskListFormProps) {
-  const { createList, updateList } = useTodoData()
+  const createListMutation = useCreateList()
+  const updateListMutation = useUpdateList()
   const { setShowForm, editingItem } = useTodoUI()
   const { selectedCategoryId } = useTodoNavigation()
   
@@ -71,11 +72,12 @@ export function TaskListForm({ editingList, onClose, accentColor = '#00EAFF' }: 
       const listToEdit = editingList || (editingItem as TodoList)
       
       if (listToEdit?.id) {
-        await updateList(listToEdit.id, listData)
+        await updateListMutation.mutateAsync({ id: listToEdit.id, updates: listData })
       } else {
-        await createList(listData)
+        await createListMutation.mutateAsync(listData)
       }
 
+      // TanStack Query automatically invalidates and refetches
       handleClose()
     } catch (err) {
       console.error('Error saving list:', err)

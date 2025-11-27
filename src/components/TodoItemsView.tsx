@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Plus, CheckCircle, Circle, PlayCircle } from 'lucide-react'
 import { TodoItem, TodoStatus } from '@/types/database'
-import { useTodoData } from '@/hooks/useTodoData'
+import { useItems, useCycleItemStatus } from '@/hooks/useTodoData'
 import { useTodoNavigation, useTodoUI } from '@/store/useTodoStore'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
@@ -11,17 +11,12 @@ interface TodoItemsViewProps {
 }
 
 export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
-  const { items, loading, fetchItems, cycleItemStatus } = useTodoData()
   const { selectedListId } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
-
-  // Fetch items when the component mounts or list changes
-  useEffect(() => {
-    if (selectedListId) {
-      console.log('TodoItemsView: Fetching items for list:', selectedListId)
-      fetchItems(selectedListId)
-    }
-  }, [selectedListId, fetchItems])
+  
+  // Use TanStack Query hooks - automatically fetches when selectedListId changes
+  const { data: items = [], isLoading: loading } = useItems(selectedListId)
+  const cycleStatusMutation = useCycleItemStatus()
 
   const handleCreateItem = () => {
     setEditingItem(null)
@@ -30,11 +25,7 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
 
   // Cycle status: not_started -> in_progress -> completed -> not_started
   const cycleStatus = async (item: TodoItem) => {
-    const statusOrder: TodoStatus[] = ['not_started', 'in_progress', 'completed']
-    const currentIndex = statusOrder.indexOf(item.status)
-    const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length]
-    
-    await cycleItemStatus(item.id)
+    await cycleStatusMutation.mutateAsync({ item })
   }
 
   // Long press opens edit form

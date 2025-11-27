@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react'
-import { Plus, Target, List } from 'lucide-react'
+import React from 'react'
+import { Plus, List } from 'lucide-react'
 import { TodoList } from '@/types/database'
-import { useTodoData } from '@/hooks/useTodoData'
+import { useLists, useAllItems } from '@/hooks/useTodoData'
 import { useTodoNavigation, useTodoUI } from '@/store/useTodoStore'
 import { cn } from '@/lib/utils'
 
@@ -10,25 +10,30 @@ interface TodoListsViewProps {
 }
 
 export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
-  const { lists, loading, fetchLists, getItemCount, getCompletedItemCount } = useTodoData()
   const { selectedCategoryId, navigateToList } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
+  
+  // Use TanStack Query hooks - automatically fetches when selectedCategoryId changes
+  const { data: lists = [], isLoading: loading } = useLists(selectedCategoryId)
+  const { data: allItems = [] } = useAllItems()
 
-  // Fetch lists when the component mounts or category changes
-  useEffect(() => {
-    if (selectedCategoryId) {
-      console.log('TodoListsView: Fetching lists for category:', selectedCategoryId)
-      fetchLists(selectedCategoryId)
-    }
-  }, [selectedCategoryId, fetchLists])
+  // Get item count for a list
+  const getItemCount = (listId: string): number => {
+    return allItems.filter(item => item.list_id === listId).length
+  }
+
+  // Get completed item count for a list
+  const getCompletedItemCount = (listId: string): number => {
+    return allItems.filter(item => item.list_id === listId && item.status === 'completed').length
+  }
 
   const handleCreateList = () => {
     setEditingItem(null)
     setShowForm('list')
   }
 
-  const handleListClick = (listId: string) => {
-    navigateToList(listId)
+  const handleListClick = (list: TodoList) => {
+    navigateToList(list.id, list.name)
   }
 
   if (loading && lists.length === 0) {
@@ -87,7 +92,7 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
               "p-4 cursor-pointer transition-all duration-200 hover:shadow-md",
               "hover:border-dark-200"
             )}
-            onClick={() => handleListClick(list.id)}
+            onClick={() => handleListClick(list)}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">

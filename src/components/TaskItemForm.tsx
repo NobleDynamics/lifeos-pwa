@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, MapPin } from 'lucide-react'
 import { TodoItem, TodoStatus } from '@/types/database'
-import { useTodoData } from '@/hooks/useTodoData'
+import { useCreateItem, useUpdateItem } from '@/hooks/useTodoData'
 import { useTodoUI, useTodoNavigation } from '@/store/useTodoStore'
 import { cn } from '@/lib/utils'
 import { FormSheet } from '@/components/shared/FormSheet'
@@ -13,7 +13,8 @@ interface TaskItemFormProps {
 }
 
 export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColor = '#00EAFF' }: TaskItemFormProps) {
-  const { createItem, updateItem } = useTodoData()
+  const createItemMutation = useCreateItem()
+  const updateItemMutation = useUpdateItem()
   const { setShowForm, editingItem } = useTodoUI()
   const { selectedListId } = useTodoNavigation()
   
@@ -83,11 +84,12 @@ export function TaskItemForm({ editingItem: editingItemProp, onClose, accentColo
       const itemToEdit = editingItemProp || (editingItem as TodoItem)
       
       if (itemToEdit?.id) {
-        await updateItem(itemToEdit.id, itemData)
+        await updateItemMutation.mutateAsync({ id: itemToEdit.id, updates: itemData })
       } else {
-        await createItem(itemData)
+        await createItemMutation.mutateAsync(itemData)
       }
 
+      // TanStack Query automatically invalidates and refetches
       handleClose()
     } catch (err) {
       console.error('Error saving item:', err)

@@ -574,13 +574,24 @@ export function useTodoData() {
 
   // Initialize data
   useEffect(() => {
-    if (user) {
-      console.log('useTodoData: User available, fetching data:', user.id)
-      fetchCategories()
-      setLoading(false)
-    } else {
-      console.log('useTodoData: No user, skipping fetch')
+    const loadInitialData = async () => {
+      if (user) {
+        console.log('useTodoData: User available, fetching data:', user.id)
+        setLoading(true)
+        try {
+          await fetchCategories()
+        } catch (err) {
+          console.error('useTodoData: Error fetching initial data:', err)
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        console.log('useTodoData: No user, skipping fetch')
+        setLoading(false)
+      }
     }
+    
+    loadInitialData()
   }, [user, fetchCategories])
 
   return {

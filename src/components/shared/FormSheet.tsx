@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useBackButton } from '@/hooks/useBackButton'
 import { cn } from '@/lib/utils'
+import { DRAWER_HANDLE_HEIGHT } from '@/components/Layout'
 
 export interface FormSheetProps {
   /** Title displayed in the header */
@@ -94,7 +95,7 @@ export function FormSheet({
             onClick={handleClose}
           />
 
-          {/* Sheet with slide-up animation */}
+          {/* Sheet with slide-up animation - positioned above drawer handle */}
           <motion.div
             initial={{ y: '100%', opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -105,7 +106,7 @@ export function FormSheet({
               stiffness: 400,
             }}
             className="relative w-full max-w-lg bg-dark-100 rounded-t-2xl shadow-xl overflow-hidden"
-            style={{ maxHeight }}
+            style={{ maxHeight, marginBottom: `${DRAWER_HANDLE_HEIGHT}px` }}
           >
             {/* Drag Handle (visual indicator) */}
             <div className="flex justify-center pt-2 pb-0">
@@ -141,4 +142,3 @@ export function FormSheet({
     </AnimatePresence>
   )
 }
-

@@ -44,7 +44,7 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400">Please log in to access your To-Do lists</p>
+          <p className="text-dark-500">Please log in to access your To-Do lists</p>
         </div>
       </div>
     )
@@ -65,8 +65,8 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
       return (
         <div className="flex items-center justify-center h-64">
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
-            <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-4 bg-dark-200 rounded w-32"></div>
+            <div className="h-32 bg-dark-200 rounded"></div>
           </div>
         </div>
       )
@@ -85,20 +85,20 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-dark-50 border-b border-dark-300 p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             {currentView !== 'categories' && (
               <button
                 onClick={navigateBack}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 text-dark-500 hover:text-white rounded-lg hover:bg-dark-200"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h2 className="text-lg font-semibold text-white">
               To-Do Lists
             </h2>
           </div>
@@ -116,7 +116,7 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
                 "p-2 rounded-lg transition-colors",
                 showAnalytics 
                   ? "text-white" 
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  : "text-dark-500 hover:text-white hover:bg-dark-200"
               )}
               style={showAnalytics ? { backgroundColor: accentColor } : {}}
             >
@@ -144,7 +144,7 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
 
       {/* Analytics Panel */}
       {showAnalytics && (
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-dark-50 border-b border-dark-300 p-4">
           <TodoAnalytics accentColor={accentColor} chartColors={chartColors} />
         </div>
       )}

@@ -27,7 +27,7 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ editingCategory, onClose, accentColor = '#00EAFF' }: CategoryFormProps) {
-  const { createCategory, updateCategory } = useTodoData()
+  const { createCategory, updateCategory, refreshCategories } = useTodoData()
   const { setShowForm, editingItem } = useTodoUI()
   
   const [name, setName] = useState('')
@@ -80,6 +80,9 @@ export function CategoryForm({ editingCategory, onClose, accentColor = '#00EAFF'
         await createCategory(categoryData)
       }
 
+      // Refresh the list to show the new/updated category
+      await refreshCategories()
+      
       handleClose()
     } catch (err) {
       console.error('Error saving category:', err)

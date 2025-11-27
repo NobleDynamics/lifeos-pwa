@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useCallback } from 'react'
 import { Plus, BarChart3, ArrowLeft } from 'lucide-react'
 import { TodoAnalytics } from './TodoAnalytics'
 import { TodoCategoryList } from './TodoCategoryList'
@@ -14,6 +14,7 @@ import { TaskItemForm } from './TaskItemForm'
 import { useTodoData } from '@/hooks/useTodoData'
 import { useTodoNavigation, useTodoUI, useTodoSearch, useTodoFilters } from '@/store/useTodoStore'
 import { useAuth } from '@/lib/supabase'
+import { useBackButton } from '@/hooks/useBackButton'
 import { cn } from '@/lib/utils'
 
 interface TodoPaneProps {
@@ -26,6 +27,26 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
   const { currentView, selectedCategoryId, selectedListId, navigateBack } = useTodoNavigation()
   const { showAnalytics, showForm, setShowForm } = useTodoUI()
   const { categories, loading, fetchLists, fetchItems } = useTodoData()
+
+  // Handle Android back button - navigate through todo hierarchy
+  const handleBackButton = useCallback(() => {
+    // If viewing items, go back to lists
+    if (currentView === 'items') {
+      navigateBack()
+      return true
+    }
+    // If viewing lists, go back to categories
+    if (currentView === 'lists') {
+      navigateBack()
+      return true
+    }
+    // At categories level, let the app's default back handler take over
+    return false
+  }, [currentView, navigateBack])
+
+  useBackButton({
+    onCloseModal: handleBackButton
+  })
 
   // Fetch data when navigating
   useEffect(() => {
@@ -85,7 +106,7 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="bg-dark-50 border-b border-dark-300 p-4">
         <div className="flex items-center justify-between mb-4">

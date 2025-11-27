@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus, Target } from 'lucide-react'
+import { Plus, Target, List } from 'lucide-react'
 import { TodoList } from '@/types/database'
 import { useTodoData } from '@/hooks/useTodoData'
 import { useTodoNavigation, useTodoUI } from '@/store/useTodoStore'
@@ -10,7 +10,7 @@ interface TodoListsViewProps {
 }
 
 export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
-  const { lists, loading } = useTodoData()
+  const { lists, loading, getItemCount, getCompletedItemCount } = useTodoData()
   const { selectedCategoryId, navigateToList } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
 
@@ -27,16 +27,16 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+          <div key={i} className="bg-dark-100 rounded-lg shadow-sm border border-dark-300 p-4 animate-pulse">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                <div className="w-10 h-10 bg-dark-200 rounded-lg"></div>
                 <div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                  <div className="h-4 bg-dark-200 rounded w-24 mb-2"></div>
+                  <div className="h-3 bg-dark-200 rounded w-16"></div>
                 </div>
               </div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-8"></div>
+              <div className="h-4 bg-dark-200 rounded w-8"></div>
             </div>
           </div>
         ))}
@@ -47,9 +47,9 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
   if (lists.length === 0) {
     return (
       <div className="text-center py-12">
-        <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Lists Yet</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first list to start organizing your tasks</p>
+        <List className="w-12 h-12 text-dark-400 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-white mb-2">No Lists Yet</h3>
+        <p className="text-dark-500 mb-6">Create your first list to start organizing your tasks</p>
         <button
           onClick={handleCreateList}
           className={cn(
@@ -67,52 +67,62 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
 
   return (
     <div className="space-y-3">
-      {lists.map((list) => (
-        <div
-          key={list.id}
-          className={cn(
-            "bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700",
-            "p-4 cursor-pointer transition-all duration-200 hover:shadow-md",
-            "hover:border-gray-300 dark:hover:border-gray-600"
-          )}
-          onClick={() => handleListClick(list.id)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: accentColor + '20' }}
-              >
-                <Target
-                  className="w-5 h-5"
-                  style={{ color: accentColor }}
-                />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {list.name}
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {list.description || 'No description'}
-                </p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <div className="flex items-center space-x-1">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                      {0} items
-                    </span>
+      {lists.map((list) => {
+        const itemCount = getItemCount(list.id)
+        const completedCount = getCompletedItemCount(list.id)
+        
+        return (
+          <div
+            key={list.id}
+            className={cn(
+              "bg-dark-100 rounded-lg shadow-sm border border-dark-300",
+              "p-4 cursor-pointer transition-all duration-200 hover:shadow-md",
+              "hover:border-dark-200"
+            )}
+            onClick={() => handleListClick(list.id)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: accentColor + '20' }}
+                >
+                  <List
+                    className="w-5 h-5"
+                    style={{ color: accentColor }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-white">
+                    {list.name}
+                  </h3>
+                  <p className="text-xs text-dark-500 mt-1">
+                    {list.description || 'No description'}
+                  </p>
+                  <div className="flex items-center space-x-4 mt-2">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs text-dark-500">
+                        {completedCount}/{itemCount} items
+                      </span>
+                    </div>
+                    {list.due_date && (
+                      <span className="text-xs text-dark-400">
+                        Due: {new Date(list.due_date).toLocaleDateString()}
+                      </span>
+                    )}
+                    {list.is_shared && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/20 text-primary">
+                        Shared
+                      </span>
+                    )}
                   </div>
-                  {list.is_shared && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                      Shared
-                    </span>
-                  )}
                 </div>
               </div>
+              <ChevronRight className="w-4 h-4 text-dark-400" />
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

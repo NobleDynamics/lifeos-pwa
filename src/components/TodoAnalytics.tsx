@@ -64,8 +64,9 @@ export function TodoAnalytics({ accentColor = '#00EAFF', chartColors = ['#00EAFF
               {entry.name}: {entry.value}
             </p>
           ))}
-        </div>
-      )
+    </div>
+  )
+}
     }
     return null
   }
@@ -256,3 +257,5 @@ export function TodoAnalytics({ accentColor = '#00EAFF', chartColors = ['#00EAFF
       </div>
     </div>
   )
+
+}

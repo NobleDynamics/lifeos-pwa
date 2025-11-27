@@ -314,3 +314,5 @@ export interface TodoFilters {
   startDate?: string
   endDate?: string
   dueSoonFilter?: '1day' | '1week' | '1month' | 'all'
+
+}

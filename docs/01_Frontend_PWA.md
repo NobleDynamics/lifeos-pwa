@@ -1,0 +1,310 @@
+Technical Specification: LifeOS Frontend PWA
+Role: Lead Frontend Architect
+Project Vision: LifeOS is a personal "Operating System" (OS) running in the browser, specifically a Progressive Web App (PWA). It is designed to mimic a mobile OS interface (Android-style) with core features including swipeable homescreen panes, a global pull-up app drawer, and a sandboxed widget capability.
+Aesthetic:
+Theme: Cyberpunk/Sci-Fi interface.
+Mode: Dark Mode only.
+Accents: Glowing accents (Default: Cyan #06b6d4).
+Style: Glassmorphism effects applied to cards and containers.
+
+## Component Library (src/components/shared/)
+
+These reusable components enforce DRY principles across the app:
+
+| Component | Purpose | Props |
+|-----------|---------|-------|
+| `FormSheet` | Bottom sheet modal for all add/edit forms | `title`, `onClose`, `children`, `maxHeight?`, `isOpen?` |
+| `ViewShell` | Wrapper for all pane layouts with header/footer | `title`, `icon?`, `breadcrumbs?`, `headerActions?`, `footer?`, `onBack?` |
+| `TabBar` | Standard tab bar for ViewShell footer | `tabs`, `activeTab`, `onTabChange` |
+| `CategoryPane` | ViewShell variant with built-in tab management | `title`, `icon`, `tabs`, `tabKey`, `children` |
+
+**Usage Rule:** All new forms MUST use `<FormSheet>`. All new panes MUST use `<ViewShell>` or `<CategoryPane>`.
+
+---
+
+1. Technical Stack & Architecture
+Category
+Component/Tool
+Purpose
+Hosting
+Cloudflare Pages
+Static asset hosting for global performance and PWA service worker delivery.
+Core
+React 18+ (Vite)
+Modern component-based UI framework. Vite ensures fast development and optimized production builds.
+Language
+TypeScript (Strict)
+Enforces type safety across the application for maintainability and fewer runtime bugs.
+Animation
+framer-motion
+CRITICAL: Handles all advanced UI animations, specifically swipe physics for the Swipe Deck, gesture recognition for the App Drawer, and seamless layout transitions.
+Styling
+Tailwind CSS + clsx
+Utility-first CSS framework for rapid, consistent styling. clsx for conditional class joining.
+Theming
+CSS Variables
+Implements global theming by using CSS Variables (e.g., --primary: 220 100% 50%) for the accent color.
+Components
+Shadcn/UI (Modified)
+Modified for "Mobile-First": increased default padding/margins to ensure large, reliable touch targets.
+State (UI)
+Zustand
+Lightweight state management for local UI concerns (Pane order, Drawer state, Theme).
+State (Async)
+TanStack Query
+Manages server state (Dashboard Snapshots, Infinite Scroll), caching, and Optimistic Updates.
+Icons
+Lucide React
+Consistent icon library. Dock icons must be wrapped in a hexagon-shaped component.
+
+
+2. Navigation Architecture (The "OS" Concept)
+The application implements three primary, global navigation structures:
+A. The Swipe Deck (Main View)
+Concept: The core content area is a horizontal carousel of full-screen views, referred to as "Panes."
+Interaction: Users navigate by swiping left or right. Utilizes framer-motion for physics-based swiping.
+Default Order:
+Chat (Left)
+Dashboard (Center / Home)
+Feed (Right)
+B. The Dock (Quick Launch)
+Concept: A fixed bar at the bottom, present across all Panes.
+Contents: 4-5 "Quick Launch" application icons.
+Design: Icons must be Hexagon-shaped wrappers for Lucide icons.
+C. The App Drawer (Global Access)
+Concept: A global sheet/modal that provides access to all installed apps/widgets.
+Interaction: Vertical swipe gesture from the bottom of any Pane.
+Contents: A scrollable grid layout.
+
+3. The Dashboard Pane (Home HUD)
+The Dashboard is the central, high-density "Heads Up Display" (HUD).
+Layout Requirement
+On mobile portrait, the Main Stage MUST implement a Split-Row Layout (two components side-by-side) and MUST NOT revert to a vertical stack.
+Component Breakdown
+1. Header
+Left: Local Weather (Temp + Icon). Source: Redis Cache weather:{lat}:{long}.
+Right: Digital Clock.
+2. Main Stage (The Split Row)
+Left Card (Health Metrics):
+Width: 55%
+Visual: Bar Chart or Rings.
+Interaction: "Tap to Cycle" metrics (Steps -> Calories -> Water -> Sleep).
+Data Source: daily_health_logs table (aggregations for today).
+Hint: A small, low-opacity text label ("Tap to switch") must be visible.
+Right Card (Agent Log):
+Width: 45%
+Visual: Vertical scrollable list of recent AI task activities.
+Status Indicators (Traffic Light System):
+🟢 Green (Pulse): running (Agent is thinking/working).
+🔵 Blue: completed.
+🟡 Yellow: needing-input (User interaction required).
+🔴 Red: failed.
+3. Floating Inputs (High Z-Index)
+Primary: "Voice Waveform" button for primary system interaction.
+Secondary: "File Upload" button (Paperclip) for document/photo ingestion.
+
+4. Category Panes
+All Category Panes follow a strictly modular layout: Hero Banner -> Tab Bar -> Content Body.
+4.1 View: Health Pane
+Tabs: Nutrition, Exercise, Brain, Hygiene.
+A. Tab: Nutrition ("Family Feed")
+Top Controls: Profile Selector (Me/Dependents) + Date Filter (Day/Week/Month).
+Visuals:
+Macro Pie: Protein/Carbs/Fats (Source: meals.macros_json).
+Hydration: Progress bar. Source: daily_health_logs where metric=water_ml.
+Calorie Bar: Stacked (Base Metabolic + Active Burn).
+Interactions:
+"Show Note": Triggers AI analysis of the current view (loads with skeleton state).
+Dependent Tagging: Ingestion supports tagging meals.dependent_id.
+B. Tab: Exercise ("Body Map")
+Visuals:
+The Muscle Map: 2D SVG body. Opacity maps to volume (Sets * Weight) from completed_workouts.
+Fallback: Uses a hardcoded exercise_to_muscle JSON map.
+Sub-Views:
+Routine Builder: List of saved workouts.
+Detail: Shows "Estimated Burn" and instructions.
+Interactions:
+Add Workout: Triggers Poly (Chat) to negotiate details.
+C. Tab: Brain ("Quantified Self")
+Visuals:
+Social Volume: Chart of "Messages Sent" vs "People Talked To". Source: brain_logs & daily_health_logs.
+Learning: Counter for "Topics Explored" (Source: Zep Memory classifications).
+Embedded Games: Native React Components (Results save to brain_logs).
+Memory: Grid flip game.
+Reaction: "Tap when green" speed test.
+Focus: Pomodoro timer with "Distraction Logging".
+Sleep: Rendered from daily_health_logs (metric=sleep_hours).
+D. Tab: Hygiene (Habits)
+Visuals:
+Task List: Filters the unified tasks table for category='health' or category='chore' specific to hygiene.
+Stock Indicator: Dot (Green/Red) linked to pantry_items.
+Interactions: Modal to set Frequency (Cron) in routines and Linked Inventory Item.
+
+4.2 View: Household Pane
+Tabs: To-Do, Shopping List, Stock, Recipes.
+A. Global Feature: The "Household" Toggle
+UI: Toggle for "Shared View" vs "Private View".
+Logic: Filters tasks and lists by the household_id column.
+B. Tab: To-Do (Nested Action Hub) [DONE ✅]
+Structure: Folder Grid (Categories) -> List View (Lists) -> Task Items.
+Data Source: Queries the todo_categories, todo_lists, and todo_items tables.
+Item Cards: Checkbox, Title, Due Date (Color-coded if overdue), Location Icon.
+Interactions:
+"Schedule This": triggers Agent to find a slot in calendar_events.
+Quick Add: Header (+) button to add task via form or Chat.
+C. Tab: Shopping List (Smart Procurement)
+Sub-Views:
+Active Lists: Grouped by Vendor.
+Item Search: Search bar to find items in the database to add.
+Visuals:
+Vendor Split: Fetches Vendor Logo and Name from the relational vendors table.
+Smart Suggestions: Agent suggests stores based on shopping_items linked to specific vendor_id.
+Interactions:
+Upload Receipt: Camera action -> Triggers inbound_emails or direct transactions processing -> Updates Stock.
+The Nudge: Toast: "Stock updated! Check my counts?"
+D. Tab: Stock (Inventory)
+Structure: Folder View (Pantry, Fridge, Freezer) -> Item List.
+Visuals:
+🔴 Red: Out of Stock (qty_in_stock = 0).
+🟡 Yellow: Low Stock (qty_in_stock < qty_min).
+🕒 Clock: Expiring soon (expiry_date).
+Interactions: Voice Update (Mic button).
+E. Tab: Recipes (Meal Engine)
+View: Card Grid with "Cook Time" badges (Source: recipes.cook_time_minutes).
+Filters: Meal Type, Cuisine, Dietary, Ingredients (Has/Has Not).
+Detail View:
+Ingredients: Clickable list (Tap adds to shopping_items).
+Instructions: Step-by-step text.
+Action: "Add to Meal Plan" -> Creates a calendar_event with linked_resource_type='recipe'.
+
+4.3 View: Agenda Pane
+Tabs: Schedule, Calendar, Tasks, Routines.
+A. Tab: Schedule ("Now" Stream)
+Visual: Vertical timeline of calendar_events.
+Components:
+Now Line: Horizontal indicator moving in real-time.
+Polymorphic Icons: Fork (Recipe), Dumbbell (Workout), Checkmark (Task). Logic: Checks linked_resource_type.
+Interactions:
+Swipe Right: Sets status='completed'.
+Tap: Opens the linked resource detail view.
+B. Tab: Calendar
+Views: Month / Week / Day.
+Visual Layers:
+Blocking: is_blocking = true (Solid color).
+Non-Blocking: Transparent/Hashed.
+Interactions:
+Drag & Drop: Reschedule events instantly.
+Import: "Add Calendar" button (.ics).
+C. Tab: Tasks (Master Aggregator)
+Logic: Aggregates all records from the tasks table.
+Filters:
+Folders: Mapped to task.category (Chore, Errand, Project).
+Smart Lists: "Due Today", "Near Me" (Geofence).
+Scheduling: "Smart Schedule" button triggers Agent to move a Task into calendar_events.
+D. Tab: Routines
+Visual: List of routines.
+Detail View:
+Trigger: Cron Editor.
+Action Chain: Ordered list of tasks.
+Conflict Policy: Toggle for "Skip if busy" vs "Force Notify".
+
+4.4 View: Cloud Pane
+Tabs: Photos, Files, Docs.
+A. Tab: Photos (Gallery)
+Visuals:
+Breadcrumb: derived from folder_path strings.
+Smart Search: Filters by files.ai_tags.
+Ingestion: Uploads to R2, creates files record. Feedback shows "Scanning..." until AI processing completes.
+Interactions:
+Tap: Opens Lightbox.
+Long Press: Select mode (Delete, Move, Share).
+B. Tab: Docs (Knowledge Base)
+List View:
+Tags: Manual user tags from documents.tags (Array).
+Summary: AI-generated summary_short.
+Editor View:
+Read Mode: Rendered Markdown.
+Edit Mode: Clean text editor with basic formatting toolbar.
+Deep Linking: lifeos://docs/:id.
+C. Tab: Files
+Visuals: Standard File List.
+Viewers: CSV (Papaparse), PDF (Native).
+
+4.5 View: Finance Pane
+Tabs: Budget, Accounts, Analytics.
+A. Tab: Budget
+Visuals:
+Category Cards: Stacked Progress Bars (transaction_splits vs budget_categories).
+Overall Bar: Sticky footer showing Total Monthly Spend vs Income.
+B. Tab: Accounts (The Ledger)
+Master View:
+Net Worth: Summary card visualizing the trend line from the account_balance_history table.
+Detail View:
+Visuals: Toggle between Pie/Bar/Line charts.
+Transactions: List with multi-colored segment bars for split categories.
+Ingestion:
+Email Integration: Display the system email address (which pipes to inbound_emails table).
+C. Tab: Analytics
+Visuals: Chart Builder (Group By Vendor/Category).
+Interactions:
+"Generate Summary": LangGraph analysis.
+"Save View": Button to persist current filters as a named preset.
+
+5. Widget System
+Container: WidgetContainer component.
+Security: <iframe> with sandbox="allow-scripts" strictly enforced.
+
+6. Social & Settings Panes
+4.6 View: Chat
+Hydrogen Embed: Web Component wrapper.
+Auth: Uses user_settings.matrix_access_token for seamless login.
+4.7 View: Feed
+Backend: Mastodon API.
+Agent: "Generate Post" flow.
+4.8 View: Settings
+1. App Customization:
+Pane Manager: Toggles to Hide/Show entire modules.
+Drawer Editor: Drag-and-drop grid to reorder App Drawer icons.
+2. Agent Preferences:
+Nag Control: Toggles for proactive behaviors (stored in user_settings.agent_preferences_json).
+3. Billing:
+Header: Current Balance (Source: user_settings.current_token_balance).
+Ledger: Table view of token_ledger.
+
+7. Data Integration: Dashboard Snapshot Contract
+The single-source-of-truth TypeScript interface for the primary Dashboard data payload (stored in Redis):
+TypeScript
+interface DashboardSnapshot {
+  weather: {
+    temp: number;
+    condition: string; // e.g., "Cloudy"
+    location: string;
+    icon_code: string;
+  };
+  health_metrics: {
+    steps: {
+      current: number;
+      goal: number;
+      history: number[]; // Last 7 days from daily_health_logs
+    };
+    calories: {
+      current: number;
+      goal: number;
+    };
+    water: {
+      current: number; // Sum of water_ml from daily_health_logs (today)
+      goal: number;
+    };
+    sleep: {
+      hours: number; // From daily_health_logs (last night)
+      score: number;
+    };
+  };
+  active_tasks: {
+    id: string;
+    title: string;
+    // Must match Backend 'tasks.status' Enum subset
+    status: 'running' | 'completed' | 'needing-input' | 'failed';
+    timestamp: string;
+  }[];
+}

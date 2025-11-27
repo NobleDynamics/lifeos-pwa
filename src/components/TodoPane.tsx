@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Plus, BarChart3, Filter, Search, ArrowLeft } from 'lucide-react'
+import { Plus, BarChart3, ArrowLeft } from 'lucide-react'
 import { TodoAnalytics } from './TodoAnalytics'
 import { TodoCategoryList } from './TodoCategoryList'
 import { TodoListsView } from './TodoListsView'
@@ -25,9 +25,7 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
   const { user } = useAuth()
   const { currentView, selectedCategoryId, selectedListId, navigateBack } = useTodoNavigation()
   const { showAnalytics, showForm, setShowForm } = useTodoUI()
-  const { searchQuery } = useTodoSearch()
-  const { filters } = useTodoFilters()
-  const { categories, lists, items, loading, fetchLists, fetchItems } = useTodoData()
+  const { categories, loading, fetchLists, fetchItems } = useTodoData()
 
   // Fetch data when navigating
   useEffect(() => {
@@ -165,4 +163,6 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
       {showForm === 'list' && <TaskListForm />}
       {showForm === 'item' && <TaskItemForm />}
     </div>
+
   )
+}

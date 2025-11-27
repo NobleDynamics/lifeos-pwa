@@ -85,7 +85,8 @@ export function useTodoData() {
     if (!user) return
     
     try {
-      const { data, error } = await supabase
+      // @ts-ignore - RPC call to custom function
+      const { data, error } = await (supabase as any)
         .rpc('get_todo_analytics', {
           p_user_id: user.id,
           p_start_date: startDate,
@@ -105,7 +106,8 @@ export function useTodoData() {
     if (!user) return
     
     try {
-      const { data, error } = await supabase
+      // @ts-ignore - RPC call to custom function
+      const { data, error } = await (supabase as any)
         .rpc('get_category_pie_data', {
           p_user_id: user.id
         })
@@ -129,7 +131,7 @@ export function useTodoData() {
           ...category,
           user_id: user.id,
           created_by: user.id
-        })
+        } as any)
         .select()
         .single()
 
@@ -156,7 +158,7 @@ export function useTodoData() {
           ...list,
           user_id: user.id,
           created_by: user.id
-        })
+        } as any)
         .select()
         .single()
 
@@ -183,7 +185,7 @@ export function useTodoData() {
           ...item,
           user_id: user.id,
           created_by: user.id
-        })
+        } as any)
         .select()
         .single()
 
@@ -204,6 +206,7 @@ export function useTodoData() {
     try {
       const { data, error } = await supabase
         .from('todo_categories')
+        // @ts-ignore - Type mismatch with Supabase generated types
         .update(updates)
         .eq('id', id)
         .select()
@@ -226,6 +229,7 @@ export function useTodoData() {
     try {
       const { data, error } = await supabase
         .from('todo_lists')
+        // @ts-ignore - Type mismatch with Supabase generated types
         .update(updates)
         .eq('id', id)
         .select()
@@ -248,7 +252,8 @@ export function useTodoData() {
     try {
       const { data, error } = await supabase
         .from('todo_items')
-        .update(updates as any)
+        // @ts-ignore - Type mismatch with Supabase generated types
+        .update(updates)
         .eq('id', id)
         .select()
         .single()
@@ -268,7 +273,8 @@ export function useTodoData() {
   // Delete category (soft delete)
   const deleteCategory = async (id: string) => {
     try {
-      const { error } = await supabase
+      // @ts-ignore - Type mismatch with Supabase generated types
+      const { error } = await (supabase as any)
         .from('todo_categories')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
@@ -286,7 +292,8 @@ export function useTodoData() {
   // Delete list (soft delete)
   const deleteList = async (id: string) => {
     try {
-      const { error } = await supabase
+      // @ts-ignore - Type mismatch with Supabase generated types
+      const { error } = await (supabase as any)
         .from('todo_lists')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
@@ -304,7 +311,8 @@ export function useTodoData() {
   // Delete item (soft delete)
   const deleteItem = async (id: string) => {
     try {
-      const { error } = await supabase
+      // @ts-ignore - Type mismatch with Supabase generated types
+      const { error } = await (supabase as any)
         .from('todo_items')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)

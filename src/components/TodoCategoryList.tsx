@@ -98,7 +98,11 @@ export function TodoCategoryList({ accentColor = '#00EAFF' }: TodoCategoryListPr
             )}
             onClick={() => handleCategoryClick(category.id)}
             onContextMenu={(e) => handleCategoryContextMenu(e, category)}
-            {...longPressHandlers(category)}
+            onMouseDown={(e) => longPressHandlers.onMouseDown(e, category)}
+            onTouchStart={(e) => longPressHandlers.onTouchStart(e, category)}
+            onMouseUp={longPressHandlers.onMouseUp}
+            onMouseLeave={longPressHandlers.onMouseLeave}
+            onTouchEnd={longPressHandlers.onTouchEnd}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">

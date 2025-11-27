@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
-import { LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useEffect, useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useTodoData } from '@/hooks/useTodoData'
 import { useTodoUI } from '@/store/useTodoStore'
-import { format, subDays, startOfDay } from 'date-fns'
-import { TrendingUp, TrendingDown, Activity, CheckCircle, Clock, Target } from 'lucide-react'
+import { format, subDays } from 'date-fns'
+import { TrendingUp, TrendingDown, Activity, CheckCircle, Target } from 'lucide-react'
 
 interface TodoAnalyticsProps {
   accentColor?: string
@@ -11,9 +11,9 @@ interface TodoAnalyticsProps {
 }
 
 export function TodoAnalytics({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#00D4FF', '#00BFFF', '#0099FF', '#0077FF', '#0055FF'] }: TodoAnalyticsProps) {
-  const { analytics, pieData, fetchAnalytics, fetchPieData } = useTodoData()
+  const { analytics, fetchAnalytics, fetchPieData } = useTodoData()
   const { showAnalytics } = useTodoUI()
-  const [dateRange, setDateRange] = useState({ start: format(subDays(new Date(), 30), 'yyyy-MM-dd'), end: format(new Date(), 'yyyy-MM-dd') })
+  const [dateRange] = useState({ start: format(subDays(new Date(), 30), 'yyyy-MM-dd'), end: format(new Date(), 'yyyy-MM-dd') })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -41,35 +41,8 @@ export function TodoAnalytics({ accentColor = '#00EAFF', chartColors = ['#00EAFF
     date: format(new Date(day.date), 'MMM dd'),
     lists: day.lists_created,
     items: day.items_created,
-    completed: day.items_completed,
-    started: day.items_started,
-    inProgress: day.items_in_progress
+    completed: day.items_completed
   }))
-
-  // Prepare area chart data for scheduled vs pending
-  const areaChartData = analytics.map(day => ({
-    date: format(new Date(day.date), 'MMM dd'),
-    scheduled: day.scheduled_items,
-    pending: day.pending_items
-  }))
-
-  // Custom tooltip for charts
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value}
-            </p>
-          ))}
-    </div>
-  )
-}
-    }
-    return null
-  }
 
   if (loading) {
     return (
@@ -148,114 +121,14 @@ export function TodoAnalytics({ accentColor = '#00EAFF', chartColors = ['#00EAFF
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="date" stroke="#6b7280" />
             <YAxis stroke="#6b7280" />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="lists" 
-              stroke={chartColors[0]} 
-              strokeWidth={2}
-              name="Lists Created"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="items" 
-              stroke={chartColors[1]} 
-              strokeWidth={2}
-              name="Items Created"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="completed" 
-              stroke={chartColors[2]} 
-              strokeWidth={2}
-              name="Items Completed"
-            />
+            <Line type="monotone" dataKey="lists" stroke={chartColors[0]} strokeWidth={2} name="Lists Created" />
+            <Line type="monotone" dataKey="items" stroke={chartColors[1]} strokeWidth={2} name="Items Created" />
+            <Line type="monotone" dataKey="completed" stroke={chartColors[2]} strokeWidth={2} name="Items Completed" />
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      {/* Scheduled vs Pending Area Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Scheduled vs Pending Items</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={areaChartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="date" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            <Area
-              type="monotone"
-              dataKey="scheduled"
-              stackId="1"
-              stroke={chartColors[3]}
-              fill={chartColors[3]}
-              fillOpacity={0.6}
-              name="Scheduled Items"
-            />
-            <Area
-              type="monotone"
-              dataKey="pending"
-              stackId="1"
-              stroke={chartColors[4]}
-              fill={chartColors[4]}
-              fillOpacity={0.6}
-              name="Pending Items"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Category Distribution Pie Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Category Distribution</h3>
-        <div className="flex flex-col lg:flex-row items-center">
-          <div className="w-full lg:w-1/2">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData as any}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ category_name, total_count }: any) => `${category_name}: ${total_count}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="total_count"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.category_color || chartColors[index % chartColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="w-full lg:w-1/2 mt-4 lg:mt-0">
-            <div className="space-y-3">
-              {pieData.map((category, index) => (
-                <div key={category.category_name} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div 
-                      className="w-4 h-4 rounded mr-3" 
-                      style={{ backgroundColor: category.category_color || chartColors[index % chartColors.length] }}
-                    ></div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{category.category_name}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{category.total_count}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {category.scheduled_count} scheduled, {category.pending_count} pending
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
-
 }

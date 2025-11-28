@@ -4,10 +4,10 @@ import {
   CheckCircle, 
   Circle, 
   PlayCircle, 
-  ChevronRight,
   Plus,
   MoreVertical
 } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import { Resource, ResourceStatus } from '@/types/database'
 import { useResources, useAllResources, useCycleResourceStatus } from '@/hooks/useResourceData'
 import { 
@@ -52,6 +52,26 @@ interface TaskRowProps {
 function getResourceColor(resource: Resource, defaultColor: string): string {
   const meta = resource.meta_data as Record<string, unknown>
   return (meta?.color as string) || defaultColor
+}
+
+/**
+ * Get the icon name from resource metadata
+ */
+function getResourceIcon(resource: Resource): string | null {
+  const meta = resource.meta_data as Record<string, unknown>
+  return (meta?.icon as string) || null
+}
+
+/**
+ * Render a Lucide icon by name dynamically
+ */
+function DynamicIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const IconComponent = (LucideIcons as any)[name]
+  if (!IconComponent) {
+    return <Folder className={className} style={style} />
+  }
+  return <IconComponent className={className} style={style} />
 }
 
 /**
@@ -111,10 +131,18 @@ function FolderRow({
               boxShadow: `0 0 8px ${color}30`
             }}
           >
-            <Folder
-              className="w-5 h-5"
-              style={{ color }}
-            />
+            {getResourceIcon(resource) ? (
+              <DynamicIcon
+                name={getResourceIcon(resource)!}
+                className="w-5 h-5"
+                style={{ color }}
+              />
+            ) : (
+              <Folder
+                className="w-5 h-5"
+                style={{ color }}
+              />
+            )}
           </div>
           
           {/* Content */}
@@ -143,8 +171,8 @@ function FolderRow({
           </div>
         </div>
         
-        {/* Right side: Context menu button and chevron */}
-        <div className="flex items-center space-x-1">
+        {/* Right side: Context menu button */}
+        <div className="flex items-center">
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -154,10 +182,6 @@ function FolderRow({
           >
             <MoreVertical className="w-4 h-4" />
           </button>
-          <ChevronRight 
-            className="w-5 h-5 text-dark-400" 
-            style={{ color: `${color}80` }}
-          />
         </div>
       </div>
     </div>

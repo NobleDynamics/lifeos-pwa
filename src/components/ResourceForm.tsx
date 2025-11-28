@@ -1,7 +1,36 @@
 import { useState, useEffect } from 'react'
-import { Check, Palette, Folder, CheckSquare, Calendar } from 'lucide-react'
+import { 
+  Check, 
+  Palette, 
+  Folder, 
+  CheckSquare, 
+  Calendar,
+  Grid3X3,
+  // Curated icons for LifeOS
+  List,
+  ShoppingCart,
+  Dumbbell,
+  Utensils,
+  Box,
+  Archive,
+  DollarSign,
+  Cloud,
+  House,
+  Heart,
+  Briefcase,
+  GraduationCap,
+  Music,
+  Gamepad2,
+  Car,
+  Plane,
+  Book,
+  Camera,
+  Gift,
+  Star
+} from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import { Resource, ResourceType } from '@/types/database'
-import { useCreateResource, useUpdateResource } from '@/hooks/useResourceData'
+import { useCreateResource, useUpdateResource, useResource } from '@/hooks/useResourceData'
 import { useResourceNavigation, useResourceForm } from '@/store/useResourceStore'
 import { cn } from '@/lib/utils'
 import { FormSheet } from '@/components/shared/FormSheet'
@@ -25,6 +54,47 @@ const presetColors = [
   '#85C1E9', // Light Blue
 ]
 
+// Curated icons for LifeOS folder types
+const curatedIcons = [
+  { name: 'Folder', label: 'Folder' },
+  { name: 'List', label: 'List' },
+  { name: 'ShoppingCart', label: 'Shopping' },
+  { name: 'Dumbbell', label: 'Fitness' },
+  { name: 'Utensils', label: 'Meals' },
+  { name: 'Box', label: 'Storage' },
+  { name: 'Archive', label: 'Archive' },
+  { name: 'DollarSign', label: 'Finance' },
+  { name: 'Cloud', label: 'Cloud' },
+  { name: 'House', label: 'Home' },
+  { name: 'Heart', label: 'Health' },
+  { name: 'Briefcase', label: 'Work' },
+  { name: 'GraduationCap', label: 'Learning' },
+  { name: 'Music', label: 'Music' },
+  { name: 'Gamepad2', label: 'Games' },
+  { name: 'Car', label: 'Auto' },
+  { name: 'Plane', label: 'Travel' },
+  { name: 'Book', label: 'Reading' },
+  { name: 'Camera', label: 'Photos' },
+  { name: 'Gift', label: 'Gifts' },
+  { name: 'Star', label: 'Favorites' },
+]
+
+// ============================================================================
+// HELPER COMPONENTS
+// ============================================================================
+
+/**
+ * Render a Lucide icon by name dynamically
+ */
+function DynamicIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const IconComponent = (LucideIcons as any)[name]
+  if (!IconComponent) {
+    return <Folder className={className} style={style} />
+  }
+  return <IconComponent className={className} style={style} />
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -44,10 +114,14 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
   const createResourceMutation = useCreateResource()
   const updateResourceMutation = useUpdateResource()
   
+  // Fetch parent resource to inherit icon
+  const { data: parentResource } = useResource(currentParentId)
+  
   // Form state
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [color, setColor] = useState(presetColors[0])
+  const [selectedIcon, setSelectedIcon] = useState<string | null>(null)
   const [isShared, setIsShared] = useState(false)
   const [dueDate, setDueDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -64,6 +138,7 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
       setDescription(editingResource.description || '')
       const meta = editingResource.meta_data as Record<string, unknown>
       setColor((meta?.color as string) || presetColors[0])
+      setSelectedIcon((meta?.icon as string) || null)
       setIsShared((meta?.is_shared as boolean) || false)
       setDueDate(editingResource.scheduled_at ? editingResource.scheduled_at.split('T')[0] : '')
     } else {
@@ -73,9 +148,22 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
       setColor(presetColors[0])
       setIsShared(false)
       setDueDate('')
+      
+      // Smart default: inherit icon from parent folder
+      if (parentResource && showForm === 'folder') {
+        const parentMeta = parentResource.meta_data as Record<string, unknown>
+        const parentIcon = parentMeta?.icon as string
+        if (parentIcon) {
+          setSelectedIcon(parentIcon)
+        } else {
+          setSelectedIcon(null)
+        }
+      } else {
+        setSelectedIcon(null)
+      }
     }
     setError(null)
-  }, [editingResource, showForm])
+  }, [editingResource, showForm, parentResource])
 
   // Don't render if form is not shown
   if (!showForm) {
@@ -105,6 +193,9 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
       
       if (isFolder) {
         metaData.color = color
+        if (selectedIcon) {
+          metaData.icon = selectedIcon
+        }
       }
 
       if (isEditing && editingResource) {
@@ -207,6 +298,45 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
           </div>
         )}
 
+        {/* Folder-specific: Icon Picker */}
+        {isFolder && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-dark-400 flex items-center gap-2">
+              <Grid3X3 size={14} />
+              Icon
+            </label>
+            <div className="grid grid-cols-7 gap-2">
+              {curatedIcons.map((icon) => (
+                <button
+                  key={icon.name}
+                  type="button"
+                  onClick={() => setSelectedIcon(icon.name === 'Folder' ? null : icon.name)}
+                  title={icon.label}
+                  className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200",
+                    "bg-dark-200 border-2",
+                    (selectedIcon === icon.name || (icon.name === 'Folder' && !selectedIcon))
+                      ? "border-primary shadow-[0_0_12px_rgba(0,234,255,0.5)] scale-110" 
+                      : "border-dark-300 hover:border-dark-200 hover:bg-dark-150 hover:scale-105"
+                  )}
+                  style={{
+                    borderColor: (selectedIcon === icon.name || (icon.name === 'Folder' && !selectedIcon)) ? color : undefined,
+                    boxShadow: (selectedIcon === icon.name || (icon.name === 'Folder' && !selectedIcon)) ? `0 0 12px ${color}60` : undefined
+                  }}
+                >
+                  <DynamicIcon
+                    name={icon.name}
+                    className="w-5 h-5"
+                    style={{ 
+                      color: (selectedIcon === icon.name || (icon.name === 'Folder' && !selectedIcon)) ? color : '#6b7280'
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Folder-specific: Color Picker */}
         {isFolder && (
           <div className="space-y-2">
@@ -269,14 +399,23 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
               className="w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ 
                 backgroundColor: isFolder ? `${color}30` : 'transparent',
-                border: !isFolder ? '1px solid var(--dark-300)' : 'none'
+                border: !isFolder ? '1px solid var(--dark-300)' : 'none',
+                boxShadow: isFolder ? `0 0 8px ${color}30` : undefined
               }}
             >
               {isFolder ? (
-                <Folder
-                  className="w-5 h-5"
-                  style={{ color }}
-                />
+                selectedIcon ? (
+                  <DynamicIcon
+                    name={selectedIcon}
+                    className="w-5 h-5"
+                    style={{ color }}
+                  />
+                ) : (
+                  <Folder
+                    className="w-5 h-5"
+                    style={{ color }}
+                  />
+                )
               ) : (
                 <CheckSquare className="w-5 h-5 text-dark-400" />
               )}

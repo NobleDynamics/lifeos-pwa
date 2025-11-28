@@ -1,8 +1,9 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { Plus, ArrowLeft, Folder, CheckSquare, Search, X, Edit, Trash2 } from 'lucide-react'
+import { Plus, ArrowLeft, Folder, CheckSquare, Search, X, Edit, Trash2, Info, User, Calendar, Clock } from 'lucide-react'
 import { ResourceListView } from './ResourceListView'
 import { ResourceBreadcrumbs } from './ResourceBreadcrumbs'
 import { ResourceForm } from './ResourceForm'
+import { FormSheet } from '@/components/shared/FormSheet'
 import { useDeleteResource } from '@/hooks/useResourceData'
 import { 
   useResourceNavigation, 
@@ -14,6 +15,7 @@ import { useAuth } from '@/lib/supabase'
 import { useBackButton } from '@/hooks/useBackButton'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Resource } from '@/types/database'
 
 // ============================================================================
 // TYPES
@@ -117,6 +119,150 @@ function CreateDropdown({
 }
 
 // ============================================================================
+// RESOURCE DETAILS SHEET COMPONENT
+// ============================================================================
+
+interface ResourceDetailsSheetProps {
+  resource: Resource | null
+  isOpen: boolean
+  onClose: () => void
+  accentColor: string
+}
+
+function ResourceDetailsSheet({ resource, isOpen, onClose, accentColor }: ResourceDetailsSheetProps) {
+  const { user } = useAuth()
+  
+  if (!resource || !isOpen) return null
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const isOwner = user?.id === resource.user_id
+  const meta = resource.meta_data as Record<string, unknown>
+
+  return (
+    <FormSheet title="Details" onClose={onClose} isOpen={isOpen}>
+      <div className="p-4 space-y-4">
+        {/* Resource Title */}
+        <div className="p-4 bg-dark-200 rounded-lg">
+          <h3 className="text-lg font-semibold text-white">{resource.title}</h3>
+          {resource.description && (
+            <p className="text-sm text-dark-400 mt-1">{resource.description}</p>
+          )}
+          <div className="mt-2">
+            <span 
+              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
+              style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+            >
+              {resource.type.charAt(0).toUpperCase() + resource.type.slice(1)}
+            </span>
+          </div>
+        </div>
+
+        {/* Details Grid */}
+        <div className="space-y-3">
+          {/* Created Date */}
+          <div className="flex items-start space-x-3 p-3 bg-dark-200 rounded-lg">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${accentColor}15` }}
+            >
+              <Calendar className="w-5 h-5" style={{ color: accentColor }} />
+            </div>
+            <div>
+              <p className="text-xs text-dark-500 uppercase tracking-wider">Created</p>
+              <p className="text-sm text-white mt-0.5">{formatDate(resource.created_at)}</p>
+            </div>
+          </div>
+
+          {/* Last Modified Date */}
+          <div className="flex items-start space-x-3 p-3 bg-dark-200 rounded-lg">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${accentColor}15` }}
+            >
+              <Clock className="w-5 h-5" style={{ color: accentColor }} />
+            </div>
+            <div>
+              <p className="text-xs text-dark-500 uppercase tracking-wider">Last Modified</p>
+              <p className="text-sm text-white mt-0.5">{formatDate(resource.updated_at)}</p>
+            </div>
+          </div>
+
+          {/* Owner */}
+          <div className="flex items-start space-x-3 p-3 bg-dark-200 rounded-lg">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${accentColor}15` }}
+            >
+              <User className="w-5 h-5" style={{ color: accentColor }} />
+            </div>
+            <div>
+              <p className="text-xs text-dark-500 uppercase tracking-wider">Owner</p>
+              <p className="text-sm text-white mt-0.5">
+                {isOwner ? (
+                  <span className="flex items-center gap-1.5">
+                    Me
+                    <span 
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
+                      style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+                    >
+                      You
+                    </span>
+                  </span>
+                ) : (
+                  <span className="font-mono text-xs text-dark-400">{resource.user_id.slice(0, 8)}...</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="flex items-start space-x-3 p-3 bg-dark-200 rounded-lg">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${accentColor}15` }}
+            >
+              <Info className="w-5 h-5" style={{ color: accentColor }} />
+            </div>
+            <div>
+              <p className="text-xs text-dark-500 uppercase tracking-wider">Status</p>
+              <p className="text-sm text-white mt-0.5 capitalize">{resource.status}</p>
+            </div>
+          </div>
+
+          {/* Shared Status */}
+          {meta?.is_shared && (
+            <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+              <p className="text-sm text-primary">
+                ✓ Shared with Household
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Resource ID (small, for debugging) */}
+        <div className="pt-2 border-t border-dark-300">
+          <p className="text-xs text-dark-500">
+            ID: <span className="font-mono">{resource.id}</span>
+          </p>
+        </div>
+      </div>
+    </FormSheet>
+  )
+}
+
+// ============================================================================
 // CONTEXT MENU COMPONENT
 // ============================================================================
 
@@ -125,6 +271,12 @@ function ResourceContextMenu({ accentColor }: { accentColor: string }) {
   const { openEditForm } = useResourceForm()
   const deleteResourceMutation = useDeleteResource()
   const menuRef = useRef<HTMLDivElement>(null)
+  const [showDetails, setShowDetails] = useState(false)
+  const [detailsResource, setDetailsResource] = useState<Resource | null>(null)
+
+  // Menu dimensions (approximate)
+  const MENU_WIDTH = 160
+  const MENU_HEIGHT = 160 // 3 items now
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -141,11 +293,30 @@ function ResourceContextMenu({ accentColor }: { accentColor: string }) {
   }, [contextMenu.show, hideContextMenu])
 
   if (!contextMenu.show || !contextMenu.resource) {
-    return null
+    return (
+      <>
+        {/* Details Sheet - rendered even when menu is hidden */}
+        <ResourceDetailsSheet
+          resource={detailsResource}
+          isOpen={showDetails}
+          onClose={() => {
+            setShowDetails(false)
+            setDetailsResource(null)
+          }}
+          accentColor={accentColor}
+        />
+      </>
+    )
   }
 
   const handleEdit = () => {
     openEditForm(contextMenu.resource!)
+    hideContextMenu()
+  }
+
+  const handleDetails = () => {
+    setDetailsResource(contextMenu.resource)
+    setShowDetails(true)
     hideContextMenu()
   }
 
@@ -165,11 +336,37 @@ function ResourceContextMenu({ accentColor }: { accentColor: string }) {
     hideContextMenu()
   }
 
-  // Position the menu, ensuring it stays within viewport
+  // Calculate position: ABOVE and CENTERED on touch point
+  // This prevents the menu from being obscured by the user's finger
+  const calculatePosition = () => {
+    const { x, y } = contextMenu
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    // Center horizontally on touch point, with bounds checking
+    let left = x - (MENU_WIDTH / 2)
+    left = Math.max(8, Math.min(left, viewportWidth - MENU_WIDTH - 8))
+    
+    // Position ABOVE the touch point (with some offset to clear finger)
+    let top = y - MENU_HEIGHT - 20
+    
+    // If not enough space above, position below instead
+    if (top < 8) {
+      top = y + 20
+    }
+    
+    // Ensure it doesn't go off bottom
+    top = Math.min(top, viewportHeight - MENU_HEIGHT - 8)
+    
+    return { top, left }
+  }
+
+  const position = calculatePosition()
+
   const menuStyle: React.CSSProperties = {
     position: 'fixed',
-    top: Math.min(contextMenu.y, window.innerHeight - 120),
-    left: Math.min(contextMenu.x, window.innerWidth - 160),
+    top: position.top,
+    left: position.left,
     zIndex: 100,
   }
 
@@ -184,12 +381,15 @@ function ResourceContextMenu({ accentColor }: { accentColor: string }) {
       {/* Menu */}
       <motion.div
         ref={menuRef}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.1 }}
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.15 }}
         style={menuStyle}
-        className="bg-dark-100 border border-dark-300 rounded-lg shadow-xl overflow-hidden min-w-[150px]"
+        className={cn(
+          "bg-dark-100 border border-dark-300 rounded-lg shadow-xl overflow-hidden min-w-[150px]",
+          "shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+        )}
       >
         <button
           onClick={handleEdit}
@@ -200,6 +400,14 @@ function ResourceContextMenu({ accentColor }: { accentColor: string }) {
         </button>
         <div className="h-px bg-dark-300" />
         <button
+          onClick={handleDetails}
+          className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-dark-200 transition-colors text-left"
+        >
+          <Info className="w-4 h-4 text-dark-400" />
+          <span className="text-sm text-white">Details</span>
+        </button>
+        <div className="h-px bg-dark-300" />
+        <button
           onClick={handleDelete}
           className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-red-500/10 transition-colors text-left"
         >
@@ -207,6 +415,17 @@ function ResourceContextMenu({ accentColor }: { accentColor: string }) {
           <span className="text-sm text-red-400">Delete</span>
         </button>
       </motion.div>
+
+      {/* Details Sheet */}
+      <ResourceDetailsSheet
+        resource={detailsResource}
+        isOpen={showDetails}
+        onClose={() => {
+          setShowDetails(false)
+          setDetailsResource(null)
+        }}
+        accentColor={accentColor}
+      />
     </>
   )
 }
@@ -359,12 +578,8 @@ export function HierarchyPane({ accentColor = '#00EAFF' }: HierarchyPaneProps) {
         <ResourceListView accentColor={accentColor} />
       </div>
 
-      {/* Context Menu */}
-      <AnimatePresence>
-        {contextMenu.show && (
-          <ResourceContextMenu accentColor={accentColor} />
-        )}
-      </AnimatePresence>
+      {/* Context Menu - always render to preserve Details sheet state */}
+      <ResourceContextMenu accentColor={accentColor} />
 
       {/* Resource Form */}
       <ResourceForm accentColor={accentColor} />

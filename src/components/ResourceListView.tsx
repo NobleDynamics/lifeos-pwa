@@ -5,7 +5,8 @@ import {
   Circle, 
   PlayCircle, 
   Plus,
-  MoreVertical
+  MoreVertical,
+  MapPin
 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { Resource, ResourceStatus } from '@/types/database'
@@ -305,8 +306,9 @@ function TaskRow({
               </span>
             )}
             {(resource.meta_data as Record<string, unknown>)?.location_name && (
-              <span className="text-xs text-dark-400">
-                📍 {(resource.meta_data as Record<string, unknown>).location_name as string}
+              <span className="text-xs text-dark-400 flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {(resource.meta_data as Record<string, unknown>).location_name as string}
               </span>
             )}
           </div>

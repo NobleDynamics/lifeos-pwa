@@ -173,42 +173,19 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleListContextMenu(e, list)
-                  }}
-                  className="p-1 text-dark-400 hover:text-white rounded-full hover:bg-dark-200"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-                <ChevronRight className="w-4 h-4 text-dark-400" />
-              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleListContextMenu(e, list)
+                }}
+                className="p-2 text-dark-400 hover:text-white rounded-full hover:bg-dark-200"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
             </div>
           </div>
         )
       })}
     </div>
-  )
-}
-
-// ChevronRight icon component
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 5l7 7-7 7"
-      />
-    </svg>
   )
 }

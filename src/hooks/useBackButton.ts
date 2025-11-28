@@ -1,62 +1,105 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '@/store/useAppStore'
+
+/**
+ * Global registry for back button handlers
+ * Higher priority handlers get called first (child components should have higher priority)
+ */
+type BackHandler = {
+  id: string
+  priority: number
+  handler: () => boolean
+}
+
+const backHandlers: BackHandler[] = []
+let historyInitialized = false
+
+function registerHandler(id: string, priority: number, handler: () => boolean) {
+  // Remove existing handler with same id
+  const existingIndex = backHandlers.findIndex(h => h.id === id)
+  if (existingIndex >= 0) {
+    backHandlers.splice(existingIndex, 1)
+  }
+  
+  // Add new handler
+  backHandlers.push({ id, priority, handler })
+  
+  // Sort by priority descending (higher priority first)
+  backHandlers.sort((a, b) => b.priority - a.priority)
+}
+
+function unregisterHandler(id: string) {
+  const index = backHandlers.findIndex(h => h.id === id)
+  if (index >= 0) {
+    backHandlers.splice(index, 1)
+  }
+}
 
 /**
  * useBackButton - Handles Android hardware/software back button
  * 
  * Priority order when back is pressed:
- * 1. Close drawer if open
- * 2. Close any modals (via optional callback)
- * 3. Navigate to previous pane in history
- * 4. Navigate to Dashboard if not there
- * 5. Do nothing (or show "press again to exit" toast)
+ * 1. Child component handlers (modals, nested views) - higher priority
+ * 2. App-level navigation (pane history) - lower priority
+ * 
+ * @param options.onCloseModal - Callback that returns true if it handled the back action
+ * @param options.priority - Higher numbers get called first (default: 10 for modals, 0 for app-level)
  */
 export function useBackButton(options?: {
-  /** Optional callback to close modals before navigating. Return true if a modal was closed. */
+  /** Optional callback to handle back. Return true if handled (prevents further propagation). */
   onCloseModal?: () => boolean
+  /** Priority level. Higher = called first. Default 10 for components, 0 for app-level. */
+  priority?: number
 }) {
   const goBack = useAppStore((state) => state.goBack)
-  const canGoBack = useAppStore((state) => state.canGoBack)
-  const hasSetupHistory = useRef(false)
+  const handlerIdRef = useRef<string>(`handler-${Math.random().toString(36).substr(2, 9)}`)
+
+  // Create the handler function
+  const handleBack = useCallback(() => {
+    // If we have a custom handler, use it
+    if (options?.onCloseModal) {
+      return options.onCloseModal()
+    }
+    // Otherwise this is the app-level handler - try app navigation
+    return goBack()
+  }, [options?.onCloseModal, goBack])
 
   useEffect(() => {
-    // Push initial history entry so we can intercept back button
-    if (!hasSetupHistory.current) {
-      // Push a state so we have something to pop
+    const handlerId = handlerIdRef.current
+    const priority = options?.priority ?? (options?.onCloseModal ? 10 : 0)
+    
+    // Register this handler
+    registerHandler(handlerId, priority, handleBack)
+
+    // Initialize history only once globally
+    if (!historyInitialized) {
       window.history.pushState({ lifeos: true }, '')
-      hasSetupHistory.current = true
-    }
+      historyInitialized = true
 
-    const handlePopState = (_e: PopStateEvent) => {
-      // Check if modal needs closing first (via callback)
-      if (options?.onCloseModal?.()) {
-        // Modal was closed, re-push history entry
-        window.history.pushState({ lifeos: true }, '')
-        return
-      }
-
-      // Try to go back using our app's back logic
-      const didGoBack = goBack()
-      
-      if (didGoBack) {
-        // Re-push history entry so back button continues to work
-        window.history.pushState({ lifeos: true }, '')
-      } else {
-        // At root (Dashboard), can't go back further
-        // Re-push to prevent accidentally leaving the app
-        window.history.pushState({ lifeos: true }, '')
+      // Set up single global popstate listener
+      const handlePopState = (_e: PopStateEvent) => {
+        // Try each handler in priority order
+        for (const { handler } of backHandlers) {
+          if (handler()) {
+            // Handler dealt with it, re-push history
+            window.history.pushState({ lifeos: true }, '')
+            return
+          }
+        }
         
-        // Optional: Could show a toast here like "Press back again to exit"
-        // For now, just stay on Dashboard
+        // No handler dealt with it - at root, re-push to prevent leaving app
+        window.history.pushState({ lifeos: true }, '')
       }
-    }
 
-    window.addEventListener('popstate', handlePopState)
+      window.addEventListener('popstate', handlePopState)
+
+      // Note: We don't clean up the global listener since it should persist
+    }
 
     return () => {
-      window.removeEventListener('popstate', handlePopState)
+      unregisterHandler(handlerId)
     }
-  }, [goBack, options])
+  }, [handleBack, options?.priority, options?.onCloseModal])
 
-  return { canGoBack }
+  return { canGoBack: useAppStore((state) => state.canGoBack) }
 }

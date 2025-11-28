@@ -1,0 +1,669 @@
+# Nested Hierarchy UI Pattern
+
+## Overview
+
+This document describes a **reusable architectural pattern** for building nested folder/item hierarchies in LifeOS. The pattern was first implemented in the **To-Do Module** and can be replicated for:
+
+- **Cloud Pane**: Folders → Files
+- **Gallery**: Albums → Photos  
+- **Recipes**: Categories → Recipes
+- **Inventory**: Storage Locations → Items
+- Any other parent/child hierarchical data structure
+
+## Architecture Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         MAIN PANE                               │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │ HEADER: Dynamic Title + Back Arrow + [+ Add] Button        │ │
+│  ├────────────────────────────────────────────────────────────┤ │
+│  │ BREADCRUMBS: Home > Category > List                        │ │
+│  ├────────────────────────────────────────────────────────────┤ │
+│  │ SEARCH FILTER: [🔍 Search...]                              │ │
+│  ├────────────────────────────────────────────────────────────┤ │
+│  │                                                            │ │
+│  │                 VIEW CONTENT                               │ │
+│  │    (Categories | Lists | Items - based on currentView)     │ │
+│  │                                                            │ │
+│  │  ┌─────────────────────────────────────────────────────┐   │ │
+│  │  │  ITEM CARD                                          │   │ │
+│  │  │  - Tap: Navigate deeper / Toggle status             │   │ │
+│  │  │  - Long Press: Context Menu (Edit/Delete)           │   │ │
+│  │  │  - Three-dot icon: Context Menu                     │   │ │
+│  │  └─────────────────────────────────────────────────────┘   │ │
+│  │                                                            │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │ CONTEXT MENU (floating, dismissible)                       │ │
+│  │ - Edit [Type]                                              │ │
+│  │ - Delete [Type] (with confirmation)                        │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │ FORM SHEET (bottom modal via FormSheet component)          │ │
+│  │ - Create/Edit forms slide up from bottom                   │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## File Structure (Reference Implementation: To-Do)
+
+```
+src/
+├── components/
+│   ├── [Module]Pane.tsx           # Main container (TodoPane.tsx)
+│   ├── [Module]CategoryList.tsx   # Level 1 view (TodoCategoryList.tsx)
+│   ├── [Module]ListView.tsx       # Level 2 view (TodoListsView.tsx)
+│   ├── [Module]ItemsView.tsx      # Level 3 view (TodoItemsView.tsx)
+│   ├── [Module]Breadcrumbs.tsx    # Breadcrumb navigation
+│   ├── [Module]SearchFilter.tsx   # Search input
+│   ├── [Module]ContextMenu.tsx    # Edit/Delete popup
+│   ├── [Module]Form.tsx           # Create/Edit form per level
+│   └── shared/
+│       └── FormSheet.tsx          # Reusable bottom sheet wrapper
+├── hooks/
+│   ├── use[Module]Data.ts         # TanStack Query hooks (useTodoData.ts)
+│   └── useLongPress.ts            # Reusable long press hook
+└── store/
+    └── use[Module]Store.ts        # Zustand navigation store (useTodoStore.ts)
+```
+
+---
+
+## 1. Navigation Store (Zustand)
+
+The navigation store manages which view is currently active and tracks selected IDs at each level.
+
+### Template: `use[Module]Store.ts`
+
+```typescript
+import { create } from 'zustand'
+
+interface NavigationState {
+  // Current view in the hierarchy
+  currentView: 'level1' | 'level2' | 'level3'
+  
+  // Selected IDs at each level
+  selectedLevel1Id: string | null
+  selectedLevel1Name: string | null  // For dynamic titles
+  selectedLevel2Id: string | null
+  selectedLevel2Name: string | null
+  
+  // Search
+  searchQuery: string
+  
+  // UI State
+  showForm: 'level1' | 'level2' | 'level3' | null
+  editingItem: any | null
+  
+  // Context Menu
+  contextMenu: {
+    show: boolean
+    x: number
+    y: number
+    item: any | null
+    type: 'level1' | 'level2' | 'level3' | null
+  }
+}
+
+interface NavigationActions {
+  // Navigation
+  navigateToLevel2: (id: string, name: string) => void
+  navigateToLevel3: (id: string, name: string) => void
+  navigateBack: () => boolean  // Returns false if at root
+  getCurrentTitle: () => string
+  
+  // Search
+  setSearchQuery: (query: string) => void
+  
+  // UI
+  setShowForm: (form: NavigationState['showForm']) => void
+  setEditingItem: (item: any | null) => void
+  
+  // Context Menu
+  showContextMenu: (x: number, y: number, item: any, type: string) => void
+  hideContextMenu: () => void
+}
+
+export const use[Module]Store = create<NavigationState & NavigationActions>((set, get) => ({
+  // Initial state
+  currentView: 'level1',
+  selectedLevel1Id: null,
+  selectedLevel1Name: null,
+  selectedLevel2Id: null,
+  selectedLevel2Name: null,
+  searchQuery: '',
+  showForm: null,
+  editingItem: null,
+  contextMenu: { show: false, x: 0, y: 0, item: null, type: null },
+  
+  // Navigation actions
+  navigateToLevel2: (id, name) => set({
+    currentView: 'level2',
+    selectedLevel1Id: id,
+    selectedLevel1Name: name,
+    selectedLevel2Id: null,
+    selectedLevel2Name: null
+  }),
+  
+  navigateToLevel3: (id, name) => set({
+    currentView: 'level3',
+    selectedLevel2Id: id,
+    selectedLevel2Name: name
+  }),
+  
+  navigateBack: () => {
+    const { currentView } = get()
+    if (currentView === 'level3') {
+      set({ currentView: 'level2', selectedLevel2Id: null, selectedLevel2Name: null })
+      return true
+    } else if (currentView === 'level2') {
+      set({ currentView: 'level1', selectedLevel1Id: null, selectedLevel1Name: null })
+      return true
+    }
+    return false  // At root
+  },
+  
+  getCurrentTitle: () => {
+    const { currentView, selectedLevel1Name, selectedLevel2Name } = get()
+    switch (currentView) {
+      case 'level1': return 'Categories'  // Or "Folders", "Albums"
+      case 'level2': return selectedLevel1Name || 'Items'
+      case 'level3': return selectedLevel2Name || 'Details'
+      default: return 'Browse'
+    }
+  },
+  
+  // ... other actions
+}))
+
+// Helper hooks for ergonomic access
+export function use[Module]Navigation() {
+  const store = use[Module]Store()
+  return {
+    currentView: store.currentView,
+    selectedLevel1Id: store.selectedLevel1Id,
+    // ... etc
+  }
+}
+
+export function use[Module]Search() {
+  const { searchQuery, setSearchQuery } = use[Module]Store()
+  return { searchQuery, setSearchQuery }
+}
+```
+
+---
+
+## 2. Data Hooks (TanStack Query)
+
+TanStack Query manages server state with automatic caching, refetching, and optimistic updates.
+
+### Template: `use[Module]Data.ts`
+
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/supabase'
+
+// Query keys - important for cache management
+export const [module]Keys = {
+  all: ['[module]'] as const,
+  level1: () => [...[module]Keys.all, 'level1'] as const,
+  level2: (parentId: string | null) => [...[module]Keys.all, 'level2', parentId] as const,
+  level3: (parentId: string | null) => [...[module]Keys.all, 'level3', parentId] as const,
+  // For counts
+  allLevel2: () => [...[module]Keys.all, 'allLevel2'] as const,
+  allLevel3: () => [...[module]Keys.all, 'allLevel3'] as const,
+}
+
+// Level 1 Query (e.g., Categories, Folders, Albums)
+export function useLevel1() {
+  const { user } = useAuth()
+  
+  return useQuery({
+    queryKey: [module]Keys.level1(),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('[table_level1]')
+        .select('*')
+        .eq('user_id', user!.id)
+        .is('deleted_at', null)
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      return data
+    },
+    enabled: !!user,
+  })
+}
+
+// Level 2 Query (e.g., Lists, Subfolders, Albums)
+export function useLevel2(parentId: string | null) {
+  const { user } = useAuth()
+  
+  return useQuery({
+    queryKey: [module]Keys.level2(parentId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('[table_level2]')
+        .select('*')
+        .eq('parent_id', parentId)
+        .eq('user_id', user!.id)
+        .is('deleted_at', null)
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      return data
+    },
+    enabled: !!user && !!parentId,
+  })
+}
+
+// Level 3 Query (e.g., Items, Files, Photos)
+export function useLevel3(parentId: string | null) {
+  const { user } = useAuth()
+  
+  return useQuery({
+    queryKey: [module]Keys.level3(parentId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('[table_level3]')
+        .select('*')
+        .eq('parent_id', parentId)
+        .eq('user_id', user!.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+      
+      if (error) throw error
+      return data
+    },
+    enabled: !!user && !!parentId,
+  })
+}
+
+// Create Mutation with cache invalidation
+export function useCreateLevel1() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  
+  return useMutation({
+    mutationFn: async (data) => {
+      const { data: result, error } = await supabase
+        .from('[table_level1]')
+        .insert({ ...data, user_id: user!.id })
+        .select()
+        .single()
+      
+      if (error) throw error
+      return result
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [module]Keys.level1() })
+    },
+  })
+}
+
+// Delete Mutation (soft delete)
+export function useDeleteLevel1() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('[table_level1]')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id)
+      
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [module]Keys.level1() })
+    },
+  })
+}
+
+// Example: Optimistic update for status toggle
+export function useToggleItemStatus() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async ({ item, newStatus }) => {
+      // ... update supabase
+    },
+    // Optimistic update - update cache immediately without refetch
+    onMutate: async ({ item, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey: [module]Keys.level3(item.parent_id) })
+      const previous = queryClient.getQueryData([module]Keys.level3(item.parent_id))
+      
+      queryClient.setQueryData([module]Keys.level3(item.parent_id), (old) =>
+        old.map(i => i.id === item.id ? { ...i, status: newStatus } : i)
+      )
+      
+      return { previous, parentId: item.parent_id }
+    },
+    onError: (err, vars, context) => {
+      queryClient.setQueryData([module]Keys.level3(context.parentId), context.previous)
+    },
+  })
+}
+```
+
+---
+
+## 3. Reusable Components
+
+### Search Filter (`[Module]SearchFilter.tsx`)
+
+```typescript
+import { Search, X } from 'lucide-react'
+import { use[Module]Search } from '@/store/use[Module]Store'
+
+export function [Module]SearchFilter() {
+  const { searchQuery, setSearchQuery } = use[Module]Search()
+
+  return (
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search..."
+        className="w-full pl-10 pr-10 py-2 rounded-lg bg-dark-100 border border-dark-300 text-white"
+      />
+      {searchQuery && (
+        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+          <X className="w-4 h-4 text-dark-400" />
+        </button>
+      )}
+    </div>
+  )
+}
+```
+
+### Context Menu (`[Module]ContextMenu.tsx`)
+
+```typescript
+import { Edit, Trash2 } from 'lucide-react'
+import { use[Module]ContextMenu, use[Module]UI } from '@/store/use[Module]Store'
+import { useDeleteLevel1, useDeleteLevel2, useDeleteLevel3 } from '@/hooks/use[Module]Data'
+
+export function [Module]ContextMenu() {
+  const { contextMenu, hideContextMenu } = use[Module]ContextMenu()
+  const { setShowForm, setEditingItem } = use[Module]UI()
+  const deleteLevel1 = useDeleteLevel1()
+  // ... other delete mutations
+
+  if (!contextMenu.show) return null
+
+  const handleEdit = () => {
+    setEditingItem(contextMenu.item)
+    setShowForm(contextMenu.type)
+    hideContextMenu()
+  }
+
+  const handleDelete = async () => {
+    // Show confirmation, then delete
+    if (contextMenu.type === 'level1') {
+      await deleteLevel1.mutateAsync(contextMenu.item.id)
+    }
+    // ... handle other types
+    hideContextMenu()
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50" onClick={hideContextMenu} />
+      <div
+        className="fixed z-50 bg-dark-100 border border-dark-300 rounded-lg shadow-lg py-2"
+        style={{ left: contextMenu.x, top: contextMenu.y }}
+      >
+        <button onClick={handleEdit} className="w-full px-4 py-2 text-left flex items-center gap-2">
+          <Edit className="w-4 h-4" /> Edit
+        </button>
+        <button onClick={handleDelete} className="w-full px-4 py-2 text-left flex items-center gap-2 text-red-400">
+          <Trash2 className="w-4 h-4" /> Delete
+        </button>
+      </div>
+    </>
+  )
+}
+```
+
+### Long Press Hook (`useLongPress.ts`) - Already Exists
+
+```typescript
+// Located at: src/hooks/useLongPress.ts
+// REUSE THIS - Do not create a new one
+
+import { useLongPress } from '@/hooks/useLongPress'
+
+// Usage in list component:
+const longPressHandlers = useLongPress(
+  (e, item) => showContextMenu(e.clientX, e.clientY, item, 'level1'),
+  { threshold: 500 }
+)
+
+// Spread on the element:
+<div
+  onClick={() => navigate(item)}
+  onContextMenu={(e) => { e.preventDefault(); showContextMenu(...) }}
+  {...longPressHandlers}  // Adds onMouseDown, onTouchStart, etc.
+>
+```
+
+### Breadcrumbs (`[Module]Breadcrumbs.tsx`)
+
+```typescript
+import { ChevronRight, Home } from 'lucide-react'
+import { use[Module]Navigation } from '@/store/use[Module]Store'
+
+export function [Module]Breadcrumbs() {
+  const { currentView, selectedLevel1Name, selectedLevel2Name, navigateBack } = use[Module]Navigation()
+
+  const crumbs = [
+    { label: 'Home', onClick: () => { /* navigate to level1 */ } }
+  ]
+
+  if (currentView !== 'level1' && selectedLevel1Name) {
+    crumbs.push({ label: selectedLevel1Name, onClick: () => navigateBack() })
+  }
+
+  if (currentView === 'level3' && selectedLevel2Name) {
+    crumbs.push({ label: selectedLevel2Name, onClick: null })
+  }
+
+  return (
+    <nav className="flex items-center space-x-1 text-sm text-dark-500">
+      {crumbs.map((crumb, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <ChevronRight className="w-4 h-4" />}
+          <button onClick={crumb.onClick} className={crumb.onClick ? 'hover:text-white' : 'text-white'}>
+            {crumb.label}
+          </button>
+        </React.Fragment>
+      ))}
+    </nav>
+  )
+}
+```
+
+---
+
+## 4. Main Pane Component
+
+### Template: `[Module]Pane.tsx`
+
+```typescript
+import { useCallback } from 'react'
+import { Plus, ArrowLeft } from 'lucide-react'
+import { use[Module]Navigation, use[Module]UI } from '@/store/use[Module]Store'
+import { useBackButton } from '@/hooks/useBackButton'
+
+import { [Module]Level1View } from './[Module]Level1View'
+import { [Module]Level2View } from './[Module]Level2View'
+import { [Module]Level3View } from './[Module]Level3View'
+import { [Module]Breadcrumbs } from './[Module]Breadcrumbs'
+import { [Module]SearchFilter } from './[Module]SearchFilter'
+import { [Module]ContextMenu } from './[Module]ContextMenu'
+import { Level1Form } from './Level1Form'
+import { Level2Form } from './Level2Form'
+import { Level3Form } from './Level3Form'
+
+export function [Module]Pane({ accentColor = '#00EAFF' }) {
+  const { currentView, navigateBack, getCurrentTitle } = use[Module]Navigation()
+  const { showForm, setShowForm, setEditingItem } = use[Module]UI()
+
+  // Android back button integration
+  const handleBackButton = useCallback(() => navigateBack(), [navigateBack])
+  useBackButton({ onCloseModal: handleBackButton })
+
+  const handleCreateNew = () => {
+    setEditingItem(null)  // Clear any previous edit state
+    if (currentView === 'level1') setShowForm('level1')
+    else if (currentView === 'level2') setShowForm('level2')
+    else setShowForm('level3')
+  }
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'level1': return <[Module]Level1View accentColor={accentColor} />
+      case 'level2': return <[Module]Level2View accentColor={accentColor} />
+      case 'level3': return <[Module]Level3View accentColor={accentColor} />
+    }
+  }
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Header */}
+      <div className="bg-dark-50 border-b border-dark-300 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            {currentView !== 'level1' && (
+              <button onClick={navigateBack} className="p-2 hover:bg-dark-200 rounded-lg">
+                <ArrowLeft className="w-5 h-5 text-dark-500" />
+              </button>
+            )}
+            <h2 className="text-lg font-semibold text-white">{getCurrentTitle()}</h2>
+          </div>
+          <button
+            onClick={handleCreateNew}
+            className="px-3 py-2 text-sm font-medium text-white rounded-lg"
+            style={{ backgroundColor: accentColor }}
+          >
+            <Plus className="w-4 h-4 mr-1 inline" />
+            {currentView === 'level1' ? 'Folder' : currentView === 'level2' ? 'Subfolder' : 'Item'}
+          </button>
+        </div>
+        <[Module]Breadcrumbs />
+        <div className="mt-4">
+          <[Module]SearchFilter />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {renderContent()}
+      </div>
+
+      {/* Overlays */}
+      <[Module]ContextMenu />
+      {showForm === 'level1' && <Level1Form />}
+      {showForm === 'level2' && <Level2Form />}
+      {showForm === 'level3' && <Level3Form />}
+    </div>
+  )
+}
+```
+
+---
+
+## 5. Database Schema Pattern
+
+Each level should have these common columns for consistency:
+
+```sql
+CREATE TABLE [module]_[level] (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    household_id UUID REFERENCES households(id),  -- For shared items
+    parent_id UUID REFERENCES [parent_table](id), -- Foreign key to parent
+    
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    
+    -- Soft delete
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_by UUID NOT NULL REFERENCES auth.users(id)
+);
+
+-- Performance index for soft delete filtering
+CREATE INDEX ON [module]_[level](deleted_at) WHERE deleted_at IS NULL;
+```
+
+---
+
+## 6. Implementation Checklist
+
+When creating a new nested hierarchy module:
+
+### Step 1: Database
+- [ ] Create tables for each level in Supabase
+- [ ] Add `deleted_at` column to all tables
+- [ ] Add RLS policies
+- [ ] Add dev bypass policy to `04_dev_rls_bypass.sql`
+
+### Step 2: Types
+- [ ] Add TypeScript types to `src/types/database.ts`
+
+### Step 3: Store (Zustand)
+- [ ] Create `use[Module]Store.ts` with navigation state
+- [ ] Export helper hooks: `use[Module]Navigation()`, `use[Module]Search()`, `use[Module]UI()`, `use[Module]ContextMenu()`
+
+### Step 4: Data Hooks (TanStack Query)
+- [ ] Create `use[Module]Data.ts`
+- [ ] Define query keys
+- [ ] Create query hooks for each level
+- [ ] Create mutation hooks (create, update, delete)
+
+### Step 5: Components
+- [ ] Create main `[Module]Pane.tsx`
+- [ ] Create view component for each level
+- [ ] Create `[Module]Breadcrumbs.tsx`
+- [ ] Create `[Module]SearchFilter.tsx`
+- [ ] Create `[Module]ContextMenu.tsx`
+- [ ] Create form components (reuse `<FormSheet>`)
+
+### Step 6: Wire Up
+- [ ] Add module to parent pane's tab navigation
+- [ ] Connect `useBackButton` for Android support
+- [ ] Test all interactions (tap, long press, search, back)
+
+---
+
+## Reference Implementation
+
+The complete, working reference implementation is in the **To-Do Module**:
+
+| Pattern Element | Reference File |
+|-----------------|----------------|
+| Navigation Store | `src/store/useTodoStore.ts` |
+| Data Hooks | `src/hooks/useTodoData.ts` |
+| Main Pane | `src/components/TodoPane.tsx` |
+| Level 1 View | `src/components/TodoCategoryList.tsx` |
+| Level 2 View | `src/components/TodoListsView.tsx` |
+| Level 3 View | `src/components/TodoItemsView.tsx` |
+| Breadcrumbs | `src/components/TodoBreadcrumbs.tsx` |
+| Search Filter | `src/components/TodoSearchFilter.tsx` |
+| Context Menu | `src/components/TodoContextMenu.tsx` |
+| Long Press Hook | `src/hooks/useLongPress.ts` |
+| Form Sheet | `src/components/shared/FormSheet.tsx` |
+
+**Copy these files and rename with search/replace to quickly scaffold a new module.**

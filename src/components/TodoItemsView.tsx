@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Plus, CheckCircle, Circle, PlayCircle } from 'lucide-react'
 import { TodoItem, TodoStatus } from '@/types/database'
 import { useItems, useCycleItemStatus } from '@/hooks/useTodoData'
-import { useTodoNavigation, useTodoUI } from '@/store/useTodoStore'
+import { useTodoNavigation, useTodoUI, useTodoSearch } from '@/store/useTodoStore'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
 
@@ -13,10 +13,30 @@ interface TodoItemsViewProps {
 export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
   const { selectedListId } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
+  const { searchQuery } = useTodoSearch()
   
   // Use TanStack Query hooks - automatically fetches when selectedListId changes
-  const { data: items = [], isLoading: loading } = useItems(selectedListId)
+  const { data: rawItems = [], isLoading: loading } = useItems(selectedListId)
   const cycleStatusMutation = useCycleItemStatus()
+
+  // Filter by search and sort by created_at to maintain stable order
+  const items = useMemo(() => {
+    let filtered = [...rawItems]
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query)
+      )
+    }
+    
+    // Sort by created_at to maintain stable order (not affected by status changes)
+    filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    
+    return filtered
+  }, [rawItems, searchQuery])
 
   const handleCreateItem = () => {
     setEditingItem(null)
@@ -40,6 +60,9 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
         return <CheckCircle className="w-5 h-5 text-green-500" />
       case 'in_progress':
         return <PlayCircle className="w-5 h-5 text-blue-500" />
+      case 'started':
+        // Treat 'started' same as 'not_started' (legacy status)
+        return <Circle className="w-5 h-5 text-dark-400" />
       default:
         return <Circle className="w-5 h-5 text-dark-400" />
     }
@@ -51,8 +74,26 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
         return 'text-green-500'
       case 'in_progress':
         return 'text-blue-500'
+      case 'started':
+        // Treat 'started' same as 'not_started' (legacy status)
+        return 'text-dark-400'
       default:
         return 'text-dark-400'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'Completed'
+      case 'in_progress':
+        return 'In Progress'
+      case 'started':
+        return 'Not Started' // Treat legacy 'started' as 'not_started'
+      case 'not_started':
+        return 'Not Started'
+      default:
+        return 'Not Started'
     }
   }
 
@@ -109,6 +150,7 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
           onLongPress={() => handleLongPress(item)}
           getStatusIcon={getStatusIcon}
           getStatusColor={getStatusColor}
+          getStatusLabel={getStatusLabel}
         />
       ))}
     </div>
@@ -122,7 +164,8 @@ function ItemCard({
   onTap,
   onLongPress,
   getStatusIcon,
-  getStatusColor
+  getStatusColor,
+  getStatusLabel
 }: {
   item: TodoItem
   accentColor: string
@@ -130,6 +173,7 @@ function ItemCard({
   onLongPress: () => void
   getStatusIcon: (status: string) => React.ReactNode
   getStatusColor: (status: string) => string
+  getStatusLabel: (status: string) => string
 }) {
   const longPressHandlers = useLongPress(onLongPress, { threshold: 500 })
 
@@ -162,8 +206,8 @@ function ItemCard({
               </p>
             )}
             <div className="flex items-center space-x-4 mt-2">
-              <span className={`text-xs capitalize ${getStatusColor(item.status)}`}>
-                {item.status.replace('_', ' ')}
+              <span className={`text-xs ${getStatusColor(item.status)}`}>
+                {getStatusLabel(item.status)}
               </span>
               {item.due_date && (
                 <span className="text-xs text-dark-400">

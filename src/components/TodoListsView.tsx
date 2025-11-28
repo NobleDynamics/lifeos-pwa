@@ -1,8 +1,9 @@
-import React from 'react'
-import { Plus, List } from 'lucide-react'
+import React, { useMemo } from 'react'
+import { Plus, List, MoreVertical } from 'lucide-react'
 import { TodoList } from '@/types/database'
 import { useLists, useAllItems } from '@/hooks/useTodoData'
-import { useTodoNavigation, useTodoUI } from '@/store/useTodoStore'
+import { useTodoNavigation, useTodoUI, useTodoSearch, useTodoContextMenu } from '@/store/useTodoStore'
+import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
 
 interface TodoListsViewProps {
@@ -12,10 +13,23 @@ interface TodoListsViewProps {
 export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
   const { selectedCategoryId, navigateToList } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
+  const { searchQuery } = useTodoSearch()
+  const { showContextMenu, hideContextMenu } = useTodoContextMenu()
   
   // Use TanStack Query hooks - automatically fetches when selectedCategoryId changes
-  const { data: lists = [], isLoading: loading } = useLists(selectedCategoryId)
+  const { data: rawLists = [], isLoading: loading } = useLists(selectedCategoryId)
   const { data: allItems = [] } = useAllItems()
+
+  // Filter lists by search query
+  const lists = useMemo(() => {
+    if (!searchQuery.trim()) return rawLists
+    
+    const query = searchQuery.toLowerCase()
+    return rawLists.filter(list =>
+      list.name.toLowerCase().includes(query) ||
+      list.description?.toLowerCase().includes(query)
+    )
+  }, [rawLists, searchQuery])
 
   // Get item count for a list
   const getItemCount = (listId: string): number => {
@@ -35,6 +49,17 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
   const handleListClick = (list: TodoList) => {
     navigateToList(list.id, list.name)
   }
+
+  const handleListContextMenu = (e: React.MouseEvent, list: TodoList) => {
+    e.preventDefault()
+    e.stopPropagation()
+    showContextMenu(e.clientX, e.clientY, list, 'list')
+  }
+
+  const longPressHandlers = useLongPress(
+    (e, list) => handleListContextMenu(e as React.MouseEvent, list as TodoList),
+    { threshold: 500 }
+  )
 
   if (loading && lists.length === 0) {
     return (
@@ -93,6 +118,12 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
               "hover:border-dark-200"
             )}
             onClick={() => handleListClick(list)}
+            onContextMenu={(e) => handleListContextMenu(e, list)}
+            onMouseDown={(e) => longPressHandlers.onMouseDown(e, list)}
+            onTouchStart={(e) => longPressHandlers.onTouchStart(e, list)}
+            onMouseUp={longPressHandlers.onMouseUp}
+            onMouseLeave={longPressHandlers.onMouseLeave}
+            onTouchEnd={longPressHandlers.onTouchEnd}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -131,7 +162,18 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
                   </div>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-dark-400" />
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleListContextMenu(e, list)
+                  }}
+                  className="p-1 text-dark-400 hover:text-white rounded-full hover:bg-dark-200"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+                <ChevronRight className="w-4 h-4 text-dark-400" />
+              </div>
             </div>
           </div>
         )

@@ -455,7 +455,8 @@ export function useDeleteItem() {
 }
 
 /**
- * Cycle item status (not_started -> started -> in_progress -> completed)
+ * Cycle item status (not_started -> in_progress -> completed)
+ * Note: 'started' status is skipped as it has no icon
  */
 export function useCycleItemStatus() {
   const queryClient = useQueryClient()
@@ -465,13 +466,17 @@ export function useCycleItemStatus() {
     mutationFn: async ({ item }): Promise<TodoItem> => {
       if (!user) throw new Error('No user')
       
-      const statusOrder: TodoStatus[] = ['not_started', 'started', 'in_progress', 'completed']
-      const currentIndex = statusOrder.indexOf(item.status)
+      // Only cycle through: not_started -> in_progress -> completed -> not_started
+      const statusOrder: TodoStatus[] = ['not_started', 'in_progress', 'completed']
+      
+      // Handle legacy 'started' status by treating it as 'not_started'
+      const currentStatus = item.status === 'started' ? 'not_started' : item.status
+      const currentIndex = statusOrder.indexOf(currentStatus)
       const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length]
 
       const updates: Partial<TodoItem> = {
         status: nextStatus,
-        started_at: nextStatus === 'started' || nextStatus === 'in_progress' ? new Date().toISOString() : item.started_at,
+        started_at: nextStatus === 'in_progress' ? new Date().toISOString() : item.started_at,
         completed_at: nextStatus === 'completed' ? new Date().toISOString() : null,
         completed_by: nextStatus === 'completed' ? user.id : null
       }

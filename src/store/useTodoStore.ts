@@ -128,12 +128,13 @@ export const useTodoStore = create<TodoNavigationState & TodoNavigationActions>(
     const { currentView } = get()
     
     if (currentView === 'items') {
-      // Go from items back to lists
+      // Go from items back to lists - preserve category selection!
       set({ 
         currentView: 'lists', 
         selectedListId: null,
         selectedListName: null,
         selectedItemId: null 
+        // Keep selectedCategoryId and selectedCategoryName so lists view works
       })
       return true
     } else if (currentView === 'lists') {
@@ -148,7 +149,8 @@ export const useTodoStore = create<TodoNavigationState & TodoNavigationActions>(
       return true
     }
     
-    // At categories level, can't go back further
+    // At categories level, can't go back further within the todo hierarchy
+    // Return false so the app's global back button behavior can take over
     return false
   },
   

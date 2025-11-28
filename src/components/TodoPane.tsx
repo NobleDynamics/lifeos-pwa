@@ -25,7 +25,7 @@ interface TodoPaneProps {
 export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#00D4FF', '#00BFFF', '#0099FF', '#0077FF', '#0055FF'] }: TodoPaneProps) {
   const { user } = useAuth()
   const { currentView, navigateBack, getCurrentTitle } = useTodoNavigation()
-  const { showAnalytics, showForm, setShowForm } = useTodoUI()
+  const { showAnalytics, showForm, setShowForm, setEditingItem } = useTodoUI()
   const { data: categories = [], isLoading: loading } = useCategories()
 
   // Handle Android back button - navigate through todo hierarchy
@@ -49,6 +49,9 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
   }
 
   const handleCreateNew = () => {
+    // Clear any editing state first - this ensures form is empty for new item
+    setEditingItem(null)
+    
     if (currentView === 'categories') {
       setShowForm('category')
     } else if (currentView === 'lists') {

@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Plus, MoreVertical, Target, List } from 'lucide-react'
 import { TodoCategory } from '@/types/database'
 import { useCategories, useAllLists } from '@/hooks/useTodoData'
-import { useTodoNavigation, useTodoUI, useTodoContextMenu } from '@/store/useTodoStore'
+import { useTodoNavigation, useTodoUI, useTodoContextMenu, useTodoSearch } from '@/store/useTodoStore'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
 
@@ -11,11 +11,23 @@ interface TodoCategoryListProps {
 }
 
 export function TodoCategoryList({ accentColor = '#00EAFF' }: TodoCategoryListProps) {
-  const { data: categories = [], isLoading: loading } = useCategories()
+  const { data: rawCategories = [], isLoading: loading } = useCategories()
   const { data: allLists = [] } = useAllLists()
   const { navigateToCategory } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
   const { showContextMenu, hideContextMenu } = useTodoContextMenu()
+  const { searchQuery } = useTodoSearch()
+
+  // Filter categories by search query
+  const categories = useMemo(() => {
+    if (!searchQuery.trim()) return rawCategories
+    
+    const query = searchQuery.toLowerCase()
+    return rawCategories.filter(category =>
+      category.name.toLowerCase().includes(query) ||
+      category.description?.toLowerCase().includes(query)
+    )
+  }, [rawCategories, searchQuery])
 
   // Get list count for a category
   const getListCount = (categoryId: string): number => {

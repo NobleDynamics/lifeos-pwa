@@ -6,7 +6,8 @@ import {
   PlayCircle, 
   Plus,
   MoreVertical,
-  MapPin
+  MapPin,
+  Users
 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { Resource, ResourceStatus } from '@/types/database'
@@ -162,10 +163,11 @@ function FolderRow({
               </span>
               {resource.meta_data && (resource.meta_data as Record<string, unknown>).is_shared && (
                 <span 
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                  style={{ backgroundColor: `${color}20`, color }}
+                  className="inline-flex items-center justify-center w-5 h-5 rounded"
+                  style={{ backgroundColor: `${color}20` }}
+                  title="Shared with Household"
                 >
-                  Shared
+                  <Users className="w-3 h-3" style={{ color }} />
                 </span>
               )}
             </div>

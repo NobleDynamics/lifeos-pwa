@@ -6,6 +6,7 @@ import {
   CheckSquare, 
   Calendar,
   Grid3X3,
+  X,
   // Curated icons for LifeOS
   List,
   ShoppingCart,
@@ -20,13 +21,21 @@ import {
   Briefcase,
   GraduationCap,
   Music,
-  Gamepad2,
+  FileText,
   Car,
   Plane,
   Book,
   Camera,
   Gift,
-  Star
+  Star,
+  // Row 4 icons
+  Image,
+  Video,
+  Paintbrush,
+  Hammer,
+  Pencil,
+  Scissors,
+  Shirt
 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { Resource, ResourceType } from '@/types/database'
@@ -54,8 +63,9 @@ const presetColors = [
   '#85C1E9', // Light Blue
 ]
 
-// Curated icons for LifeOS folder types
+// Curated icons for LifeOS folder types (4 rows of 7)
 const curatedIcons = [
+  // Row 1
   { name: 'Folder', label: 'Folder' },
   { name: 'List', label: 'List' },
   { name: 'ShoppingCart', label: 'Shopping' },
@@ -63,6 +73,7 @@ const curatedIcons = [
   { name: 'Utensils', label: 'Meals' },
   { name: 'Box', label: 'Storage' },
   { name: 'Archive', label: 'Archive' },
+  // Row 2
   { name: 'DollarSign', label: 'Finance' },
   { name: 'Cloud', label: 'Cloud' },
   { name: 'House', label: 'Home' },
@@ -70,13 +81,22 @@ const curatedIcons = [
   { name: 'Briefcase', label: 'Work' },
   { name: 'GraduationCap', label: 'Learning' },
   { name: 'Music', label: 'Music' },
-  { name: 'Gamepad2', label: 'Games' },
+  // Row 3
+  { name: 'FileText', label: 'Documents' },
   { name: 'Car', label: 'Auto' },
   { name: 'Plane', label: 'Travel' },
   { name: 'Book', label: 'Reading' },
   { name: 'Camera', label: 'Photos' },
   { name: 'Gift', label: 'Gifts' },
   { name: 'Star', label: 'Favorites' },
+  // Row 4
+  { name: 'Image', label: 'Images' },
+  { name: 'Video', label: 'Videos' },
+  { name: 'Paintbrush', label: 'Art' },
+  { name: 'Hammer', label: 'Projects' },
+  { name: 'Pencil', label: 'Notes' },
+  { name: 'Scissors', label: 'Crafts' },
+  { name: 'Shirt', label: 'Clothing' },
 ]
 
 // ============================================================================
@@ -246,6 +266,36 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
       onClose={handleClose}
     >
       <form onSubmit={handleSubmit} className="p-4 pb-8 space-y-4">
+        {/* Top Action Buttons */}
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleClose}
+            className={cn(
+              "flex-1 py-2.5 rounded-lg font-medium text-white transition-all duration-200",
+              "bg-dark-300 hover:bg-dark-200 active:scale-[0.98]",
+              "flex items-center justify-center gap-2"
+            )}
+          >
+            <X size={16} />
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || !title.trim()}
+            className={cn(
+              "flex-1 py-2.5 rounded-lg font-medium text-white transition-all duration-200",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              "hover:opacity-90 active:scale-[0.98]",
+              "flex items-center justify-center gap-2"
+            )}
+            style={{ backgroundColor: accentColor }}
+          >
+            <Check size={16} />
+            {isSubmitting ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+
         {/* Error Message */}
         {error && (
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -431,24 +481,6 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
           </div>
         </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isSubmitting || !title.trim()}
-          className={cn(
-            "w-full py-3 rounded-lg font-medium text-white transition-all duration-200",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            "hover:opacity-90 active:scale-[0.98]"
-          )}
-          style={{ backgroundColor: accentColor }}
-        >
-          {isSubmitting 
-            ? 'Saving...' 
-            : isEditing 
-              ? `Update ${isFolder ? 'Folder' : 'Task'}`
-              : `Create ${isFolder ? 'Folder' : 'Task'}`
-          }
-        </button>
       </form>
     </FormSheet>
   )

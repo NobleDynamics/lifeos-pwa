@@ -1,4 +1,133 @@
 // Database types for LifeOS
+
+// ============================================================================
+// RESOURCE GRAPH TYPES (Universal Resource Graph)
+// ============================================================================
+
+export type ResourceType = 
+  | 'folder' 
+  | 'project' 
+  | 'task' 
+  | 'recipe' 
+  | 'ingredient' 
+  | 'stock_item'
+  | 'workout'
+  | 'exercise'
+  | 'document'
+  | 'event'
+
+export type ResourceStatus = 'active' | 'completed' | 'archived'
+
+export type LinkType = 
+  | 'ingredient_of' 
+  | 'related_to' 
+  | 'blocks' 
+  | 'dependency_of' 
+  | 'duplicate_of'
+  | 'child_of'
+  | 'references'
+
+export interface Resource {
+  id: string
+  user_id: string
+  household_id: string | null
+  parent_id: string | null
+  path: string // ltree stored as string
+  type: ResourceType
+  title: string
+  description: string | null
+  status: ResourceStatus
+  meta_data: Record<string, unknown>
+  is_schedulable: boolean
+  scheduled_at: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+  created_by: string | null
+}
+
+export interface ResourceInsert {
+  id?: string
+  user_id: string
+  household_id?: string | null
+  parent_id?: string | null
+  path?: string // Auto-calculated by trigger if not provided
+  type: ResourceType
+  title: string
+  description?: string | null
+  status?: ResourceStatus
+  meta_data?: Record<string, unknown>
+  is_schedulable?: boolean
+  scheduled_at?: string | null
+  created_by?: string | null
+}
+
+export interface ResourceUpdate {
+  parent_id?: string | null
+  type?: ResourceType
+  title?: string
+  description?: string | null
+  status?: ResourceStatus
+  meta_data?: Record<string, unknown>
+  is_schedulable?: boolean
+  scheduled_at?: string | null
+  deleted_at?: string | null
+}
+
+export interface ResourceLink {
+  id: string
+  source_id: string
+  target_id: string
+  link_type: LinkType
+  meta_data: Record<string, unknown>
+  created_at: string
+}
+
+export interface ResourceLinkInsert {
+  id?: string
+  source_id: string
+  target_id: string
+  link_type: LinkType
+  meta_data?: Record<string, unknown>
+}
+
+export interface HealthLog {
+  id: string
+  resource_id: string | null
+  user_id: string
+  date: string
+  value: number
+  metric_unit: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface InventoryLog {
+  id: string
+  resource_id: string | null
+  household_id: string
+  date: string
+  qty_change: number
+  reason: string | null
+  meta_data: Record<string, unknown>
+  created_at: string
+}
+
+// Resource with computed fields (for UI)
+export interface ResourceWithDepth extends Resource {
+  depth: number // Calculated from path: nlevel(path) - 1
+  children_count?: number
+}
+
+// Resource tree node for hierarchical display
+export interface ResourceTreeNode extends Resource {
+  children: ResourceTreeNode[]
+}
+
+// ============================================================================
+// DATABASE INTERFACE
+// ============================================================================
+
 export interface Database {
   public: {
     Tables: {

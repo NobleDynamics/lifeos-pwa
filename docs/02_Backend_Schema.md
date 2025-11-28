@@ -126,74 +126,169 @@ cook_time_minutes (Int)
 image_r2_key (Text)
 ingredients_json (JSONB): [{ item: "Milk", qty: 1, unit: "cup" }]
 
-4. Schema: Tasks, Agenda & Polymorphism
+4. Schema: Universal Resource Graph
 
-4.0 To-Do Module (Hierarchical Task Organization) [IMPLEMENTED]
-Purpose: Provides a 3-level hierarchy for organizing tasks: Categories → Lists → Items.
-Status: ✅ DONE (Tables created, UI implemented in Household Pane)
+4.0 Resource Graph Architecture [IMPLEMENTED]
+Purpose: Universal hierarchical data structure that replaces the rigid todo_categories/lists/items with an infinitely nestable, polymorphic graph.
+Status: ✅ DONE (Migration: `08_resource_graph.sql`)
 
-Table: todo_categories
-Purpose: Top-level folders for organizing task lists.
-Columns:
-id (UUID, PK, default uuid_generate_v4())
-user_id (FK to Auth0 User)
-household_id (FK to households, Nullable)
-name (Text, NOT NULL)
-description (Text, Nullable)
-color (Text, default '#00EAFF')
-is_shared (Boolean, default false)
-created_at (Timestamp, default now())
-updated_at (Timestamp, default now())
-created_by (UUID)
-deleted_at (Timestamp, Nullable) - Soft delete
+**Key Features:**
+- **Infinite Nesting:** Any resource can contain any other resource
+- **Polymorphic Types:** folder, project, task, recipe, workout, document, etc.
+- **Lateral Linking:** Resources can be linked without hierarchy (e.g., ingredients in a recipe)
+- **ltree Paths:** PostgreSQL ltree extension enables efficient subtree queries
 
-Table: todo_lists
-Purpose: Task lists within a category (e.g., "Weekly Groceries", "Home Projects").
-Columns:
-id (UUID, PK, default uuid_generate_v4())
-user_id (FK to Auth0 User)
-household_id (FK to households, Nullable)
-category_id (FK to todo_categories)
-name (Text, NOT NULL)
-description (Text, Nullable)
-due_date (Timestamp, Nullable)
-location_name (Text, Nullable)
-location_coordinates (JSONB, Nullable) - {lat, lng}
-is_shared (Boolean, default false)
-created_at (Timestamp, default now())
-updated_at (Timestamp, default now())
-created_by (UUID)
-deleted_at (Timestamp, Nullable) - Soft delete
-
-Table: todo_items
-Purpose: Individual task items within a list.
-Columns:
-id (UUID, PK, default uuid_generate_v4())
-user_id (FK to Auth0 User)
-household_id (FK to households, Nullable)
-list_id (FK to todo_lists)
-name (Text, NOT NULL)
-description (Text, Nullable)
-status (Enum: 'not_started', 'started', 'in_progress', 'completed')
-due_date (Timestamp, Nullable)
-location_name (Text, Nullable)
-location_coordinates (JSONB, Nullable)
-is_shared (Boolean, default false)
-started_at (Timestamp, Nullable)
-completed_at (Timestamp, Nullable)
-completed_by (UUID, Nullable)
-created_at (Timestamp, default now())
-updated_at (Timestamp, default now())
-created_by (UUID)
-deleted_at (Timestamp, Nullable) - Soft delete
-
-RLS Policies:
-- All tables have RLS enabled
-- Users can only access their own rows OR shared household rows
+**Migration Notes:**
+- Old tables renamed to `legacy_todo_categories`, `legacy_todo_lists`, `legacy_todo_items`
+- Data migrated to `resources` table preserving IDs and relationships
+- Frontend uses `useLegacyTodoAdapter()` hook for backward compatibility
 
 ---
 
-4.1 The Unified Task Table
+### 4.0.1 Master Resources Table [IMPLEMENTED]
+
+Table: resources
+Purpose: Single table for ALL hierarchical data - folders, projects, tasks, recipes, workouts, etc.
+Migration SQL: `08_resource_graph.sql`
+
+Columns:
+- id (UUID, PK, default uuid_generate_v4())
+- user_id (UUID, NOT NULL) - Owner of the resource
+- household_id (UUID FK, Nullable) - For shared household resources
+- parent_id (UUID Self-FK, Nullable) - NULL = root level
+- path (ltree, NOT NULL) - Materialized path for efficient hierarchy queries
+  - Format: `root.{uuid_underscored}.{uuid_underscored}...`
+  - Example: `root.a1b2c3d4_e5f6_7890_abcd_ef1234567890`
+- type (Enum resource_type): 'folder', 'project', 'task', 'recipe', 'ingredient', 'stock_item', 'workout', 'exercise', 'document', 'event'
+- title (VARCHAR 500, NOT NULL)
+- description (TEXT, Nullable)
+- status (Enum resource_status): 'active', 'completed', 'archived'
+- meta_data (JSONB, default '{}') - Polymorphic fields based on type:
+  - Folder: `{"color": "#00EAFF", "icon": "folder"}`
+  - Recipe: `{"prep_time": 30, "cook_time": 45, "servings": 4}`
+  - Task: `{"priority": "high", "legacy_status": "in_progress"}`
+  - Workout: `{"muscle_groups": ["chest"], "difficulty": "intermediate"}`
+- is_schedulable (Boolean, default false)
+- scheduled_at (Timestamp, Nullable)
+- created_at (Timestamp, default now())
+- updated_at (Timestamp, default now()) - Auto-updated via trigger
+- deleted_at (Timestamp, Nullable) - Soft delete
+- created_by (UUID, Nullable)
+
+Indexes:
+- GIST index on `path` for ltree queries (CRITICAL for performance)
+- B-tree on `parent_id`, `user_id`, `type`, `status`, `scheduled_at`
+
+Key ltree Queries:
+```sql
+-- Get all children of a resource (direct only)
+SELECT * FROM resources WHERE parent_id = 'uuid' AND deleted_at IS NULL;
+
+-- Get entire subtree (all descendants)
+SELECT * FROM resources WHERE path <@ 'root.uuid1_uuid2' AND deleted_at IS NULL;
+
+-- Get ancestors (path to root)
+SELECT * FROM resources WHERE path @> 'root.uuid1_uuid2_uuid3' ORDER BY nlevel(path);
+
+-- Get depth of a resource
+SELECT nlevel(path) - 1 as depth FROM resources WHERE id = 'uuid';
+```
+
+---
+
+### 4.0.2 Resource Links Table (Lateral Relationships) [IMPLEMENTED]
+
+Table: resource_links
+Purpose: Non-hierarchical relationships between resources (e.g., recipe ingredients, task dependencies).
+
+Columns:
+- id (UUID, PK, default uuid_generate_v4())
+- source_id (UUID FK to resources, NOT NULL)
+- target_id (UUID FK to resources, NOT NULL)
+- link_type (Enum link_type): 'ingredient_of', 'related_to', 'blocks', 'dependency_of', 'duplicate_of', 'child_of', 'references'
+- meta_data (JSONB, default '{}') - Link-specific data:
+  - ingredient_of: `{"quantity": 2, "unit": "cups"}`
+  - blocks: `{"reason": "Waiting for approval"}`
+- created_at (Timestamp, default now())
+
+Constraints:
+- UNIQUE(source_id, target_id, link_type) - Prevent duplicate links
+- CHECK(source_id != target_id) - Prevent self-links
+
+---
+
+### 4.0.3 Log Tables (Strict Temporal Data) [IMPLEMENTED]
+
+Table: health_logs
+Purpose: Time-series data for health metrics linked to resources.
+Columns:
+- id (UUID, PK)
+- resource_id (UUID FK, Nullable) - Optional link to a resource
+- user_id (UUID, NOT NULL)
+- date (DATE, NOT NULL)
+- value (NUMERIC, NOT NULL)
+- metric_unit (VARCHAR 50) - 'kg', 'lbs', 'hours', 'ml'
+- notes (TEXT, Nullable)
+- created_at (Timestamp)
+Constraint: UNIQUE(resource_id, user_id, date)
+
+Table: inventory_logs
+Purpose: Stock change history for inventory resources.
+Columns:
+- id (UUID, PK)
+- resource_id (UUID FK, Nullable)
+- household_id (UUID FK)
+- date (DATE, default CURRENT_DATE)
+- qty_change (NUMERIC) - Positive = add, Negative = remove
+- reason (VARCHAR 100) - 'purchase', 'consumed', 'expired', 'adjustment'
+- meta_data (JSONB)
+- created_at (Timestamp)
+
+---
+
+### 4.0.4 Legacy Tables [DEPRECATED - DATA PRESERVED]
+
+The following tables have been renamed and preserved for rollback safety:
+- `legacy_todo_categories` (was `todo_categories`)
+- `legacy_todo_lists` (was `todo_lists`)
+- `legacy_todo_items` (was `todo_items`)
+
+**Do NOT use these tables for new features.** They exist only for emergency rollback.
+
+---
+
+### 4.0.5 Frontend Hook Reference
+
+**New Hooks (src/hooks/useResourceData.ts):**
+- `useResources(parentId)` - Get direct children of a resource
+- `useResourceTree(rootPath)` - Get entire subtree using ltree
+- `useResource(id)` - Get single resource
+- `useResourcesByType(type)` - Get all resources of a type
+- `useCreateResource()` - Create new resource
+- `useUpdateResource()` - Update resource
+- `useDeleteResource()` - Soft delete
+- `useMoveResource()` - Move to new parent
+- `useLinkResources()` / `useUnlinkResources()` - Manage lateral links
+
+**Legacy Adapter (for existing UI):**
+- `useLegacyTodoAdapter()` - Maps resources to old TodoCategory/TodoList/TodoItem types
+- `useLegacyLists(categoryId)` - Get lists for a category
+- `useLegacyItems(listId)` - Get items for a list
+
+---
+
+### 4.0.6 RLS Policies
+
+All resource tables have RLS enabled with the following policies:
+- Users can view/edit their own resources
+- Users can view shared household resources
+- Links are accessible if user owns source or target resource
+
+Dev bypass policies are in `04_dev_rls_bypass.sql` for test users.
+
+---
+
+4.1 The Unified Task Table [FUTURE - Use resources table instead]
 Table: tasks
 Purpose: Single source of truth for all "To-Dos", whether personal, household chores, or Agent sub-steps.
 Columns:

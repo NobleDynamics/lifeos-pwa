@@ -22,6 +22,42 @@ These reusable components enforce DRY principles across the app:
 
 ---
 
+## Universal Resource Graph Components (src/components/)
+
+The new hierarchical resource system replaces the legacy 3-tier Todo structure:
+
+| Component | Purpose | Props |
+|-----------|---------|-------|
+| `HierarchyPane` | Main container for resource hierarchy navigation | `accentColor?` |
+| `ResourceListView` | Unified list renderer for folders and tasks | `accentColor?` |
+| `ResourceBreadcrumbs` | Clickable breadcrumb trail from ltree path | `accentColor?` |
+| `ResourceForm` | Universal creator/editor for folders and tasks | `accentColor?` |
+
+### State Management (src/store/useResourceStore.ts)
+
+| Hook | Purpose |
+|------|---------|
+| `useResourceNavigation()` | Navigation: `currentParentId`, `pathStack`, `navigateInto()`, `navigateBack()`, `navigateToBreadcrumb()` |
+| `useResourceSearch()` | Search: `searchQuery`, `setSearchQuery()` |
+| `useResourceForm()` | Form state: `showForm`, `editingResource`, `openCreateForm()`, `openEditForm()`, `closeForm()` |
+| `useResourceContextMenu()` | Context menu: `contextMenu`, `showContextMenu()`, `hideContextMenu()` |
+
+### Visual Distinction
+
+- **FolderRow**: Cyberpunk neon glow border, folder icon, chevron `>` for navigation
+- **TaskRow**: Standard dark card, checkbox icon (Circle/PlayCircle/CheckCircle), status labels
+
+### Legacy Components (src/components/todo/legacy/)
+
+The following components are **DEPRECATED** and preserved only for reference:
+- `TodoPane.tsx`, `TodoCategoryList.tsx`, `TodoListsView.tsx`, `TodoItemsView.tsx`
+- `CategoryForm.tsx`, `TaskListForm.tsx`, `TaskItemForm.tsx`
+- `TodoBreadcrumbs.tsx`, `TodoContextMenu.tsx`, `TodoSearchFilter.tsx`, `TodoDetailSheet.tsx`, `TodoAnalytics.tsx`
+
+**Do NOT use legacy components for new features.** Use `HierarchyPane` and Resource Graph hooks instead.
+
+---
+
 1. Technical Stack & Architecture
 Category
 Component/Tool
@@ -145,13 +181,25 @@ Tabs: To-Do, Shopping List, Stock, Recipes.
 A. Global Feature: The "Household" Toggle
 UI: Toggle for "Shared View" vs "Private View".
 Logic: Filters tasks and lists by the household_id column.
-B. Tab: To-Do (Nested Action Hub) [DONE ✅]
-Structure: Folder Grid (Categories) -> List View (Lists) -> Task Items.
-Data Source: Queries the todo_categories, todo_lists, and todo_items tables.
-Item Cards: Checkbox, Title, Due Date (Color-coded if overdue), Location Icon.
+B. Tab: To-Do (Universal Resource Graph) [REFACTORED ✅]
+Structure: Infinite hierarchy using ltree paths. Folders can contain folders or tasks at any depth.
+Data Source: Queries the `resources` table with ltree operators.
+Components:
+- `HierarchyPane`: Main container with header, breadcrumbs, search, and create dropdown
+- `ResourceListView`: Renders `FolderRow` (neon glow, chevron) and `TaskRow` (checkbox)
+- `ResourceBreadcrumbs`: Clickable path trail (Root > Folder > Subfolder)
+- `ResourceForm`: Universal creator with dynamic fields (color for folders, due date for tasks)
+
+Visual Design:
+- **Folders**: Cyberpunk neon glow border, folder icon with custom color, chevron `>` indicator
+- **Tasks**: Standard dark card, checkbox (Circle → PlayCircle → CheckCircle), due date highlighting
+
 Interactions:
-"Schedule This": triggers Agent to find a slot in calendar_events.
-Quick Add: Header (+) button to add task via form or Chat.
+- Click Folder → Navigate deeper (updates `currentParentId`)
+- Click Task → Cycle status (active → completed → archived)
+- Long Press → Context menu (Edit/Delete)
+- "New" Dropdown → Create Folder OR Create Task
+- Back Button → Navigate up hierarchy via ltree path
 C. Tab: Shopping List (Smart Procurement)
 Sub-Views:
 Active Lists: Grouped by Vendor.

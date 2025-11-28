@@ -32,7 +32,20 @@
 * **Charts:** Recharts (via Shadcn/UI Charts).
 * **Icons:** Lucide-React.
 
-## 6. Supabase & RLS Development Mode
+## 6. Hierarchy Queries (ltree)
+* **Always use ltree operators** for hierarchy queries on the `resources` table:
+    * `<@` (descendant of): `WHERE path <@ 'root.parent_id'` - Get all items in a folder
+    * `@>` (ancestor of): `WHERE path @> 'root.child_id'` - Get path to root
+    * `~` (regex match): For pattern-based queries
+    * `nlevel(path)` - Get depth of a resource
+* **Never use recursive CTEs** for tree traversal when ltree is available
+* **Path format:** `root.{uuid_with_underscores}.{uuid_with_underscores}...`
+    * UUIDs have hyphens replaced with underscores (ltree constraint)
+    * Example: `root.a1b2c3d4_e5f6_7890_abcd_ef1234567890`
+* **Use `useResourceTree(path)` hook** for fetching entire branches
+* **Use `useResources(parentId)` hook** for direct children only
+
+## 7. Supabase & RLS Development Mode
 * **Test User IDs (Hardcoded):**
     * User 1: `11111111-1111-1111-1111-111111111111`
     * User 2: `22222222-2222-2222-2222-222222222222`

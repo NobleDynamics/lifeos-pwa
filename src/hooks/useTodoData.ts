@@ -457,12 +457,19 @@ export function useDeleteItem() {
 /**
  * Cycle item status (not_started -> in_progress -> completed)
  * Note: 'started' status is skipped as it has no icon
+ * Uses optimistic updates to prevent items from jumping around
  */
+// Type for optimistic update context
+interface CycleStatusContext {
+  previousItems: TodoItem[] | undefined
+  listId: string
+}
+
 export function useCycleItemStatus() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   
-  return useMutation<TodoItem, Error, { item: TodoItem }>({
+  return useMutation<TodoItem, Error, { item: TodoItem }, CycleStatusContext>({
     mutationFn: async ({ item }): Promise<TodoItem> => {
       if (!user) throw new Error('No user')
       
@@ -493,9 +500,44 @@ export function useCycleItemStatus() {
       if (!data) throw new Error('No data returned')
       return data as TodoItem
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: todoKeys.items(data.list_id) })
-      queryClient.invalidateQueries({ queryKey: todoKeys.allItems() })
+    // Optimistic update: update cache directly to prevent items from jumping
+    onMutate: async ({ item }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: todoKeys.items(item.list_id) })
+      
+      // Snapshot the previous value
+      const previousItems = queryClient.getQueryData<TodoItem[]>(todoKeys.items(item.list_id))
+      
+      // Calculate next status
+      const statusOrder: TodoStatus[] = ['not_started', 'in_progress', 'completed']
+      const currentStatus = item.status === 'started' ? 'not_started' : item.status
+      const currentIndex = statusOrder.indexOf(currentStatus)
+      const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length]
+      
+      // Optimistically update to the new value
+      if (previousItems) {
+        queryClient.setQueryData<TodoItem[]>(todoKeys.items(item.list_id), 
+          previousItems.map(i => 
+            i.id === item.id 
+              ? { ...i, status: nextStatus, updated_at: new Date().toISOString() }
+              : i
+          )
+        )
+      }
+      
+      return { previousItems, listId: item.list_id }
+    },
+    onError: (err, { item }, context) => {
+      // If the mutation fails, roll back to the previous value
+      if (context?.previousItems) {
+        queryClient.setQueryData(todoKeys.items(context.listId), context.previousItems)
+      }
+    },
+    onSettled: (data) => {
+      // Only invalidate allItems for count updates, not the items list (to preserve order)
+      if (data) {
+        queryClient.invalidateQueries({ queryKey: todoKeys.allItems() })
+      }
     },
   })
 }

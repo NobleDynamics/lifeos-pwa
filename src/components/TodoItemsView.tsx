@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { Plus, CheckCircle, Circle, PlayCircle } from 'lucide-react'
 import { TodoItem, TodoStatus } from '@/types/database'
 import { useItems, useCycleItemStatus } from '@/hooks/useTodoData'
-import { useTodoNavigation, useTodoUI, useTodoSearch } from '@/store/useTodoStore'
+import { useTodoNavigation, useTodoUI, useTodoSearch, useTodoContextMenu } from '@/store/useTodoStore'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,7 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
   const { selectedListId } = useTodoNavigation()
   const { setShowForm, setEditingItem } = useTodoUI()
   const { searchQuery } = useTodoSearch()
+  const { showContextMenu } = useTodoContextMenu()
   
   // Use TanStack Query hooks - automatically fetches when selectedListId changes
   const { data: rawItems = [], isLoading: loading } = useItems(selectedListId)
@@ -38,7 +39,7 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
     return filtered
   }, [rawItems, searchQuery])
 
-  const handleCreateItem = () => {
+  const handleCreateTask = () => {
     setEditingItem(null)
     setShowForm('item')
   }
@@ -48,10 +49,22 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
     await cycleStatusMutation.mutateAsync({ item })
   }
 
-  // Long press opens edit form
-  const handleLongPress = (item: TodoItem) => {
-    setEditingItem(item)
-    setShowForm('item')
+  // Long press opens context menu (Edit/Delete)
+  const handleLongPress = (e: React.MouseEvent | React.TouchEvent, item: TodoItem) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Get position from event
+    let x = 0, y = 0
+    if ('touches' in e) {
+      x = e.touches[0]?.clientX || 0
+      y = e.touches[0]?.clientY || 0
+    } else {
+      x = e.clientX
+      y = e.clientY
+    }
+    
+    showContextMenu(x, y, item, 'item')
   }
 
   const getStatusIcon = (status: string) => {
@@ -122,10 +135,10 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
     return (
       <div className="text-center py-12">
         <CheckCircle className="w-12 h-12 text-dark-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-white mb-2">No Items Yet</h3>
-        <p className="text-dark-500 mb-6">Create your first item to get started</p>
+        <h3 className="text-lg font-medium text-white mb-2">No Tasks Yet</h3>
+        <p className="text-dark-500 mb-6">Create your first task to get started</p>
         <button
-          onClick={handleCreateItem}
+          onClick={handleCreateTask}
           className={cn(
             "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white",
             "hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
@@ -133,7 +146,7 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
           style={{ backgroundColor: accentColor }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Create Item
+          Create Task
         </button>
       </div>
     )
@@ -147,7 +160,7 @@ export function TodoItemsView({ accentColor = '#00EAFF' }: TodoItemsViewProps) {
           item={item}
           accentColor={accentColor}
           onTap={() => cycleStatus(item)}
-          onLongPress={() => handleLongPress(item)}
+          onLongPress={(e) => handleLongPress(e, item)}
           getStatusIcon={getStatusIcon}
           getStatusColor={getStatusColor}
           getStatusLabel={getStatusLabel}
@@ -170,12 +183,12 @@ function ItemCard({
   item: TodoItem
   accentColor: string
   onTap: () => void
-  onLongPress: () => void
+  onLongPress: (e: React.MouseEvent | React.TouchEvent) => void
   getStatusIcon: (status: string) => React.ReactNode
   getStatusColor: (status: string) => string
   getStatusLabel: (status: string) => string
 }) {
-  const longPressHandlers = useLongPress(onLongPress, { threshold: 500 })
+  const longPressHandlers = useLongPress((e) => onLongPress(e), { threshold: 500 })
 
   return (
     <div

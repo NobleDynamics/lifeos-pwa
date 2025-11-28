@@ -129,7 +129,7 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
               style={{ backgroundColor: accentColor }}
             >
               <Plus className="w-4 h-4 mr-1" />
-              {currentView === 'categories' ? 'Category' : currentView === 'lists' ? 'List' : 'Item'}
+              {currentView === 'categories' ? 'Category' : currentView === 'lists' ? 'List' : 'Task'}
             </button>
           </div>
         </div>

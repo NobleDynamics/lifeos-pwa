@@ -50,14 +50,25 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
     navigateToList(list.id, list.name)
   }
 
-  const handleListContextMenu = (e: React.MouseEvent, list: TodoList) => {
+  const handleListContextMenu = (e: React.MouseEvent | React.TouchEvent, list: TodoList) => {
     e.preventDefault()
     e.stopPropagation()
-    showContextMenu(e.clientX, e.clientY, list, 'list')
+    
+    // Get position from event
+    let x = 0, y = 0
+    if ('touches' in e) {
+      x = e.touches[0]?.clientX || 0
+      y = e.touches[0]?.clientY || 0
+    } else {
+      x = (e as React.MouseEvent).clientX
+      y = (e as React.MouseEvent).clientY
+    }
+    
+    showContextMenu(x, y, list, 'list')
   }
 
   const longPressHandlers = useLongPress(
-    (e, list) => handleListContextMenu(e as React.MouseEvent, list as TodoList),
+    (e, list) => handleListContextMenu(e as React.MouseEvent | React.TouchEvent, list as TodoList),
     { threshold: 500 }
   )
 
@@ -146,7 +157,7 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
                   <div className="flex items-center space-x-4 mt-2">
                     <div className="flex items-center space-x-1">
                       <span className="text-xs text-dark-500">
-                        {completedCount}/{itemCount} items
+                        {completedCount}/{itemCount} tasks
                       </span>
                     </div>
                     {list.due_date && (

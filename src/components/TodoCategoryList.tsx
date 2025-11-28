@@ -49,13 +49,25 @@ export function TodoCategoryList({ accentColor = '#00EAFF' }: TodoCategoryListPr
     hideContextMenu()
   }
 
-  const handleCategoryContextMenu = (e: React.MouseEvent, category: TodoCategory) => {
+  const handleCategoryContextMenu = (e: React.MouseEvent | React.TouchEvent, category: TodoCategory) => {
     e.preventDefault()
-    showContextMenu(e.clientX, e.clientY, category, 'category')
+    e.stopPropagation()
+    
+    // Get position from event
+    let x = 0, y = 0
+    if ('touches' in e) {
+      x = e.touches[0]?.clientX || 0
+      y = e.touches[0]?.clientY || 0
+    } else {
+      x = (e as React.MouseEvent).clientX
+      y = (e as React.MouseEvent).clientY
+    }
+    
+    showContextMenu(x, y, category, 'category')
   }
 
   const longPressHandlers = useLongPress(
-    (e, category) => handleCategoryContextMenu(e as React.MouseEvent, category as TodoCategory),
+    (e, category) => handleCategoryContextMenu(e as React.MouseEvent | React.TouchEvent, category as TodoCategory),
     { threshold: 500 }
   )
 

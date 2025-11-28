@@ -288,6 +288,61 @@ Dev bypass policies are in `04_dev_rls_bypass.sql` for test users.
 
 ---
 
+### 4.0.7 Context Roots (Virtual Mount Points) [IMPLEMENTED]
+
+Purpose: System folders that serve as "mount points" for different application contexts, enabling multiple panes to have isolated views into the same resources table.
+Status: ✅ DONE (Migration: `09_context_roots.sql`)
+
+**Key Concepts:**
+- **Context Root:** A special system folder that acts as the "floor" for navigation in a specific pane
+- **Namespace Convention:** `{domain}.{feature}` (e.g., `household.todos`, `cloud.files`)
+- **Hidden Root:** Users cannot navigate above their context root - they see "To-Do" instead of "Root"
+- **Lazy Initialization:** Context roots are auto-created if missing when a pane mounts
+
+**System Folder Metadata:**
+```json
+{
+  "context": "household.todos",  // Namespace identifier
+  "is_system": true               // Marks as system-managed folder
+}
+```
+
+**Current Context Namespaces:**
+| Namespace | Pane | Display Title | Description |
+|-----------|------|---------------|-------------|
+| `household.todos` | HouseholdPane > To-Do | "To-Do" | Task management |
+| `cloud.files` | CloudPane > Files | "Cloud" | File storage |
+
+**Future Namespaces (Reserved):**
+- `health.workouts` - Workout routines
+- `health.logs` - Health tracking
+- `finance.budget` - Budget management
+- `household.recipes` - Recipe collection
+- `household.shopping` - Shopping lists
+- `household.stock` - Inventory tracking
+
+**Frontend Hook (`useContextRoot`):**
+```typescript
+const { rootId, rootPath, isLoading, error } = useContextRoot('household.todos')
+```
+
+- Queries: `meta_data->>'context' = context AND user_id = currentUser`
+- Auto-creates missing context roots (idempotent)
+- Returns loading/error states for UI handling
+
+**Navigation Store Changes:**
+- `contextRootId` - The "floor" UUID for this view
+- `contextTitle` - Display name (e.g., "To-Do" vs "household.todos")
+- `isAtRoot` - Now checks against `contextRootId` instead of `null`
+- `navigateToRoot()` - Goes to `contextRootId` instead of global root
+
+**Breadcrumb Behavior:**
+- Home button shows `contextTitle` instead of "Root"
+- Path stack stops at context root level
+- Users see: `To-Do > Chores` NOT `Root > Household > Chores`
+
+---
+
 4.1 The Unified Task Table [FUTURE - Use resources table instead]
 Table: tasks
 Purpose: Single source of truth for all "To-Dos", whether personal, household chores, or Agent sub-steps.

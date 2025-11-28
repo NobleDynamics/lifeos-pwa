@@ -1,11 +1,16 @@
 import { Cloud, Image, FileText, FolderOpen } from 'lucide-react'
 import CategoryPane from '@/components/CategoryPane'
+import { HierarchyPane } from '@/components/HierarchyPane'
 
 const tabs = [
-  { id: 'photos', label: 'Photos', icon: Image },
   { id: 'files', label: 'Files', icon: FolderOpen },
+  { id: 'photos', label: 'Photos', icon: Image },
   { id: 'docs', label: 'Docs', icon: FileText },
 ]
+
+function FilesTab() {
+  return <HierarchyPane context="cloud.files" title="Cloud" accentColor="#00EAFF" />
+}
 
 function PhotosTab() {
   return (
@@ -16,20 +21,6 @@ function PhotosTab() {
         ))}
       </div>
       <p className="text-center text-dark-500 text-sm mt-4">Connect Supabase to view photos</p>
-    </div>
-  )
-}
-
-function FilesTab() {
-  return (
-    <div className="p-4 space-y-2">
-      {['Documents', 'Downloads', 'Pictures'].map(folder => (
-        <div key={folder} className="flex items-center gap-3 p-3 glass-card">
-          <FolderOpen size={20} className="text-primary" />
-          <span>{folder}</span>
-        </div>
-      ))}
-      <p className="text-center text-dark-500 text-sm mt-4">Connect Supabase to view files</p>
     </div>
   )
 }
@@ -58,8 +49,8 @@ export default function CloudPane() {
     >
       {(activeTab) => (
         <>
-          {activeTab === 'photos' && <PhotosTab />}
           {activeTab === 'files' && <FilesTab />}
+          {activeTab === 'photos' && <PhotosTab />}
           {activeTab === 'docs' && <DocsTab />}
         </>
       )}

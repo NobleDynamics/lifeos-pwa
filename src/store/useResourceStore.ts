@@ -12,7 +12,10 @@ export interface PathStackItem {
 }
 
 interface ResourceNavigationState {
-  // Current parent ID (null = root level)
+  // Context root (the "floor" for this view's navigation)
+  contextRootId: string | null
+  contextTitle: string
+  // Current parent ID (contextRootId = at root of context)
   currentParentId: string | null
   // Path stack for breadcrumbs: [{id, title, path}, ...]
   pathStack: PathStackItem[]
@@ -31,6 +34,10 @@ interface ResourceNavigationState {
 }
 
 interface ResourceNavigationActions {
+  // Context root management
+  setContextRoot: (rootId: string | null, title: string) => void
+  clearContextRoot: () => void
+  
   // Navigation
   navigateInto: (resource: Resource) => void
   navigateBack: () => boolean
@@ -64,6 +71,8 @@ interface ResourceNavigationActions {
 
 export const useResourceStore = create<ResourceNavigationState & ResourceNavigationActions>((set, get) => ({
   // Initial state
+  contextRootId: null,
+  contextTitle: 'Resources',
   currentParentId: null,
   pathStack: [],
   searchQuery: '',
@@ -74,6 +83,39 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
     x: 0,
     y: 0,
     resource: null,
+  },
+
+  // ========== Context Root Management ==========
+  
+  /**
+   * Set the context root for this view
+   * This establishes the "floor" for navigation - users cannot navigate above this
+   * 
+   * @param rootId - UUID of the context root folder
+   * @param title - Display title (e.g., "To-Do" instead of "household.todos")
+   */
+  setContextRoot: (rootId: string | null, title: string) => {
+    set({
+      contextRootId: rootId,
+      contextTitle: title,
+      // Start navigation at the context root
+      currentParentId: rootId,
+      pathStack: [],
+      searchQuery: '',
+    })
+  },
+  
+  /**
+   * Clear the context root (revert to global root navigation)
+   */
+  clearContextRoot: () => {
+    set({
+      contextRootId: null,
+      contextTitle: 'Resources',
+      currentParentId: null,
+      pathStack: [],
+      searchQuery: '',
+    })
   },
 
   // ========== Navigation Actions ==========
@@ -97,20 +139,20 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
 
   /**
    * Navigate back one level in the hierarchy
-   * Returns false if already at root (can't go back further)
+   * Returns false if already at context root (can't go back further)
    */
   navigateBack: () => {
-    const { pathStack } = get()
+    const { pathStack, contextRootId } = get()
     
     if (pathStack.length === 0) {
-      // Already at root, can't go back further
+      // Already at context root, can't go back further
       return false
     }
     
     if (pathStack.length === 1) {
-      // Going back to root
+      // Going back to context root
       set({
-        currentParentId: null,
+        currentParentId: contextRootId,
         pathStack: [],
         searchQuery: '',
       })
@@ -130,11 +172,12 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
   },
 
   /**
-   * Navigate directly to root level
+   * Navigate directly to context root level
    */
   navigateToRoot: () => {
+    const { contextRootId } = get()
     set({
-      currentParentId: null,
+      currentParentId: contextRootId,
       pathStack: [],
       searchQuery: '',
     })
@@ -145,12 +188,12 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
    * @param index - Index in the pathStack (0 = first folder entered)
    */
   navigateToBreadcrumb: (index: number) => {
-    const { pathStack } = get()
+    const { pathStack, contextRootId } = get()
     
     if (index < 0) {
-      // Navigate to root
+      // Navigate to context root
       set({
-        currentParentId: null,
+        currentParentId: contextRootId,
         pathStack: [],
         searchQuery: '',
       })
@@ -248,10 +291,10 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
    * Get the current view title based on navigation state
    */
   getCurrentTitle: () => {
-    const { pathStack } = get()
+    const { pathStack, contextTitle } = get()
     
     if (pathStack.length === 0) {
-      return 'Resources'
+      return contextTitle
     }
     
     return pathStack[pathStack.length - 1].title
@@ -261,8 +304,9 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
    * Reset all navigation state to initial values
    */
   resetNavigation: () => {
+    const { contextRootId, contextTitle } = get()
     set({
-      currentParentId: null,
+      currentParentId: contextRootId,
       pathStack: [],
       searchQuery: '',
       showForm: null,
@@ -286,8 +330,12 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
  */
 export function useResourceNavigation() {
   const {
+    contextRootId,
+    contextTitle,
     currentParentId,
     pathStack,
+    setContextRoot,
+    clearContextRoot,
     navigateInto,
     navigateBack,
     navigateToRoot,
@@ -297,8 +345,12 @@ export function useResourceNavigation() {
   } = useResourceStore()
 
   return {
+    contextRootId,
+    contextTitle,
     currentParentId,
     pathStack,
+    setContextRoot,
+    clearContextRoot,
     navigateInto,
     navigateBack,
     navigateToRoot,
@@ -306,7 +358,7 @@ export function useResourceNavigation() {
     getCurrentTitle,
     resetNavigation,
     // Computed values
-    isAtRoot: currentParentId === null,
+    isAtRoot: currentParentId === contextRootId,
     depth: pathStack.length,
   }
 }

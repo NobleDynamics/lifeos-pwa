@@ -29,7 +29,7 @@ const mockRecipes = [
 ]
 
 function TodoTab() {
-  return <HierarchyPane accentColor="#00EAFF" />
+  return <HierarchyPane context="household.todos" title="To-Do" accentColor="#00EAFF" />
 }
 
 function ShoppingTab() {

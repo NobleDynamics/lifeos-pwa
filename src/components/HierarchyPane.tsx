@@ -1,10 +1,11 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { Plus, ArrowLeft, Folder, CheckSquare, Search, X, Edit, Trash2, Info, User, Calendar, Clock } from 'lucide-react'
+import { Plus, ArrowLeft, Folder, CheckSquare, Search, X, Edit, Trash2, Info, User, Calendar, Clock, Loader2 } from 'lucide-react'
 import { ResourceListView } from './ResourceListView'
 import { ResourceBreadcrumbs } from './ResourceBreadcrumbs'
 import { ResourceForm } from './ResourceForm'
 import { FormSheet } from '@/components/shared/FormSheet'
 import { useDeleteResource } from '@/hooks/useResourceData'
+import { useContextRoot } from '@/hooks/useContextRoot'
 import { 
   useResourceNavigation, 
   useResourceSearch, 
@@ -22,6 +23,11 @@ import { Resource } from '@/types/database'
 // ============================================================================
 
 interface HierarchyPaneProps {
+  /** Context namespace (e.g., "household.todos", "cloud.files") */
+  context: string
+  /** Display title for the root breadcrumb (e.g., "To-Do", "Cloud") */
+  title: string
+  /** Accent color for UI elements */
   accentColor?: string
 }
 
@@ -475,14 +481,24 @@ function SearchBar() {
 // MAIN COMPONENT
 // ============================================================================
 
-export function HierarchyPane({ accentColor = '#00EAFF' }: HierarchyPaneProps) {
+export function HierarchyPane({ context, title, accentColor = '#00EAFF' }: HierarchyPaneProps) {
   const { user } = useAuth()
-  const { isAtRoot, navigateBack, getCurrentTitle } = useResourceNavigation()
+  const { isAtRoot, navigateBack, getCurrentTitle, setContextRoot, contextRootId } = useResourceNavigation()
   const { openCreateForm } = useResourceForm()
   const { contextMenu } = useResourceContextMenu()
   
   const [showCreateDropdown, setShowCreateDropdown] = useState(false)
   const createButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Get or create the context root
+  const { rootId, isLoading: isContextLoading, error: contextError } = useContextRoot(context)
+
+  // Set the context root in the navigation store when it's ready
+  useEffect(() => {
+    if (rootId && rootId !== contextRootId) {
+      setContextRoot(rootId, title)
+    }
+  }, [rootId, title, setContextRoot, contextRootId])
 
   // Handle Android back button - navigate through hierarchy
   const handleBackButton = useCallback(() => {
@@ -492,6 +508,33 @@ export function HierarchyPane({ accentColor = '#00EAFF' }: HierarchyPaneProps) {
   useBackButton({
     onCloseModal: handleBackButton
   })
+
+  // Loading state while context root is being fetched/created
+  if (isContextLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: accentColor }} />
+          <p className="text-dark-500 text-sm">Loading {title}...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state if context root creation failed
+  if (contextError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
+            <X className="w-6 h-6 text-red-400" />
+          </div>
+          <p className="text-red-400 text-sm">Failed to load {title}</p>
+          <p className="text-dark-500 text-xs">{contextError}</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!user) {
     return (

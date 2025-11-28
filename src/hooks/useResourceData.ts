@@ -19,6 +19,10 @@ import {
 } from '@/types/database'
 import { useAuth } from '@/lib/supabase'
 
+// Type assertion helper for tables not in auto-generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any
+
 // ============================================================================
 // QUERY KEYS
 // ============================================================================
@@ -101,7 +105,7 @@ export function useResources(parentId: string | null) {
     queryFn: async (): Promise<Resource[]> => {
       if (!user) return []
 
-      let query = supabase
+      let query = db
         .from('resources')
         .select('*')
         .eq('user_id', user.id)
@@ -141,7 +145,7 @@ export function useResource(id: string | null) {
     queryFn: async (): Promise<Resource | null> => {
       if (!user || !id) return null
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resources')
         .select('*')
         .eq('id', id)
@@ -175,7 +179,7 @@ export function useResourceTree(rootPath: string | null) {
 
       // Use raw SQL for ltree operator
       // path <@ 'root.abc' means "path is descendant of root.abc"
-      const { data, error } = await supabase
+      const { data, error } = await db
         .rpc('get_resource_subtree', { 
           p_user_id: user.id, 
           p_root_path: rootPath 
@@ -189,7 +193,7 @@ export function useResourceTree(rootPath: string | null) {
         // Recursive fetch using parent_id (less efficient)
         const allResources: Resource[] = []
         const fetchChildren = async (parentId: string | null): Promise<void> => {
-          const { data: children, error: childError } = await supabase
+          const { data: children, error: childError } = await db
             .from('resources')
             .select('*')
             .eq('user_id', user.id)
@@ -211,7 +215,7 @@ export function useResourceTree(rootPath: string | null) {
         const rootId = rootIdUnderscored.replace(/_/g, '-')
         
         // Fetch the root resource first
-        const { data: rootResource } = await supabase
+        const { data: rootResource } = await db
           .from('resources')
           .select('*')
           .eq('id', rootId)
@@ -242,7 +246,7 @@ export function useResourcesByType(type: ResourceType) {
     queryFn: async (): Promise<Resource[]> => {
       if (!user) return []
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resources')
         .select('*')
         .eq('user_id', user.id)
@@ -268,7 +272,7 @@ export function useAllResources() {
     queryFn: async (): Promise<Resource[]> => {
       if (!user) return []
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resources')
         .select('id, parent_id, type, status, path')
         .eq('user_id', user.id)
@@ -292,7 +296,7 @@ export function useResourceLinks(resourceId: string | null) {
     queryFn: async (): Promise<ResourceLink[]> => {
       if (!user || !resourceId) return []
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resource_links')
         .select('*')
         .or(`source_id.eq.${resourceId},target_id.eq.${resourceId}`)
@@ -335,7 +339,7 @@ export function useCreateResource() {
         created_by: user.id,
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resources')
         .insert(insertData)
         .select()
@@ -367,7 +371,7 @@ export function useUpdateResource() {
     mutationFn: async ({ id, updates }): Promise<Resource> => {
       if (!user) throw new Error('No user')
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resources')
         .update(updates)
         .eq('id', id)
@@ -398,7 +402,7 @@ export function useDeleteResource() {
     mutationFn: async ({ id, parentId }): Promise<{ id: string; parentId: string | null }> => {
       if (!user) throw new Error('No user')
 
-      const { error } = await supabase
+      const { error } = await db
         .from('resources')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
@@ -430,7 +434,7 @@ export function useMoveResource() {
       // First, update the parent_id
       // The path will need to be recalculated - this should ideally be done server-side
       // For now, we'll just update parent_id and let the app recalculate paths as needed
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resources')
         .update({ parent_id: newParentId })
         .eq('id', id)
@@ -472,7 +476,7 @@ export function useCycleResourceStatus() {
       const currentIndex = statusOrder.indexOf(resource.status)
       const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length]
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resources')
         .update({ status: nextStatus })
         .eq('id', resource.id)
@@ -543,7 +547,7 @@ export function useLinkResources() {
     mutationFn: async (link: ResourceLinkInsert): Promise<ResourceLink> => {
       if (!user) throw new Error('No user')
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('resource_links')
         .insert({
           source_id: link.source_id,
@@ -576,7 +580,7 @@ export function useUnlinkResources() {
     mutationFn: async ({ linkId, sourceId, targetId }): Promise<{ sourceId: string; targetId: string }> => {
       if (!user) throw new Error('No user')
 
-      const { error } = await supabase
+      const { error } = await db
         .from('resource_links')
         .delete()
         .eq('id', linkId)

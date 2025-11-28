@@ -1,7 +1,7 @@
 import { Home, ClipboardList, ShoppingCart, BarChart3, ChefHat, List, Barcode } from 'lucide-react'
 import CategoryPane from '@/components/CategoryPane'
 import { useAppStore } from '@/store/useAppStore'
-import { TodoPane } from '@/components/TodoPane'
+import { HierarchyPane } from '@/components/HierarchyPane'
 
 const tabs = [
   { id: 'todo', label: 'To-Do', icon: ClipboardList },
@@ -29,7 +29,7 @@ const mockRecipes = [
 ]
 
 function TodoTab() {
-  return <TodoPane accentColor="#00EAFF" chartColors={['#00EAFF', '#00D4FF', '#00BFFF', '#0099FF', '#0077FF', '#0055FF']} />
+  return <HierarchyPane accentColor="#00EAFF" />
 }
 
 function ShoppingTab() {

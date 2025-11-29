@@ -18,8 +18,12 @@
 * **Status Update:** If a feature (e.g., "Household > Todo") is completed, mark it as [Done] in `docs/01_Frontend_PWA.md`.
 
 ## 3. Session Hand-off Protocol
-* **Start of Task:** ALWAYS read `docs/01_Frontend_PWA.md` and `docs/02_Backend_Schema.md` to understand the current state before coding.
+* **Start of Task:** ALWAYS read these docs to understand current state before coding:
+    1. `docs/01_Frontend_PWA.md` - Frontend architecture & components
+    2. `docs/02_Backend_Schema.md` - Database schema & Supabase
+    3. `docs/03_ViewEngine_Sandbox.md` - ViewEngine development (if working on variants)
 * **End of Task:** Before finishing, verify that the documentation matches the code you just wrote. This ensures the next agent doesn't hallucinate missing features.
+* **ViewEngine Tasks:** If creating/modifying variants, update variant docs in `docs/03_ViewEngine_Sandbox.md`.
 
 ## 4. Terminal & Environment (PowerShell)
 * **Command Separators:** Use `;` to separate commands. NEVER use `&&`.
@@ -45,7 +49,50 @@
 * **Use `useResourceTree(path)` hook** for fetching entire branches
 * **Use `useResources(parentId)` hook** for direct children only
 
-## 7. Supabase & RLS Development Mode
+## 7. ViewEngine Development (Unified Node Architecture)
+
+### Current Phase: Sandbox Testing
+We are building a **data-driven rendering system** using the Sandbox pane. The workflow:
+1. Edit JSON in Sandbox → Preview → Iterate
+2. Create/modify variant components in `src/engine/components/variants/`
+3. Once stable, integrate into main app
+
+### Key Files
+* **Docs:** `docs/03_ViewEngine_Sandbox.md` - Full development guide
+* **Entry Point:** `src/engine/index.ts` - Public API + `initializeEngine()`
+* **Registry:** `src/engine/registry.ts` - Variant → Component mapping
+* **Variants:** `src/engine/components/variants/` - ADD NEW VARIANTS HERE
+* **Sandbox:** `src/panes/SandboxPane.tsx` - JSON editor + preview
+
+### Node Schema
+```typescript
+interface Node {
+  id: string           // UUID
+  type: NodeType       // 'space' | 'container' | 'collection' | 'item'
+  variant: string      // Drives rendering: 'list_row', 'grid_card', etc.
+  title: string
+  metadata: Record<string, unknown>
+  children?: Node[]
+  relationships?: NodeRelationship[]
+}
+```
+
+### Creating New Variants
+1. Create component in `src/engine/components/variants/MyVariant.tsx`
+2. Use `VariantComponentProps` type and context hooks (`useNode`, `useNodeMeta`)
+3. Register in `registry.ts` via `registerVariant('my_variant', MyVariant)`
+4. Export from `index.ts`
+5. Test in Sandbox with matching JSON
+
+### Context Hooks (use inside variants)
+* `useNode()` - Get current node, depth, rootId, parentId
+* `useNodeMeta<T>(key, default?)` - Type-safe metadata access
+* `useChildCount()`, `useHasChildren()`, `useIsRoot()`
+* `renderChildren(node, depth, rootId)` - Render child nodes
+
+---
+
+## 8. Supabase & RLS Development Mode
 * **Test User IDs (Hardcoded):**
     * User 1: `11111111-1111-1111-1111-111111111111`
     * User 2: `22222222-2222-2222-2222-222222222222`

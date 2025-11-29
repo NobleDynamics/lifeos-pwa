@@ -431,98 +431,104 @@ ALTER TABLE household_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE households ENABLE ROW LEVEL SECURITY;
 
 -- -----------------------------------------
--- HOUSEHOLDS TABLE POLICIES
+-- SECURITY DEFINER FUNCTIONS (to avoid recursion)
 -- -----------------------------------------
+-- These functions run with elevated privileges to check membership
+-- without triggering RLS on the same table
+
+CREATE OR REPLACE FUNCTION get_user_household_ids(p_user_id UUID)
+RETURNS SETOF UUID
+LANGUAGE sql SECURITY DEFINER STABLE
+AS $$
+    SELECT household_id FROM household_members WHERE user_id = p_user_id;
+$$;
+
+CREATE OR REPLACE FUNCTION get_user_owned_household_ids(p_user_id UUID)
+RETURNS SETOF UUID
+LANGUAGE sql SECURITY DEFINER STABLE
+AS $$
+    SELECT household_id FROM household_members WHERE user_id = p_user_id AND role = 'owner';
+$$;
+
+CREATE OR REPLACE FUNCTION is_household_member(p_user_id UUID, p_household_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql SECURITY DEFINER STABLE
+AS $$
+    SELECT EXISTS(SELECT 1 FROM household_members WHERE user_id = p_user_id AND household_id = p_household_id);
+$$;
+
+CREATE OR REPLACE FUNCTION is_household_owner(p_user_id UUID, p_household_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql SECURITY DEFINER STABLE
+AS $$
+    SELECT EXISTS(SELECT 1 FROM household_members WHERE user_id = p_user_id AND household_id = p_household_id AND role = 'owner');
+$$;
+
+-- -----------------------------------------
+-- HOUSEHOLDS TABLE POLICIES (using helper functions)
+-- -----------------------------------------
+
+-- Drop existing policies first to avoid conflicts
+DROP POLICY IF EXISTS "Members can view household" ON households;
+DROP POLICY IF EXISTS "Owners can update household" ON households;
+DROP POLICY IF EXISTS "Users can create households" ON households;
+DROP POLICY IF EXISTS "Owners can delete household" ON households;
 
 -- Users can view households they are members of
 CREATE POLICY "Members can view household"
     ON households FOR SELECT
-    USING (
-        id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid())
-    );
+    USING (id IN (SELECT get_user_household_ids(auth.uid())));
 
 -- Only owners can update household details
 CREATE POLICY "Owners can update household"
     ON households FOR UPDATE
-    USING (
-        id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid() AND role = 'owner')
-    )
-    WITH CHECK (
-        id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid() AND role = 'owner')
-    );
+    USING (id IN (SELECT get_user_owned_household_ids(auth.uid())))
+    WITH CHECK (id IN (SELECT get_user_owned_household_ids(auth.uid())));
 
 -- Users can create new households
 CREATE POLICY "Users can create households"
     ON households FOR INSERT
-    WITH CHECK (
-        owner_id = auth.uid()
-    );
+    WITH CHECK (owner_id = auth.uid());
 
 -- Only owners can delete households
 CREATE POLICY "Owners can delete household"
     ON households FOR DELETE
-    USING (
-        id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid() AND role = 'owner')
-    );
+    USING (id IN (SELECT get_user_owned_household_ids(auth.uid())));
 
 -- -----------------------------------------
--- HOUSEHOLD_MEMBERS TABLE POLICIES
+-- HOUSEHOLD_MEMBERS TABLE POLICIES (using helper functions)
 -- -----------------------------------------
+
+-- Drop existing policies first to avoid conflicts
+DROP POLICY IF EXISTS "Members can view household members" ON household_members;
+DROP POLICY IF EXISTS "Owners can add members" ON household_members;
+DROP POLICY IF EXISTS "Users can update own membership" ON household_members;
+DROP POLICY IF EXISTS "Members can leave or owners can remove" ON household_members;
 
 -- Users can view members of households they belong to
+-- Using is_household_member to avoid recursion
 CREATE POLICY "Members can view household members"
     ON household_members FOR SELECT
-    USING (
-        household_id IN (SELECT household_id FROM household_members WHERE user_id = auth.uid())
-    );
+    USING (is_household_member(auth.uid(), household_id));
 
--- Owners can add new members
+-- Owners can add new members (or user adding themselves)
 CREATE POLICY "Owners can add members"
     ON household_members FOR INSERT
     WITH CHECK (
-        -- User adding themselves to a household they own
-        (user_id = auth.uid())
-        OR
-        -- Owner adding someone else
-        (household_id IN (
-            SELECT household_id FROM household_members 
-            WHERE user_id = auth.uid() AND role = 'owner'
-        ))
+        user_id = auth.uid()
+        OR is_household_owner(auth.uid(), household_id)
     );
 
--- Users can update their own membership (e.g., is_primary)
--- Owners can update any membership in their household
+-- Users can update their own membership, owners can update any
 CREATE POLICY "Users can update own membership"
     ON household_members FOR UPDATE
-    USING (
-        user_id = auth.uid()
-        OR
-        household_id IN (
-            SELECT household_id FROM household_members 
-            WHERE user_id = auth.uid() AND role = 'owner'
-        )
-    )
-    WITH CHECK (
-        user_id = auth.uid()
-        OR
-        household_id IN (
-            SELECT household_id FROM household_members 
-            WHERE user_id = auth.uid() AND role = 'owner'
-        )
-    );
+    USING (user_id = auth.uid() OR is_household_owner(auth.uid(), household_id))
+    WITH CHECK (user_id = auth.uid() OR is_household_owner(auth.uid(), household_id));
 
--- Users can leave households (delete their own membership)
--- Owners can remove members
+-- Users can leave, owners can remove members
 CREATE POLICY "Members can leave or owners can remove"
     ON household_members FOR DELETE
-    USING (
-        user_id = auth.uid()
-        OR
-        household_id IN (
-            SELECT household_id FROM household_members 
-            WHERE user_id = auth.uid() AND role = 'owner'
-        )
-    );
+    USING (user_id = auth.uid() OR is_household_owner(auth.uid(), household_id));
 
 -- ============================================================================
 -- SECTION 6: ENHANCED PROFILES RLS POLICIES

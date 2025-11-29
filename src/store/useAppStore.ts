@@ -12,6 +12,7 @@ export type PaneType =
   | 'cloud'
   | 'finance'
   | 'settings'
+  | 'sandbox' // Dev tool for ViewEngine testing
 
 // Tab types for each pane
 export type HealthTab = 'nutrition' | 'exercise' | 'brain' | 'hygiene'
@@ -34,7 +35,8 @@ const DEFAULT_PANE_ORDER: PaneType[] = [
   'feed',
   'cloud',
   'finance',
-  'settings'
+  'settings',
+  'sandbox' // Dev tool - swipe right from Settings to access
 ]
 
 interface TabState {

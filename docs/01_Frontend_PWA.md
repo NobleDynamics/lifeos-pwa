@@ -7,6 +7,64 @@ Mode: Dark Mode only.
 Accents: Glowing accents (Default: Cyan #06b6d4).
 Style: Glassmorphism effects applied to cards and containers.
 
+## Unified Node Engine (src/engine/)
+
+The ViewEngine is a data-driven rendering system that renders recursive Node trees based on `variant` strings. Phase 1 implementation for "Headless OS" architecture.
+
+### Core Components
+
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| `ViewEngine` | Recursive renderer that consumes a Node tree | `engine/components/ViewEngine.tsx` |
+| `NodeProvider` | Context provider for node data at each level | `engine/context/NodeContext.tsx` |
+| `registry.ts` | Maps variant strings to React components | `engine/registry.ts` |
+| `DebugNode` | Self-healing fallback for unknown variants | `engine/components/DebugNode.tsx` |
+
+### Built-in Variants
+
+| Variant | Component | Use Case |
+|---------|-----------|----------|
+| `list_row` | `ListRow` | Task/item rows with status icons |
+| `grid_card` | `GridCard` | Cards with thumbnail and metadata |
+| `container_stack` | `ContainerStack` | Collapsible folders with neon glow |
+
+### Node Schema (Zod Validated)
+
+```typescript
+interface Node {
+  id: string           // UUID
+  type: NodeType       // 'space' | 'container' | 'collection' | 'item'
+  variant: string      // Drives rendering: 'list_row', 'grid_card', etc.
+  title: string
+  metadata: Record<string, unknown>
+  children?: Node[]
+  relationships?: NodeRelationship[]
+}
+```
+
+### Context Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useNode()` | Access current node, depth, parentId, rootId |
+| `useNodeMeta<T>(key)` | Type-safe metadata access |
+| `useIsRoot()` | Check if current node is tree root |
+| `useHasChildren()` | Check if node has children |
+| `useChildCount()` | Get number of direct children |
+| `useRenderChildren()` | Render children from within variants |
+
+### Sandbox Pane (Dev Tool)
+
+Access: Swipe right from Settings
+
+| Feature | Description |
+|---------|-------------|
+| JSON Editor | Textarea with real-time Zod validation |
+| Preview Toggle | Switch between edit and render modes |
+| Error Display | Shows validation errors inline |
+
+---
+
 ## Component Library (src/components/shared/)
 
 These reusable components enforce DRY principles across the app:

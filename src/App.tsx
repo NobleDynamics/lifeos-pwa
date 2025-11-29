@@ -12,6 +12,7 @@ import CloudPane from '@/panes/CloudPane'
 import ChatPane from '@/panes/ChatPane'
 import FeedPane from '@/panes/FeedPane'
 import SettingsPane from '@/panes/SettingsPane'
+import SandboxPane from '@/panes/SandboxPane'
 
 // Map pane types to components
 const paneComponents: Record<PaneType, React.ComponentType> = {
@@ -24,6 +25,7 @@ const paneComponents: Record<PaneType, React.ComponentType> = {
   chat: ChatPane,
   feed: FeedPane,
   settings: SettingsPane,
+  sandbox: SandboxPane,
 }
 
 function App() {

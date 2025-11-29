@@ -8,7 +8,7 @@
 -- These roots act as virtual boundaries within the resource hierarchy,
 -- allowing each pane/view to have its own isolated tree while sharing
 -- the same underlying resources table.
---
+-- 
 -- IMPORTANT: Run this migration AFTER 08_resource_graph.sql
 -- ============================================================================
 

@@ -18,8 +18,10 @@ import {
   useResourceContextMenu,
   useResourceForm
 } from '@/store/useResourceStore'
+import { usePrimaryHousehold, useHouseholdProfiles, Profile } from '@/hooks/useIdentity'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
+import { Avatar } from '@/components/shared'
 
 // ============================================================================
 // TYPES
@@ -40,6 +42,7 @@ interface FolderRowProps {
 interface TaskRowProps {
   resource: Resource
   accentColor: string
+  profilesMap: Map<string, Profile>
   onTap: () => void
   onContextMenu: (e: React.MouseEvent | React.TouchEvent) => void
 }
@@ -198,6 +201,7 @@ function FolderRow({
 function TaskRow({ 
   resource, 
   accentColor, 
+  profilesMap,
   onTap, 
   onContextMenu 
 }: TaskRowProps) {
@@ -205,6 +209,11 @@ function TaskRow({
     (e) => onContextMenu(e as React.MouseEvent | React.TouchEvent),
     { threshold: 500 }
   )
+
+  // Get assignee profile if exists
+  const meta = resource.meta_data as Record<string, unknown>
+  const assigneeId = meta?.assignee_id as string | undefined
+  const assignee = assigneeId ? profilesMap.get(assigneeId) : undefined
 
   const getStatusIcon = () => {
     switch (resource.status) {
@@ -315,6 +324,20 @@ function TaskRow({
             )}
           </div>
         </div>
+        
+        {/* Assignee Avatar */}
+        {assignee && (
+          <div 
+            className="flex-shrink-0" 
+            title={`Assigned to ${assignee.full_name || 'Unknown'}`}
+          >
+            <Avatar
+              src={assignee.avatar_url}
+              name={assignee.full_name}
+              size="sm"
+            />
+          </div>
+        )}
         
         {/* Context menu button */}
         <button
@@ -428,6 +451,17 @@ export function ResourceListView({ accentColor = '#00EAFF' }: ResourceListViewPr
   // Fetch all resources for counting children
   const { data: allResources = [] } = useAllResources()
   
+  // Fetch household profiles for assignee avatars
+  const { activeHouseholdId } = usePrimaryHousehold()
+  const { data: householdProfiles = [] } = useHouseholdProfiles(activeHouseholdId)
+  
+  // Create a map for quick profile lookup
+  const profilesMap = useMemo(() => {
+    const map = new Map<string, Profile>()
+    householdProfiles.forEach(profile => map.set(profile.id, profile))
+    return map
+  }, [householdProfiles])
+  
   // Cycle status mutation
   const cycleStatusMutation = useCycleResourceStatus()
 
@@ -519,6 +553,7 @@ export function ResourceListView({ accentColor = '#00EAFF' }: ResourceListViewPr
             key={resource.id}
             resource={resource}
             accentColor={accentColor}
+            profilesMap={profilesMap}
             onTap={() => handleTaskTap(resource)}
             onContextMenu={(e) => handleContextMenu(e, resource)}
           />

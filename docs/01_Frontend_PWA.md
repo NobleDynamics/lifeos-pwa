@@ -17,6 +17,23 @@ These reusable components enforce DRY principles across the app:
 | `ViewShell` | Wrapper for all pane layouts with header/footer | `title`, `icon?`, `breadcrumbs?`, `headerActions?`, `footer?`, `onBack?` |
 | `TabBar` | Standard tab bar for ViewShell footer | `tabs`, `activeTab`, `onTabChange` |
 | `CategoryPane` | ViewShell variant with built-in tab management | `title`, `icon`, `tabs`, `tabKey`, `children` |
+| `Avatar` | Renders user avatars with icon or image support | `src?`, `name?`, `size?`, `className?` |
+| `AvatarPicker` | Interactive picker for icon + color avatars | `value`, `onChange`, `name?`, `label?` |
+
+### Avatar System (Icon + Color Format)
+
+The Avatar system supports both traditional image URLs and a custom "Icon + Color" string format for Cyberpunk-style avatars.
+
+**Format:** `icon:[IconName]:[HexColor]`
+**Example:** `icon:Dog:#00EAFF`
+
+**Supported Icons:**
+- Persona icons: `User`, `Baby`, `Dog`, `Cat`, `Bot`, `Ghost`, `Alien`, `Smile`, `Gamepad2`
+
+**Avatar Component Logic:**
+1. If `src` starts with `icon:`, parse and render the Lucide icon with background color
+2. If `src` is a URL, render the image
+3. If `src` is null, render initials from `name`
 
 **Usage Rule:** All new forms MUST use `<FormSheet>`. All new panes MUST use `<ViewShell>` or `<CategoryPane>`.
 
@@ -47,6 +64,20 @@ The new hierarchical resource system replaces the legacy 3-tier Todo structure:
 - **FolderRow**: Cyberpunk neon glow border, folder icon, chevron `>` for navigation
 - **TaskRow**: Standard dark card, checkbox icon (Circle/PlayCircle/CheckCircle), status labels
 
+### Task Assignment Feature
+
+Tasks can be assigned to household members (including shadow users like kids/pets).
+
+**ResourceForm Updates:**
+- "Assign To" dropdown appears when `resourceType === 'task'`
+- Uses `useHouseholdProfiles()` to fetch assignable members
+- Renders Avatar component for each option
+- Saves `assignee_id` to `meta_data.assignee_id`
+
+**ResourceListView Updates:**
+- TaskRow displays assignee Avatar bubble when `assignee_id` is present
+- Avatar shows the Cyberpunk icon avatar or profile image
+
 ### Legacy Components (src/components/todo/legacy/)
 
 The following components are **DEPRECATED** and preserved only for reference:
@@ -55,6 +86,57 @@ The following components are **DEPRECATED** and preserved only for reference:
 - `TodoBreadcrumbs.tsx`, `TodoContextMenu.tsx`, `TodoSearchFilter.tsx`, `TodoDetailSheet.tsx`, `TodoAnalytics.tsx`
 
 **Do NOT use legacy components for new features.** Use `HierarchyPane` and Resource Graph hooks instead.
+
+---
+
+## Identity & Household Management (src/hooks/useIdentity.ts)
+
+### Identity Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useCurrentProfile()` | Get current user's profile |
+| `useUpdateProfile()` | Mutation to update profile (name, avatar) |
+| `useHouseholds()` | List all households user belongs to |
+| `usePrimaryHousehold()` | Get active household ID from localStorage |
+| `useSwitchHousehold()` | Mutation to change active household |
+| `useHouseholdMembers(householdId)` | Get members with roles (includes shadow users) |
+| `useHouseholdProfiles(householdId)` | Get just profiles for dropdown selectors |
+| `useCreateShadowUser()` | Create a dependent (kid/pet) shadow profile |
+| `useDeleteShadowUser()` | Delete a shadow profile |
+
+### SettingsPane (src/panes/SettingsPane.tsx)
+
+A settings management pane using `<ViewShell>`:
+
+**Sections:**
+1. **"Me" Section**
+   - Shows current user profile with Avatar
+   - Edit button opens `<FormSheet>` with `<AvatarPicker>`
+   - Uses `useUpdateProfile()` mutation
+
+2. **"Household" Section**
+   - Dropdown to switch active household (`useSwitchHousehold`)
+   - Shows household name and member count
+
+3. **"Members" Section**
+   - Lists real users with role badges (Owner/Member)
+   - Read-only for now
+
+4. **"Dependents" Section**
+   - Lists shadow users (kids/pets) with Avatars
+   - "Add Dependent" button opens `<FormSheet>`:
+     - Name input
+     - `<AvatarPicker>` for icon selection
+     - Uses `useCreateShadowUser()` mutation
+
+### Shadow Users
+
+Shadow users are `profiles` entries with `is_shadow = true`. They:
+- Don't have auth accounts (no email/password)
+- Are managed by real household members
+- Can be assigned tasks
+- Use icon avatars (e.g., `icon:Dog:#FF6B6B` for pets)
 
 ---
 

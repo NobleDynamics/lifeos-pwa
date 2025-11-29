@@ -7,6 +7,7 @@ import {
   Calendar,
   Grid3X3,
   X,
+  UserCircle,
   // Curated icons for LifeOS
   List,
   ShoppingCart,
@@ -41,8 +42,9 @@ import * as LucideIcons from 'lucide-react'
 import { Resource, ResourceType } from '@/types/database'
 import { useCreateResource, useUpdateResource, useResource } from '@/hooks/useResourceData'
 import { useResourceNavigation, useResourceForm } from '@/store/useResourceStore'
+import { usePrimaryHousehold, useHouseholdProfiles } from '@/hooks/useIdentity'
 import { cn } from '@/lib/utils'
-import { FormSheet } from '@/components/shared/FormSheet'
+import { FormSheet, Avatar } from '@/components/shared'
 
 // ============================================================================
 // CONSTANTS
@@ -144,8 +146,13 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null)
   const [isShared, setIsShared] = useState(false)
   const [dueDate, setDueDate] = useState('')
+  const [assigneeId, setAssigneeId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Fetch household profiles for task assignment
+  const { activeHouseholdId } = usePrimaryHousehold()
+  const { data: householdProfiles = [] } = useHouseholdProfiles(activeHouseholdId)
 
   // Determine resource type based on form type
   const resourceType: ResourceType = showForm === 'folder' ? 'folder' : 'task'
@@ -161,6 +168,7 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
       setSelectedIcon((meta?.icon as string) || null)
       setIsShared((meta?.is_shared as boolean) || false)
       setDueDate(editingResource.scheduled_at ? editingResource.scheduled_at.split('T')[0] : '')
+      setAssigneeId((meta?.assignee_id as string) || null)
     } else {
       // Reset form for new resource
       setTitle('')
@@ -168,6 +176,7 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
       setColor(presetColors[0])
       setIsShared(false)
       setDueDate('')
+      setAssigneeId(null)
       
       // Smart default: inherit icon from parent folder
       if (parentResource && showForm === 'folder') {
@@ -215,6 +224,11 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
         metaData.color = color
         if (selectedIcon) {
           metaData.icon = selectedIcon
+        }
+      } else {
+        // Task-specific: include assignee
+        if (assigneeId) {
+          metaData.assignee_id = assigneeId
         }
       }
 
@@ -345,6 +359,60 @@ export function ResourceForm({ accentColor = '#00EAFF' }: ResourceFormProps) {
               onChange={(e) => setDueDate(e.target.value)}
               className="w-full px-4 py-3 bg-dark-200 border border-dark-300 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
+          </div>
+        )}
+
+        {/* Task-specific: Assign To */}
+        {!isFolder && householdProfiles.length > 0 && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-dark-400 flex items-center gap-2">
+              <UserCircle size={14} />
+              Assign To
+            </label>
+            <div className="space-y-2">
+              {/* Unassigned option */}
+              <button
+                type="button"
+                onClick={() => setAssigneeId(null)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all",
+                  !assigneeId
+                    ? "border-primary bg-primary/10"
+                    : "border-dark-300 bg-dark-200 hover:border-dark-200"
+                )}
+              >
+                <div className="w-8 h-8 rounded-full bg-dark-300 flex items-center justify-center">
+                  <UserCircle className="w-5 h-5 text-dark-500" />
+                </div>
+                <span className="text-sm text-white">Unassigned</span>
+              </button>
+              {/* Profile options */}
+              {householdProfiles.map((profile) => (
+                <button
+                  key={profile.id}
+                  type="button"
+                  onClick={() => setAssigneeId(profile.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all",
+                    assigneeId === profile.id
+                      ? "border-primary bg-primary/10"
+                      : "border-dark-300 bg-dark-200 hover:border-dark-200"
+                  )}
+                >
+                  <Avatar
+                    src={profile.avatar_url}
+                    name={profile.full_name}
+                    size="sm"
+                  />
+                  <div className="flex-1 text-left">
+                    <span className="text-sm text-white">{profile.full_name || 'Unnamed'}</span>
+                    {profile.is_shadow && (
+                      <span className="ml-2 text-xs text-dark-500">(Dependent)</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

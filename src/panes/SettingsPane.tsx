@@ -332,7 +332,7 @@ function AddDependentSheet({
 
 export default function SettingsPane() {
   // Original settings state
-  const { paneOrder, updatePaneOrder, openDrawer } = useAppStore()
+  const { paneOrder, updatePaneOrder, resetPaneOrder, openDrawer } = useAppStore()
   const { currentUserId, setCurrentUserId } = useDevUserStore()
   const { user } = useAuth()
   const [showPaneEditor, setShowPaneEditor] = useState(false)
@@ -588,9 +588,17 @@ export default function SettingsPane() {
                 <span className="ml-auto text-xs text-dark-500">{index + 1}</span>
               </div>
             ))}
-            <p className="text-xs text-dark-500 text-center pt-2">
-              Drag to reorder. Changes save automatically.
-            </p>
+            <div className="flex items-center justify-between pt-2 border-t border-dark-200">
+              <p className="text-xs text-dark-500">
+                Drag to reorder. Changes save automatically.
+              </p>
+              <button
+                onClick={resetPaneOrder}
+                className="text-xs text-primary hover:underline"
+              >
+                Reset to Default
+              </button>
+            </div>
           </div>
         )}
 

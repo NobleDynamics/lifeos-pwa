@@ -90,6 +90,7 @@ interface AppState {
   cycleHealthMetric: () => void
   
   updatePaneOrder: (newOrder: PaneType[]) => void
+  resetPaneOrder: () => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -242,7 +243,9 @@ export const useAppStore = create<AppState>()(
         set({ activeHealthMetric: metrics[nextIndex] })
       },
       
-      updatePaneOrder: (newOrder) => set({ paneOrder: newOrder }),
+  updatePaneOrder: (newOrder) => set({ paneOrder: newOrder }),
+  
+  resetPaneOrder: () => set({ paneOrder: DEFAULT_PANE_ORDER }),
     }),
     {
       name: 'lifeos-app-store',

@@ -1,6 +1,104 @@
 // Database types for LifeOS
 
 // ============================================================================
+// IDENTITY & HOUSEHOLD TYPES
+// ============================================================================
+
+export type HouseholdRole = 'owner' | 'member' | 'dependent'
+export type ConnectionStatus = 'pending' | 'accepted' | 'declined' | 'blocked'
+
+export interface Profile {
+  id: string
+  full_name: string | null
+  avatar_url: string | null
+  email: string | null
+  is_shadow: boolean
+  managed_by_household_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ProfileInsert {
+  id?: string
+  full_name?: string | null
+  avatar_url?: string | null
+  email?: string | null
+  is_shadow?: boolean
+  managed_by_household_id?: string | null
+}
+
+export interface ProfileUpdate {
+  full_name?: string | null
+  avatar_url?: string | null
+  email?: string | null
+}
+
+export interface HouseholdMember {
+  id: string
+  household_id: string
+  user_id: string
+  role: HouseholdRole
+  is_primary: boolean
+  invited_by: string | null
+  joined_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface HouseholdMemberInsert {
+  id?: string
+  household_id: string
+  user_id: string
+  role?: HouseholdRole
+  is_primary?: boolean
+  invited_by?: string | null
+}
+
+export interface HouseholdMemberUpdate {
+  role?: HouseholdRole
+  is_primary?: boolean
+}
+
+export interface HouseholdMemberWithProfile extends HouseholdMember {
+  profile: Profile
+}
+
+export interface HouseholdWithMembership {
+  id: string
+  name: string
+  owner_id: string | null
+  description: string | null
+  avatar_url: string | null
+  created_at: string
+  updated_at: string
+  membership: HouseholdMember
+}
+
+export interface Connection {
+  id: string
+  requester_id: string
+  receiver_id: string
+  status: ConnectionStatus
+  message: string | null
+  created_at: string
+  updated_at: string
+  accepted_at: string | null
+}
+
+export interface ConnectionInsert {
+  id?: string
+  requester_id: string
+  receiver_id: string
+  status?: ConnectionStatus
+  message?: string | null
+}
+
+export interface ConnectionUpdate {
+  status?: ConnectionStatus
+  message?: string | null
+}
+
+// ============================================================================
 // RESOURCE GRAPH TYPES (Universal Resource Graph)
 // ============================================================================
 

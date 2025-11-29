@@ -5,6 +5,211 @@ Unified Data Truth: Supabase acts as the relational backbone for all LifeOS doma
 Short-Term Memory: Redis handles high-velocity state (Agent "Thinking" status), caching (Weather/Dashboards), and job queues.
 Polymorphic Design: Events, Tasks, and Logs are designed to interact flexibly across different "Panes" (e.g., a "Recipe" can be a "Calendar Event").
 
+---
+
+## 0. Identity & Household Backend [IMPLEMENTED]
+
+### 0.1 Profiles Table [IMPLEMENTED]
+
+**Migration SQL:** `10_identity.sql`
+
+**Table: `profiles`**
+Purpose: Enhanced user profiles with shadow user support. Real users have IDs matching `auth.users`, shadow users (kids/dependents) have generated UUIDs.
+
+**Columns:**
+- `id` (UUID, PK) - For real users: matches auth.users.id; For shadows: auto-generated
+- `full_name` (TEXT, Nullable)
+- `avatar_url` (TEXT, Nullable)
+- `email` (TEXT, Nullable) - NULL for shadow users
+- `is_shadow` (BOOLEAN, default false) - True for dependents without auth credentials
+- `managed_by_household_id` (UUID FK → households) - For shadows: which household "owns" this profile
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+
+**Constraints:**
+- `shadow_must_have_manager`: Shadow users MUST have a managing household; Real users MUST NOT
+
+**Key Concepts:**
+- **Shadow Users:** Kids/dependents tracked without login credentials. They can be assigned to tasks, appear in logs, etc.
+- **Auto-Init:** Auth trigger creates profile + default household on signup
+
+---
+
+### 0.2 Auth Trigger: `on_auth_user_created` [IMPLEMENTED]
+
+**Purpose:** When a new user signs up via Supabase Auth:
+1. Creates a `profiles` row for the user
+2. Creates a "Default Household" named "{User}'s Household"
+3. Adds user as `owner` of that household with `is_primary = true`
+
+**Trigger Function:** `handle_new_user()`
+**Security:** `SECURITY DEFINER` (runs with elevated privileges)
+
+---
+
+### 0.3 Household Members Table [IMPLEMENTED]
+
+**Migration SQL:** `11_households.sql`
+
+**Table: `household_members`**
+Purpose: Junction table for multi-household membership. A user can belong to multiple households.
+
+**Columns:**
+- `id` (UUID, PK)
+- `household_id` (UUID FK → households, NOT NULL)
+- `user_id` (UUID FK → profiles, NOT NULL)
+- `role` (ENUM: `owner`, `member`, `dependent`)
+- `is_primary` (BOOLEAN) - The user's currently active household context
+- `invited_by` (UUID FK → profiles, Nullable)
+- `joined_at` (TIMESTAMPTZ)
+- `created_at`, `updated_at` (TIMESTAMPTZ)
+
+**Constraints:**
+- `unique_household_member`: One membership per user per household
+
+**Triggers:**
+- `ensure_single_primary_household`: Auto-unsets other primaries when setting one to true
+
+**Roles:**
+| Role | Permissions |
+|------|-------------|
+| `owner` | Full admin - manage members, settings, delete household |
+| `member` | Participate in tasks, view shared data |
+| `dependent` | Shadow user - read-only, assigned to tasks |
+
+---
+
+### 0.4 Enhanced Households Table [IMPLEMENTED]
+
+**New Columns Added:**
+- `owner_id` (UUID FK → profiles) - Quick access to primary owner
+- `description` (TEXT) - Household description
+- `avatar_url` (TEXT) - Household avatar/icon
+
+---
+
+### 0.5 Connections Table (Social Prep) [IMPLEMENTED]
+
+**Migration SQL:** `12_connections.sql`
+
+**Table: `connections`**
+Purpose: Friend/follower relationships, preparing for GetStream integration.
+
+**Columns:**
+- `id` (UUID, PK)
+- `requester_id` (UUID FK → profiles) - Who sent the request
+- `receiver_id` (UUID FK → profiles) - Who received the request
+- `status` (ENUM: `pending`, `accepted`, `declined`, `blocked`)
+- `message` (TEXT, Nullable) - Optional request message
+- `created_at`, `updated_at` (TIMESTAMPTZ)
+- `accepted_at` (TIMESTAMPTZ, Nullable) - Auto-set when accepted
+
+**Constraints:**
+- `no_self_connection`: Cannot connect with yourself
+- `unique_connection`: One connection per user pair
+
+**Helper Functions:**
+- `are_connected(user_a, user_b)` → BOOLEAN
+- `get_connection_status(user_a, user_b)` → connection details
+- `get_friends(user_id)` → all accepted connections
+- `get_pending_requests(user_id)` → incoming pending requests
+- `send_connection_request(from, to, message)` → UUID
+- `respond_to_connection_request(conn_id, user_id, accept)` → BOOLEAN
+
+---
+
+### 0.6 RLS Policies [IMPLEMENTED]
+
+**Profiles:**
+- Users can view own profile
+- Users can view profiles of household members and shadow users they manage
+- Users can update own profile (not shadows via this policy)
+- Owners can create shadow profiles for their households
+- Owners can delete shadow profiles they manage
+
+**Households:**
+- Members can view households they belong to
+- Owners can update/delete their households
+- Users can create new households (as owner)
+
+**Household Members:**
+- Members can view other members in their households
+- Owners can add/remove members
+- Users can update their own membership (e.g., `is_primary`)
+- Users can leave households
+
+**Resources (Enhanced):**
+- Added policy: "Household members can view shared resources"
+- Checks `household_id` against user's memberships
+
+**Connections:**
+- Users can view connections they're part of
+- Users can send requests (as requester)
+- Receivers can accept/decline/block
+- Either party can unfriend (delete accepted connections)
+
+---
+
+### 0.7 Test Data (Dev Bypass) [IMPLEMENTED]
+
+**Test Household:** "The Smith Family" (`33333333-3333-3333-3333-333333333333`)
+- John Smith (Test User 1 - Owner)
+- Jane Smith (Test User 2 - Member)
+- Timmy Smith (Shadow Kid - Dependent) (`44444444-4444-4444-4444-444444444444`)
+
+**Test Connection:** John ↔ Jane (Accepted)
+
+---
+
+### 0.8 Frontend Hooks (`src/hooks/useIdentity.ts`) [IMPLEMENTED]
+
+**Profile Hooks:**
+- `useCurrentProfile()` - Get current user's profile
+- `useProfile(id)` - Get specific profile
+- `useUpdateProfile()` - Update current user's profile
+
+**Household Hooks:**
+- `useHouseholds()` - Get all households user belongs to
+- `usePrimaryHousehold()` - Get currently active household
+- `useSwitchHousehold()` - Change active household (optimistic UI update)
+- `useHouseholdMembers(householdId)` - Get all members including shadows
+- `useHouseholdProfiles(householdId)` - Get all assignable profiles
+
+**Shadow User Hooks:**
+- `useCreateShadowUser()` - Add kid/dependent to household
+- `useUpdateShadowUser()` - Update shadow profile
+- `useDeleteShadowUser()` - Remove shadow user
+
+**Household Management:**
+- `useCreateHousehold()` - Create new household
+- `useUpdateHousehold()` - Update household details
+- `useInviteToHousehold()` - Add member
+- `useRemoveFromHousehold()` - Remove member
+
+**Connection Hooks (Social):**
+- `useFriends()` - Get accepted connections
+- `usePendingRequests()` - Get incoming requests
+- `useSendConnectionRequest()` - Send friend request
+- `useRespondToRequest()` - Accept/decline request
+- `useAreConnected(userId)` - Check if connected
+
+**Zustand Store:**
+- `useHouseholdContextStore` - Local state for active household (instant UI updates)
+
+---
+
+### 0.9 Migration Order
+
+Run SQL files in this order:
+1. `08_resource_graph.sql` - Resources table (must exist first)
+2. `09_context_roots.sql` - Context root system
+3. `10_identity.sql` - Profiles table & auth trigger
+4. `11_households.sql` - Household members & RLS
+5. `12_connections.sql` - Social connections
+6. `04_dev_rls_bypass.sql` - Dev bypass policies (LAST)
+
+---
+
 1. System Configuration & Caching
 1.1 System Config (Secrets & Global Vars)
 Table: system_config

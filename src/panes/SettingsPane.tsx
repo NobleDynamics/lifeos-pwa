@@ -48,6 +48,7 @@ const paneLabels: Record<PaneType, string> = {
   cloud: 'Cloud',
   finance: 'Finance',
   settings: 'Settings',
+  sandbox: 'Sandbox',
 }
 
 const settingsSections = [

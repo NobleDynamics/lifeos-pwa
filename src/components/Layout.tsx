@@ -25,7 +25,8 @@ import {
   Image,
   FileText,
   Camera,
-  Mic
+  Mic,
+  Code
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -43,6 +44,7 @@ const paneConfig: Record<PaneType, { icon: typeof Home; label: string; color: st
   cloud: { icon: Cloud, label: 'Cloud', color: 'text-cyan-400' },
   finance: { icon: Wallet, label: 'Finance', color: 'text-emerald-400' },
   settings: { icon: Settings, label: 'Settings', color: 'text-gray-400' },
+  sandbox: { icon: Code, label: 'Sandbox', color: 'text-orange-400' },
 }
 
 // Quick links for drawer - organized by category

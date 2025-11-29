@@ -131,7 +131,7 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 export const NodeRelationshipSchema = z.object({
   targetId: z.string().regex(uuidRegex, 'Invalid UUID format'),
   type: z.enum(RelationshipTypes),
-  meta: z.record(z.unknown()).optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
 })
 
 /**

@@ -13,19 +13,20 @@
 
 import { useMemo, useEffect, useCallback } from 'react'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { 
-  ViewEngine, 
-  resourcesToNodeTree, 
+import {
+  ViewEngine,
+  resourcesToNodeTree,
   createEmptyRootNode,
   EngineActionsProvider,
   findNodeById,
 } from '@/engine'
 import { useContextRoot } from '@/hooks/useContextRoot'
 import { useResourceTree, useCycleResourceStatus } from '@/hooks/useResourceData'
-import { 
-  useResourceNavigation, 
-  useResourceForm, 
-  useResourceContextMenu 
+import {
+  useResourceNavigation,
+  useResourceForm,
+  useResourceContextMenu,
+  ResourceStoreProvider
 } from '@/store/useResourceStore'
 import { ResourceBreadcrumbs } from '@/components/ResourceBreadcrumbs'
 import { ResourceForm } from '@/components/ResourceForm'
@@ -79,23 +80,10 @@ function ErrorState({ error, title }: { error: string; title?: string }) {
 }
 
 // =============================================================================
-// MAIN COMPONENT
+// CONTENT COMPONENT
 // =============================================================================
 
-/**
- * ViewEnginePane - The bridge between Supabase and ViewEngine
- * 
- * This component:
- * 1. Gets or creates the context root (e.g., household.todos folder)
- * 2. Fetches all descendants of the context root
- * 3. Transforms the flat array into a nested Node tree
- * 4. Provides action callbacks for create/update/delete/navigate
- * 5. Renders via the ViewEngine with breadcrumb navigation
- * 
- * @example
- * <ViewEnginePane context="household.todos" title="To-Do" />
- */
-export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
+function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   // Step 1: Get or create the context root
   const {
     rootId,
@@ -112,8 +100,8 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
   } = useResourceTree(rootPath)
 
   // Navigation store
-  const { 
-    setContextRoot, 
+  const {
+    setContextRoot,
     navigateInto,
     currentParentId,
     pathStack,
@@ -147,19 +135,19 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
   // If we've navigated into a folder, show that folder's subtree
   const currentNodeTree = useMemo(() => {
     if (!fullNodeTree) return null
-    
+
     // If at root (no path stack), show full tree
     if (pathStack.length === 0) {
       return fullNodeTree
     }
-    
+
     // Find the current folder in the tree
     const currentFolderId = currentParentId
     if (!currentFolderId) return fullNodeTree
-    
+
     const currentNode = findNodeById(fullNodeTree, currentFolderId)
     if (!currentNode) return fullNodeTree
-    
+
     // FIX: When navigating into a folder, override its variant to view_directory
     // This ensures the folder renders as a container showing its children,
     // not as a clickable row (which would cause infinite nesting)
@@ -198,7 +186,7 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
   const handleOpenContextMenu = useCallback((e: React.MouseEvent | React.TouchEvent, resource: Resource) => {
     e.preventDefault()
     e.stopPropagation()
-    
+
     // Get coordinates based on event type
     let x: number, y: number
     if ('touches' in e) {
@@ -209,7 +197,7 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
       x = e.clientX
       y = e.clientY
     }
-    
+
     showContextMenu(x, y, resource)
   }, [showContextMenu])
 
@@ -248,7 +236,7 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
         <div className="px-3 py-2 border-b border-dark-200">
           <ResourceBreadcrumbs />
         </div>
-        
+
         <EngineActionsProvider
           rootId={rootId}
           currentParentId={currentParentId}
@@ -259,7 +247,7 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
         >
           <ViewEngine root={emptyRoot} className="flex-1 overflow-y-auto" />
         </EngineActionsProvider>
-        
+
         {/* Form & Context Menu */}
         <ResourceForm />
         <ResourceContextMenu />
@@ -271,9 +259,9 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
   // This shouldn't happen if context root creation worked
   if (!currentNodeTree) {
     return (
-      <ErrorState 
-        error="Unable to load data. Please try again." 
-        title={title} 
+      <ErrorState
+        error="Unable to load data. Please try again."
+        title={title}
       />
     )
   }
@@ -285,7 +273,7 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
       <div className="px-3 py-2 border-b border-dark-200">
         <ResourceBreadcrumbs />
       </div>
-      
+
       <EngineActionsProvider
         rootId={rootId}
         currentParentId={currentParentId}
@@ -296,11 +284,33 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
       >
         <ViewEngine root={currentNodeTree} className="flex-1 overflow-y-auto" />
       </EngineActionsProvider>
-      
+
       {/* Form & Context Menu */}
       <ResourceForm />
       <ResourceContextMenu />
     </div>
+  )
+}
+
+// =============================================================================
+// MAIN COMPONENT (WRAPPER)
+// =============================================================================
+
+/**
+ * ViewEnginePane - The bridge between Supabase and ViewEngine
+ * 
+ * This component:
+ * 1. Provides a scoped ResourceStore for this pane
+ * 2. Renders the content
+ * 
+ * @example
+ * <ViewEnginePane context="household.todos" title="To-Do" />
+ */
+export function ViewEnginePane(props: ViewEnginePaneProps) {
+  return (
+    <ResourceStoreProvider>
+      <ViewEnginePaneContent {...props} />
+    </ResourceStoreProvider>
   )
 }
 

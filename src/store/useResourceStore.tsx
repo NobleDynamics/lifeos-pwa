@@ -1,5 +1,6 @@
-import { create } from 'zustand'
+import { create, StoreApi, useStore } from 'zustand'
 import { Resource } from '@/types/database'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
 // ============================================================================
 // TYPES
@@ -37,39 +38,41 @@ interface ResourceNavigationActions {
   // Context root management
   setContextRoot: (rootId: string | null, title: string) => void
   clearContextRoot: () => void
-  
+
   // Navigation
   navigateInto: (resource: Resource) => void
   navigateBack: () => boolean
   navigateToRoot: () => void
   navigateToBreadcrumb: (index: number) => void
-  
+
   // Search
   setSearchQuery: (query: string) => void
-  
+
   // Form management
   setShowForm: (form: 'folder' | 'task' | null) => void
   setEditingResource: (resource: Resource | null) => void
   openCreateForm: (type: 'folder' | 'task') => void
   openEditForm: (resource: Resource) => void
   closeForm: () => void
-  
+
   // Context menu
   showContextMenu: (x: number, y: number, resource: Resource) => void
   hideContextMenu: () => void
-  
+
   // Title helper
   getCurrentTitle: () => string
-  
+
   // Reset
   resetNavigation: () => void
 }
 
+type ResourceStore = ResourceNavigationState & ResourceNavigationActions
+
 // ============================================================================
-// STORE
+// STORE FACTORY
 // ============================================================================
 
-export const useResourceStore = create<ResourceNavigationState & ResourceNavigationActions>((set, get) => ({
+export const createResourceStore = () => create<ResourceStore>((set, get) => ({
   // Initial state
   contextRootId: null,
   contextTitle: 'Resources',
@@ -86,14 +89,7 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
   },
 
   // ========== Context Root Management ==========
-  
-  /**
-   * Set the context root for this view
-   * This establishes the "floor" for navigation - users cannot navigate above this
-   * 
-   * @param rootId - UUID of the context root folder
-   * @param title - Display title (e.g., "To-Do" instead of "household.todos")
-   */
+
   setContextRoot: (rootId: string | null, title: string) => {
     set({
       contextRootId: rootId,
@@ -104,10 +100,7 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
       searchQuery: '',
     })
   },
-  
-  /**
-   * Clear the context root (revert to global root navigation)
-   */
+
   clearContextRoot: () => {
     set({
       contextRootId: null,
@@ -119,11 +112,7 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
   },
 
   // ========== Navigation Actions ==========
-  
-  /**
-   * Navigate deeper into a resource (folder/project)
-   * Adds the resource to the path stack
-   */
+
   navigateInto: (resource: Resource) => {
     const { pathStack } = get()
     set({
@@ -137,20 +126,14 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
     })
   },
 
-  /**
-   * Navigate back one level in the hierarchy
-   * Returns false if already at context root (can't go back further)
-   */
   navigateBack: () => {
     const { pathStack, contextRootId } = get()
-    
+
     if (pathStack.length === 0) {
-      // Already at context root, can't go back further
       return false
     }
-    
+
     if (pathStack.length === 1) {
-      // Going back to context root
       set({
         currentParentId: contextRootId,
         pathStack: [],
@@ -158,11 +141,10 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
       })
       return true
     }
-    
-    // Go back to previous level
+
     const newStack = pathStack.slice(0, -1)
     const previousItem = newStack[newStack.length - 1]
-    
+
     set({
       currentParentId: previousItem.id,
       pathStack: newStack,
@@ -171,9 +153,6 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
     return true
   },
 
-  /**
-   * Navigate directly to context root level
-   */
   navigateToRoot: () => {
     const { contextRootId } = get()
     set({
@@ -183,15 +162,10 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
     })
   },
 
-  /**
-   * Navigate to a specific level in the breadcrumb trail
-   * @param index - Index in the pathStack (0 = first folder entered)
-   */
   navigateToBreadcrumb: (index: number) => {
     const { pathStack, contextRootId } = get()
-    
+
     if (index < 0) {
-      // Navigate to context root
       set({
         currentParentId: contextRootId,
         pathStack: [],
@@ -199,16 +173,14 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
       })
       return
     }
-    
+
     if (index >= pathStack.length) {
-      // Invalid index, do nothing
       return
     }
-    
-    // Slice the stack to the target level
+
     const newStack = pathStack.slice(0, index + 1)
     const targetItem = newStack[newStack.length - 1]
-    
+
     set({
       currentParentId: targetItem.id,
       pathStack: newStack,
@@ -217,43 +189,34 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
   },
 
   // ========== Search ==========
-  
+
   setSearchQuery: (query: string) => set({ searchQuery: query }),
 
   // ========== Form Management ==========
-  
+
   setShowForm: (form) => set({ showForm: form }),
-  
+
   setEditingResource: (resource) => set({ editingResource: resource }),
-  
-  /**
-   * Open form for creating a new resource
-   */
+
   openCreateForm: (type: 'folder' | 'task') => {
     set({
       showForm: type,
       editingResource: null,
     })
   },
-  
-  /**
-   * Open form for editing an existing resource
-   */
+
   openEditForm: (resource: Resource) => {
-    const formType: 'folder' | 'task' = 
-      resource.type === 'folder' || resource.type === 'project' 
-        ? 'folder' 
+    const formType: 'folder' | 'task' =
+      resource.type === 'folder' || resource.type === 'project'
+        ? 'folder'
         : 'task'
-    
+
     set({
       showForm: formType,
       editingResource: resource,
     })
   },
-  
-  /**
-   * Close the form
-   */
+
   closeForm: () => {
     set({
       showForm: null,
@@ -262,7 +225,7 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
   },
 
   // ========== Context Menu ==========
-  
+
   showContextMenu: (x: number, y: number, resource: Resource) => {
     set({
       contextMenu: {
@@ -273,7 +236,7 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
       },
     })
   },
-  
+
   hideContextMenu: () => {
     set({
       contextMenu: {
@@ -286,25 +249,19 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
   },
 
   // ========== Helpers ==========
-  
-  /**
-   * Get the current view title based on navigation state
-   */
+
   getCurrentTitle: () => {
     const { pathStack, contextTitle } = get()
-    
+
     if (pathStack.length === 0) {
       return contextTitle
     }
-    
+
     return pathStack[pathStack.length - 1].title
   },
-  
-  /**
-   * Reset all navigation state to initial values
-   */
+
   resetNavigation: () => {
-    const { contextRootId, contextTitle } = get()
+    const { contextRootId } = get()
     set({
       currentParentId: contextRootId,
       pathStack: [],
@@ -322,8 +279,31 @@ export const useResourceStore = create<ResourceNavigationState & ResourceNavigat
 }))
 
 // ============================================================================
-// HELPER HOOKS
+// CONTEXT & PROVIDER
 // ============================================================================
+
+const ResourceStoreContext = createContext<StoreApi<ResourceStore> | null>(null)
+
+export const ResourceStoreProvider = ({ children }: { children: ReactNode }) => {
+  const [store] = useState(() => createResourceStore())
+  return (
+    <ResourceStoreContext.Provider value={store}>
+      {children}
+    </ResourceStoreContext.Provider>
+  )
+}
+
+// ============================================================================
+// HOOKS
+// ============================================================================
+
+function useResourceStoreContext<T>(selector: (state: ResourceStore) => T): T {
+  const store = useContext(ResourceStoreContext)
+  if (!store) {
+    throw new Error('useResourceStore must be used within a ResourceStoreProvider')
+  }
+  return useStore(store, selector)
+}
 
 /**
  * Hook for navigation-related state and actions
@@ -342,7 +322,7 @@ export function useResourceNavigation() {
     navigateToBreadcrumb,
     getCurrentTitle,
     resetNavigation,
-  } = useResourceStore()
+  } = useResourceStoreContext((state) => state)
 
   return {
     contextRootId,
@@ -367,7 +347,10 @@ export function useResourceNavigation() {
  * Hook for search state
  */
 export function useResourceSearch() {
-  const { searchQuery, setSearchQuery } = useResourceStore()
+  const { searchQuery, setSearchQuery } = useResourceStoreContext((state) => ({
+    searchQuery: state.searchQuery,
+    setSearchQuery: state.setSearchQuery
+  }))
   return { searchQuery, setSearchQuery }
 }
 
@@ -383,7 +366,15 @@ export function useResourceForm() {
     openCreateForm,
     openEditForm,
     closeForm,
-  } = useResourceStore()
+  } = useResourceStoreContext((state) => ({
+    showForm: state.showForm,
+    editingResource: state.editingResource,
+    setShowForm: state.setShowForm,
+    setEditingResource: state.setEditingResource,
+    openCreateForm: state.openCreateForm,
+    openEditForm: state.openEditForm,
+    closeForm: state.closeForm
+  }))
 
   return {
     showForm,
@@ -402,6 +393,10 @@ export function useResourceForm() {
  * Hook for context menu state and actions
  */
 export function useResourceContextMenu() {
-  const { contextMenu, showContextMenu, hideContextMenu } = useResourceStore()
+  const { contextMenu, showContextMenu, hideContextMenu } = useResourceStoreContext((state) => ({
+    contextMenu: state.contextMenu,
+    showContextMenu: state.showContextMenu,
+    hideContextMenu: state.hideContextMenu
+  }))
   return { contextMenu, showContextMenu, hideContextMenu }
 }

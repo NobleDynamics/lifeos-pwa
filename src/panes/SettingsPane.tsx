@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import { 
-  Settings, 
-  GripHorizontal, 
-  GripVertical, 
-  User, 
-  Palette, 
-  Bell, 
-  Wallet, 
-  Shield, 
-  ChevronRight, 
-  Users, 
+import {
+  Settings,
+  GripHorizontal,
+  GripVertical,
+  User,
+  Palette,
+  Bell,
+  Wallet,
+  Shield,
+  ChevronRight,
+  Users,
   ChevronDown,
   Home,
   Plus,
@@ -21,8 +21,8 @@ import {
 import { useAppStore, type PaneType } from '@/store/useAppStore'
 import { testUsers, useDevUserStore, useAuth } from '@/lib/supabase'
 import { FormSheet, Avatar, AvatarPicker } from '@/components/shared'
-import { 
-  useCurrentProfile, 
+import {
+  useCurrentProfile,
   useUpdateProfile,
   useHouseholds,
   usePrimaryHousehold,
@@ -32,6 +32,7 @@ import {
   Profile,
   HouseholdRole
 } from '@/hooks/useIdentity'
+import { useAllContextRoots } from '@/hooks/useContextRoot'
 
 // ============================================================================
 // CONSTANTS
@@ -71,12 +72,12 @@ type SheetMode = 'editProfile' | 'addDependent' | null
 /**
  * Member row with avatar and role badge
  */
-function MemberRow({ 
-  profile, 
+function MemberRow({
+  profile,
   role,
   isYou = false,
   onEdit
-}: { 
+}: {
   profile: Profile
   role: HouseholdRole
   isYou?: boolean
@@ -110,10 +111,10 @@ function MemberRow({
 
   return (
     <div className="flex items-center gap-3 p-3 bg-dark-100/50 rounded-lg">
-      <Avatar 
-        src={profile.avatar_url} 
-        name={profile.full_name} 
-        size="md" 
+      <Avatar
+        src={profile.avatar_url}
+        name={profile.full_name}
+        size="md"
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -129,7 +130,7 @@ function MemberRow({
         {getRoleBadge()}
       </div>
       {profile.is_shadow && onEdit && (
-        <button 
+        <button
           onClick={onEdit}
           className="p-2 rounded-lg hover:bg-dark-200 transition-colors"
         >
@@ -144,12 +145,12 @@ function MemberRow({
 // EDIT PROFILE SHEET
 // ============================================================================
 
-function EditProfileSheet({ 
+function EditProfileSheet({
   profile,
-  onClose 
-}: { 
+  onClose
+}: {
   profile: Profile | null
-  onClose: () => void 
+  onClose: () => void
 }) {
   const updateProfile = useUpdateProfile()
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
@@ -226,12 +227,12 @@ function EditProfileSheet({
 // ADD DEPENDENT SHEET
 // ============================================================================
 
-function AddDependentSheet({ 
+function AddDependentSheet({
   householdId,
-  onClose 
-}: { 
+  onClose
+}: {
   householdId: string | null
-  onClose: () => void 
+  onClose: () => void
 }) {
   const createShadowUser = useCreateShadowUser()
   const [avatarUrl, setAvatarUrl] = useState('icon:Baby:#00EAFF')
@@ -242,7 +243,7 @@ function AddDependentSheet({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    
+
     if (!fullName.trim()) {
       setError('Name is required')
       return
@@ -339,7 +340,7 @@ export default function SettingsPane() {
   const [showAccountSection, setShowAccountSection] = useState(true)
   const [showHouseholdSection, setShowHouseholdSection] = useState(false)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
-  
+
   // New household state
   const [sheetMode, setSheetMode] = useState<SheetMode>(null)
   const { data: currentProfile } = useCurrentProfile()
@@ -347,7 +348,7 @@ export default function SettingsPane() {
   const { activeHouseholdId } = usePrimaryHousehold()
   const switchHousehold = useSwitchHousehold()
   const { data: householdMembers = [] } = useHouseholdMembers(activeHouseholdId)
-  
+
   // Find active household
   const activeHousehold = households.find(h => h.id === activeHouseholdId)
 
@@ -421,7 +422,7 @@ export default function SettingsPane() {
               {/* Current User Display with Avatar */}
               <div className="bg-dark-200/50 rounded-lg p-3">
                 <div className="flex items-center gap-3">
-                  <Avatar 
+                  <Avatar
                     src={currentProfile?.avatar_url}
                     name={currentProfile?.full_name || currentUser?.name}
                     size="lg"
@@ -539,7 +540,7 @@ export default function SettingsPane() {
                         key={member.id}
                         profile={member.profile}
                         role={member.role}
-                        onEdit={() => {/* TODO: Edit shadow user */}}
+                        onEdit={() => {/* TODO: Edit shadow user */ }}
                       />
                     ))}
                   </div>
@@ -579,9 +580,8 @@ export default function SettingsPane() {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center gap-3 p-2 rounded-lg cursor-grab active:cursor-grabbing transition-colors ${
-                  draggedIndex === index ? 'bg-primary/20' : 'bg-dark-100/50 hover:bg-dark-200'
-                }`}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-grab active:cursor-grabbing transition-colors ${draggedIndex === index ? 'bg-primary/20' : 'bg-dark-100/50 hover:bg-dark-200'
+                  }`}
               >
                 <GripVertical size={16} className="text-dark-500" />
                 <span className="text-sm">{paneLabels[pane]}</span>
@@ -625,6 +625,25 @@ export default function SettingsPane() {
         <div className="text-center py-4">
           <p className="text-xs text-dark-500">LifeOS v0.1.0</p>
         </div>
+
+        {/* Debug Section */}
+        <div className="glass-card p-4 space-y-2">
+          <h3 className="font-medium text-red-400">Debug Info</h3>
+          <div className="text-xs font-mono space-y-2 overflow-x-auto">
+            <div>
+              <p className="text-dark-400">Active Household ID:</p>
+              <p>{activeHouseholdId}</p>
+            </div>
+            <div>
+              <p className="text-dark-400">Members ({householdMembers.length}):</p>
+              <pre>{JSON.stringify(householdMembers.map(m => ({ id: m.user_id, role: m.role })), null, 2)}</pre>
+            </div>
+            <div>
+              <p className="text-dark-400">Context Roots:</p>
+              <pre>{JSON.stringify(useAllContextRoots().data?.map(r => ({ id: r.id, title: r.title, context: r.meta_data?.context })), null, 2)}</pre>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Drawer Handle */}
@@ -640,15 +659,15 @@ export default function SettingsPane() {
 
       {/* SHEETS - Rendered at the end to ensure proper z-index */}
       {sheetMode === 'editProfile' && (
-        <EditProfileSheet 
+        <EditProfileSheet
           profile={currentProfile || null}
-          onClose={() => setSheetMode(null)} 
+          onClose={() => setSheetMode(null)}
         />
       )}
       {sheetMode === 'addDependent' && (
-        <AddDependentSheet 
+        <AddDependentSheet
           householdId={activeHouseholdId}
-          onClose={() => setSheetMode(null)} 
+          onClose={() => setSheetMode(null)}
         />
       )}
     </div>

@@ -188,33 +188,288 @@ Use these inside variant components:
 
 ---
 
-## Built-in Variants Reference
+## Component Catalog (Structural Taxonomy)
 
-### `list_row`
-**Use for:** Task items, simple list entries
-**Reads from metadata:** `status`, `priority`, `dueDate`, `color`
-**Features:**
-- Status icon (Circle → PlayCircle → CheckCircle)
-- Priority badge
-- Due date display
-- Strikethrough on completed
+The ViewEngine uses a **Structural/Compositional Taxonomy** where components are named by their layout structure, not by domain. This enables "headless" rendering where the same component can display tasks, recipes, or any other data type.
 
-### `grid_card`
-**Use for:** Recipes, workouts, documents
-**Reads from metadata:** `imageUrl`, `description`, `prepTime`, `cookTime`, `servings`, `duration`, `semanticType`, `color`
-**Features:**
-- Optional image/thumbnail
-- Type-specific icon based on `semanticType`
-- Metadata badges
+### The Slot System
 
-### `container_stack`
-**Use for:** Folders, collapsible sections
-**Reads from metadata:** `color`, `description`
-**Features:**
-- Collapsible children
-- Cyberpunk neon glow border
-- Child count badge
-- Recursively renders children
+Components use **slots** to access data without coupling to specific field names. The `useSlot` hook provides an indirection layer:
+
+```typescript
+// In component:
+const headline = useSlot<string>('headline')  // Gets title via default mapping
+const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-formats dates
+
+// In JSON (explicit config):
+{
+  "metadata": {
+    "__config": {
+      "headline": "name",
+      "badge": "due_date"
+    },
+    "name": "My Item",
+    "due_date": "2025-12-01"
+  }
+}
+
+// In JSON (convention - no __config needed):
+{
+  "metadata": {
+    "description": "This maps to 'subtext' slot automatically"
+  }
+}
+```
+
+**Default Slot Mappings (Convention over Configuration):**
+| Slot | Default Metadata Key |
+|------|---------------------|
+| `headline` | `node.title` |
+| `subtext` | `description` |
+| `accent_color` | `color` |
+| `icon_start` | `icon` |
+| `media` | `imageUrl` |
+
+---
+
+## Views (Containers)
+
+### `view_list_stack`
+**Structure:** Collapsible vertical stack with neon header
+**Use for:** Folders, sections, any nested container
+
+```
+┌────────────────────────────────────────────────┐
+│ [▼] [Icon]  headline              [count]      │
+│             subtext                            │
+├────────────────────────────────────────────────┤
+│   │ Child 1                                    │
+│   │ Child 2                                    │
+└────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Header title (default: node.title) |
+| `subtext` | string | Description below title |
+| `accent_color` | string | Neon border/glow color (default: #06b6d4) |
+
+**Example:**
+```json
+{
+  "variant": "view_list_stack",
+  "title": "Projects",
+  "metadata": { "color": "#8b5cf6", "description": "Active projects" }
+}
+```
+
+---
+
+### `view_directory`
+**Structure:** Search bar header + scrollable list + action button
+**Use for:** Top-level directories, searchable lists
+
+```
+┌────────────────────────────────────────────────┐
+│ [🔍 Search...                    ] [+ New]     │
+├────────────────────────────────────────────────┤
+│ Child 1                                        │
+│ Child 2                                        │
+├────────────────────────────────────────────────┤
+│ Showing X of Y results                         │
+└────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `search_placeholder` | string | Placeholder text (default: "Search...") |
+| `show_action_button` | boolean | Show "+ New" button (default: true) |
+| `action_label` | string | Button label (default: "New") |
+
+**Example:**
+```json
+{
+  "variant": "view_directory",
+  "title": "Tasks",
+  "metadata": { "search_placeholder": "Search tasks...", "action_label": "Task" }
+}
+```
+
+---
+
+## Rows (List Items)
+
+### `row_detail_check`
+**Structure:** Checkbox left | Headline + Subtext + Badges | Action right
+**Use for:** Items with status, detailed info, and optional avatar
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ [○/●]  |  headline                                   [Avatar]  │
+│        |  subtext                                              │
+│        |  [badge_1] [badge_2] [badge_3]                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `subtext` | string | Secondary text |
+| `status` | string | Status for icon: 'active', 'in_progress', 'completed' |
+| `badge_1` | string | First badge (e.g., status text) |
+| `badge_2` | string | Second badge (auto-formatted if type: 'date') |
+| `badge_3` | string | Third badge (e.g., location) |
+| `end_element` | object/string | Avatar config for right side |
+
+**Example:**
+```json
+{
+  "variant": "row_detail_check",
+  "title": "Buy groceries",
+  "metadata": {
+    "status": "active",
+    "description": "Get milk from Costco",
+    "badge_1": "Active",
+    "badge_2": "2025-12-01",
+    "badge_3": "Costco",
+    "end_element": "icon:User:#ff6b6b"
+  }
+}
+```
+
+---
+
+### `row_neon_group`
+**Structure:** Neon border | Icon + Headline | Count + Chevron + Avatar
+**Use for:** Folder navigation, groups with cyberpunk styling
+
+```
+┌════════════════════════════════════════════════════════════════════╗
+║ [Icon]  headline                      [count badge] [→] [Avatar]  ║
+║         subtext                                                    ║
+╚════════════════════════════════════════════════════════════════════╝
+  ^ Neon glow border using accent_color
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `subtext` | string | Secondary text |
+| `accent_color` | string | Neon border/glow color (default: #06b6d4) |
+| `count_badge` | string/number | Badge text (default: child count) |
+| `end_element` | object/string | Avatar config |
+| `show_chevron` | boolean | Show navigation chevron (default: true) |
+
+**Example:**
+```json
+{
+  "variant": "row_neon_group",
+  "title": "Groceries",
+  "metadata": {
+    "color": "#06b6d4",
+    "description": "Weekly shopping list",
+    "end_element": "icon:ShoppingCart:#06b6d4"
+  },
+  "children": [...]
+}
+```
+
+---
+
+### `row_simple`
+**Structure:** Minimal row with status icon, headline, and badges
+**Use for:** Simple list items without extra detail
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ [○/●]  headline                         [badge] [badge_date]  │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `status` | string | Status for icon: 'active', 'in_progress', 'completed' |
+| `badge` | string | Priority/category badge |
+| `badge_date` | string | Date badge (auto-formatted) |
+| `accent_color` | string | Icon color override |
+
+**Example:**
+```json
+{
+  "variant": "row_simple",
+  "title": "Quick task",
+  "metadata": { "status": "active", "badge": "high" }
+}
+```
+
+---
+
+## Cards (Grid Items)
+
+### `card_media_top`
+**Structure:** Image top | Headline + Subtext + Badges bottom
+**Use for:** Visual items like recipes, documents, media
+
+```
+┌───────────────────────────────────────┐
+│         [slot_media]                  │  ← Image if provided
+│                                       │
+├───────────────────────────────────────┤
+│ headline                              │
+│ subtext                               │
+│ [badge_1] [badge_2] [badge_3]         │
+└───────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `subtext` | string | Secondary text |
+| `media` | string | Image URL for top section |
+| `accent_color` | string | Top bar color when no media (default: #06b6d4) |
+| `badge_1` | string/number | First badge (e.g., "35m") |
+| `badge_2` | string/number | Second badge (e.g., "4 servings") |
+| `badge_3` | string/number | Third badge |
+| `badge_1_icon` | string | Icon for badge_1 ('clock', etc.) |
+
+**Example:**
+```json
+{
+  "variant": "card_media_top",
+  "title": "Spaghetti Carbonara",
+  "metadata": {
+    "imageUrl": "https://example.com/pasta.jpg",
+    "description": "Classic Italian pasta",
+    "badge_1": "35m",
+    "badge_1_icon": "clock",
+    "badge_2": "4 servings"
+  }
+}
+```
+
+---
+
+## Legacy Aliases (Backwards Compatibility)
+
+These old variant names still work but map to the new structural components:
+
+| Legacy Name | Maps To |
+|-------------|---------|
+| `container_stack` | `view_list_stack` |
+| `resource_directory` | `view_directory` |
+| `task_row_detailed` | `row_detail_check` |
+| `folder_row_neon` | `row_neon_group` |
+| `list_row` | `row_simple` |
+| `grid_card` | `card_media_top` |
+
+**Note:** When using legacy names, the components still use the new slot system. For backwards compatibility, slots fall back to reading common metadata keys directly (e.g., `status`, `description`, `color`).
 
 ---
 
@@ -341,6 +596,91 @@ Once variants are stable in Sandbox:
           "metadata": { "status": "in_progress" }
         }
       ]
+    }
+  ]
+}
+```
+
+### LifeOS Cyberpunk Todo Directory
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "type": "container",
+  "variant": "resource_directory",
+  "title": "Todo",
+  "metadata": { "placeholder": "Search tasks..." },
+  "children": [
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "type": "container",
+      "variant": "folder_row_neon",
+      "title": "Groceries",
+      "metadata": {
+        "color": "#06b6d4",
+        "description": "Weekly shopping list",
+        "assignee": "icon:ShoppingCart:#06b6d4"
+      },
+      "children": [
+        {
+          "id": "00000000-0000-0000-0000-000000000010",
+          "type": "item",
+          "variant": "task_row_detailed",
+          "title": "Buy milk",
+          "metadata": {
+            "status": "active",
+            "description": "Get 2% from Costco",
+            "location": "Costco"
+          }
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "type": "container",
+      "variant": "folder_row_neon",
+      "title": "Home Repairs",
+      "metadata": {
+        "color": "#f59e0b",
+        "description": "Things to fix around the house",
+        "assignee": "icon:Wrench:#f59e0b"
+      },
+      "children": []
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000004",
+      "type": "item",
+      "variant": "task_row_detailed",
+      "title": "Walk the dog",
+      "metadata": {
+        "status": "completed",
+        "description": "30 minute walk in the park",
+        "due_date": "2025-11-29",
+        "location": "Central Park",
+        "assignee": "icon:Dog:#10b981"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000005",
+      "type": "item",
+      "variant": "task_row_detailed",
+      "title": "Schedule dentist appointment",
+      "metadata": {
+        "status": "not_started",
+        "description": "Annual checkup overdue",
+        "due_date": "2025-12-15",
+        "assignee": { "name": "John", "avatar": "icon:User:#ff6b6b" }
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000006",
+      "type": "item",
+      "variant": "task_row_detailed",
+      "title": "Review quarterly report",
+      "metadata": {
+        "status": "in_progress",
+        "description": "Q4 financials need review before Friday",
+        "due_date": "2025-12-01"
+      }
     }
   ]
 }

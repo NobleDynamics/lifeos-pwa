@@ -51,18 +51,31 @@
 
 ## 7. ViewEngine Development (Unified Node Architecture)
 
-### Current Phase: Sandbox Testing
-We are building a **data-driven rendering system** using the Sandbox pane. The workflow:
-1. Edit JSON in Sandbox → Preview → Iterate
-2. Create/modify variant components in `src/engine/components/variants/`
-3. Once stable, integrate into main app
+### Current Phase: Live Integration ✓
+The ViewEngine is now **live** and connected to Supabase:
+- `ViewEnginePane` bridges Supabase → ViewEngine
+- HouseholdPane and CloudPane use ViewEnginePane instead of HierarchyPane
+- Sandbox pane remains for variant development/testing
 
 ### Key Files
 * **Docs:** `docs/03_ViewEngine_Sandbox.md` - Full development guide
 * **Entry Point:** `src/engine/index.ts` - Public API + `initializeEngine()`
 * **Registry:** `src/engine/registry.ts` - Variant → Component mapping
 * **Variants:** `src/engine/components/variants/` - ADD NEW VARIANTS HERE
+* **Utils:** `src/engine/utils/resourcesToNodeTree.ts` - Flat→Tree transformer
+* **Bridge:** `src/panes/ViewEnginePane.tsx` - Supabase → ViewEngine connector
 * **Sandbox:** `src/panes/SandboxPane.tsx` - JSON editor + preview
+
+### Data Flow (Live Integration)
+```
+useContextRoot(context)  →  rootId, rootPath
+         ↓
+useResourceTree(rootPath)  →  Resource[] (flat)
+         ↓
+resourcesToNodeTree(resources, rootId)  →  Node (nested tree)
+         ↓
+<ViewEngine root={nodeTree} />
+```
 
 ### Node Schema
 ```typescript

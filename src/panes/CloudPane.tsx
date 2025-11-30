@@ -1,6 +1,6 @@
 import { Cloud, Image, FileText, FolderOpen } from 'lucide-react'
 import CategoryPane from '@/components/CategoryPane'
-import { HierarchyPane } from '@/components/HierarchyPane'
+import { ViewEnginePane } from '@/panes/ViewEnginePane'
 
 const tabs = [
   { id: 'files', label: 'Files', icon: FolderOpen },
@@ -9,7 +9,7 @@ const tabs = [
 ]
 
 function FilesTab() {
-  return <HierarchyPane context="cloud.files" title="Cloud" accentColor="#00EAFF" />
+  return <ViewEnginePane context="cloud.files" title="Cloud" />
 }
 
 function PhotosTab() {

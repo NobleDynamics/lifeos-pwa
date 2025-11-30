@@ -40,6 +40,60 @@ export const RelationshipTypes = [
 export type RelationshipType = (typeof RelationshipTypes)[number]
 
 /**
+ * Field types for typed metadata fields.
+ * Used by useSlot for automatic formatting and by AI/Agenda logic.
+ * Inspired by "GoHighLevel" style typed fields.
+ */
+export const FieldTypes = [
+  'text',      // Plain text string
+  'number',    // Numeric value
+  'currency',  // Money value (formatted with currency symbol)
+  'date',      // ISO date string (formatted to human-readable)
+  'boolean',   // True/false value
+  'select',    // Single select from options
+  'reference', // Reference to another node (UUID)
+] as const
+export type FieldType = (typeof FieldTypes)[number]
+
+/**
+ * Definition for a typed metadata field.
+ * Allows schema-driven forms and intelligent slot formatting.
+ */
+export interface FieldDefinition {
+  /** Unique key for this field in metadata */
+  key: string
+  /** Display label for forms/UI */
+  label: string
+  /** Field type for formatting and validation */
+  type: FieldType
+  /** Whether this field is required */
+  required?: boolean
+  /** Default value if not provided */
+  defaultValue?: unknown
+  /** For 'select' type: available options */
+  options?: Array<{ value: string; label: string }>
+  /** For 'currency' type: currency code (default: 'USD') */
+  currency?: string
+  /** For 'reference' type: the node type being referenced */
+  referenceType?: NodeType
+}
+
+/**
+ * Slot configuration for structural components.
+ * Maps slot names to metadata field keys.
+ * Stored in node.metadata.__config
+ */
+export interface SlotConfig {
+  /** Map from slot name (e.g., 'headline') to metadata key (e.g., 'title') */
+  [slotName: string]: string | {
+    /** The metadata key to read from */
+    key: string
+    /** Optional field type for formatting */
+    type?: FieldType
+  }
+}
+
+/**
  * Maps backend resource types to abstract node types.
  * Used when transforming DB resources into Nodes (Phase 2).
  */

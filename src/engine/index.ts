@@ -75,13 +75,40 @@ export type { ViewEngineProps } from './components/ViewEngine'
 export { useRenderChildren } from './components/hooks/useRenderChildren'
 
 // =============================================================================
-// BUILT-IN VARIANT EXPORTS
+// HOOK EXPORTS
+// =============================================================================
+
+export { useSlot, useSlots, useSlotExists } from './hooks/useSlot'
+export type { UseSlotOptions } from './hooks/useSlot'
+
+// =============================================================================
+// UTILITY EXPORTS
+// =============================================================================
+
+export {
+  resourceToNode,
+  resourcesToNodeTree,
+  createEmptyRootNode,
+  countNodesInTree,
+} from './utils'
+
+// =============================================================================
+// BUILT-IN VARIANT EXPORTS (Structural Taxonomy)
 // =============================================================================
 
 export { DebugNode } from './components/DebugNode'
-export { ListRow } from './components/variants/ListRow'
-export { GridCard } from './components/variants/GridCard'
-export { ContainerStack } from './components/variants/ContainerStack'
+
+// Views (Containers)
+export { ViewListStack } from './components/variants/views/view_list_stack'
+export { ViewDirectory } from './components/variants/views/view_directory'
+
+// Rows (List Items)
+export { RowDetailCheck } from './components/variants/rows/row_detail_check'
+export { RowNeonGroup } from './components/variants/rows/row_neon_group'
+export { RowSimple } from './components/variants/rows/row_simple'
+
+// Cards (Grid Items)
+export { CardMediaTop } from './components/variants/cards/card_media_top'
 
 // =============================================================================
 // ENGINE INITIALIZATION
@@ -89,9 +116,14 @@ export { ContainerStack } from './components/variants/ContainerStack'
 
 import { registerVariants, setFallbackComponent } from './registry'
 import { DebugNode } from './components/DebugNode'
-import { ListRow } from './components/variants/ListRow'
-import { GridCard } from './components/variants/GridCard'
-import { ContainerStack } from './components/variants/ContainerStack'
+
+// New Structural Components
+import { ViewListStack } from './components/variants/views/view_list_stack'
+import { ViewDirectory } from './components/variants/views/view_directory'
+import { RowDetailCheck } from './components/variants/rows/row_detail_check'
+import { RowNeonGroup } from './components/variants/rows/row_neon_group'
+import { RowSimple } from './components/variants/rows/row_simple'
+import { CardMediaTop } from './components/variants/cards/card_media_top'
 
 /**
  * Initialize the ViewEngine with default variants.
@@ -105,20 +137,40 @@ export function initializeEngine(): void {
   // Register fallback component
   setFallbackComponent(DebugNode)
   
-  // Register built-in variants
+  // Register structural variants (new taxonomy)
   registerVariants({
-    list_row: ListRow,
-    grid_card: GridCard,
-    container_stack: ContainerStack,
-    // Aliases for convenience
-    row: ListRow,
-    card: GridCard,
-    stack: ContainerStack,
-    container: ContainerStack,
+    // Views (Containers)
+    view_list_stack: ViewListStack,
+    view_directory: ViewDirectory,
+    
+    // Rows (List Items)
+    row_detail_check: RowDetailCheck,
+    row_neon_group: RowNeonGroup,
+    row_simple: RowSimple,
+    
+    // Cards (Grid Items)
+    card_media_top: CardMediaTop,
+    
+    // =========================================
+    // LEGACY ALIASES (Backwards Compatibility)
+    // =========================================
+    // These map old domain-specific names to new structural components
+    container_stack: ViewListStack,
+    resource_directory: ViewDirectory,
+    task_row_detailed: RowDetailCheck,
+    folder_row_neon: RowNeonGroup,
+    list_row: RowSimple,
+    grid_card: CardMediaTop,
+    
+    // Convenience aliases
+    row: RowSimple,
+    card: CardMediaTop,
+    stack: ViewListStack,
+    container: ViewListStack,
   })
   
-  console.log('[ViewEngine] Initialized with default variants:', 
-    'list_row', 'grid_card', 'container_stack')
+  console.log('[ViewEngine] Initialized with structural taxonomy:', 
+    'view_list_stack', 'view_directory', 'row_detail_check', 'row_neon_group', 'row_simple', 'card_media_top')
 }
 
 // =============================================================================

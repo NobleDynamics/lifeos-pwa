@@ -95,7 +95,7 @@ async function createContextRoot(
  * if (error) return <Error message={error} />
  * 
  * // rootId is now guaranteed to exist
- * return <HierarchyPane parentId={rootId} />
+ * return <ViewEnginePane context={context} />
  * ```
  */
 export function useContextRoot(context: string): ContextRootResult {

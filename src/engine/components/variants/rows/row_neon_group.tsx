@@ -11,7 +11,9 @@
 import { Folder, ChevronRight } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode, useChildCount } from '../../../context/NodeContext'
+import { useEngineActions } from '../../../context/EngineActionsContext'
 import { useSlot } from '../../../hooks/useSlot'
+import { useLongPress } from '@/hooks/useLongPress'
 import { Avatar } from '@/components/shared/Avatar'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +39,7 @@ import { cn } from '@/lib/utils'
 export function RowNeonGroup({ node }: VariantComponentProps) {
   const { depth } = useNode()
   const childCount = useChildCount()
+  const actions = useEngineActions()
   
   // Slot-based data access
   const headline = useSlot<string>('headline') ?? node.title
@@ -56,6 +59,30 @@ export function RowNeonGroup({ node }: VariantComponentProps) {
   
   // Use child count for badge if not explicitly set
   const displayBadge = countBadge ?? (childCount > 0 ? `${childCount} ${childCount === 1 ? 'item' : 'items'}` : null)
+
+  // Handle row click - navigate into folder
+  const handleClick = () => {
+    if (actions) {
+      const path = (node.metadata.path as string) || ''
+      actions.onNavigateInto(node.id, node.title, path)
+    }
+  }
+
+  // Handle context menu / long press - open edit/delete menu
+  const handleContextMenu = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (actions) {
+      const resource = actions.nodeToResource(node)
+      actions.onOpenContextMenu(e, resource)
+    }
+  }
+
+  // Long press handler for touch devices
+  const longPressHandlers = useLongPress(
+    (e) => handleContextMenu(e as React.MouseEvent | React.TouchEvent),
+    { threshold: 500 }
+  )
   
   return (
     <div
@@ -74,6 +101,19 @@ export function RowNeonGroup({ node }: VariantComponentProps) {
       data-node-id={node.id}
       role="button"
       tabIndex={0}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      onMouseDown={(e) => longPressHandlers.onMouseDown(e, node)}
+      onMouseUp={longPressHandlers.onMouseUp}
+      onMouseLeave={longPressHandlers.onMouseLeave}
+      onTouchStart={(e) => longPressHandlers.onTouchStart(e, node)}
+      onTouchEnd={longPressHandlers.onTouchEnd}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleClick()
+        }
+      }}
     >
       {/* Icon (Left) - Large and colored */}
       <div className="flex-shrink-0">

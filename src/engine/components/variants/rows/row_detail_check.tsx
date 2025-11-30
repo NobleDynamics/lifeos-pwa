@@ -11,7 +11,9 @@
 import { Circle, CheckCircle2, PlayCircle, Calendar, MapPin } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
+import { useEngineActions } from '../../../context/EngineActionsContext'
 import { useSlot } from '../../../hooks/useSlot'
+import { useLongPress } from '@/hooks/useLongPress'
 import { Avatar } from '@/components/shared/Avatar'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +60,7 @@ const statusDisplayText: Record<string, string> = {
  */
 export function RowDetailCheck({ node }: VariantComponentProps) {
   const { depth } = useNode()
+  const actions = useEngineActions()
   
   // Slot-based data access
   const headline = useSlot<string>('headline') ?? node.title
@@ -92,6 +95,30 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
   // Auto-detect badge icons if not specified (convention over config)
   const shouldShowCalendarIcon = !badge2Icon && badge2 && !Badge2Icon
   const shouldShowLocationIcon = !badge3Icon && badge3 && !Badge3Icon
+
+  // Handle status icon click - cycle status
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (actions) {
+      const resource = actions.nodeToResource(node)
+      actions.onCycleStatus(resource)
+    }
+  }
+
+  // Handle row click/long-press - open context menu
+  const handleContextMenu = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    if (actions) {
+      const resource = actions.nodeToResource(node)
+      actions.onOpenContextMenu(e, resource)
+    }
+  }
+
+  // Long press handler for touch devices
+  const longPressHandlers = useLongPress(
+    (e) => handleContextMenu(e as React.MouseEvent | React.TouchEvent),
+    { threshold: 500 }
+  )
   
   return (
     <div
@@ -104,9 +131,20 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
       style={{ marginLeft: depth > 0 ? depth * 8 : 0 }}
       data-variant="row_detail_check"
       data-node-id={node.id}
+      onContextMenu={handleContextMenu}
+      onMouseDown={(e) => longPressHandlers.onMouseDown(e, node)}
+      onMouseUp={longPressHandlers.onMouseUp}
+      onMouseLeave={longPressHandlers.onMouseLeave}
+      onTouchStart={(e) => longPressHandlers.onTouchStart(e, node)}
+      onTouchEnd={longPressHandlers.onTouchEnd}
     >
-      {/* Status Icon (Left) */}
-      <div className="flex-shrink-0 pt-0.5">
+      {/* Status Icon (Left) - Clickable to cycle status */}
+      <div 
+        className="flex-shrink-0 pt-0.5 cursor-pointer hover:scale-110 transition-transform"
+        onClick={handleStatusClick}
+        role="button"
+        aria-label={`Toggle status: currently ${status}`}
+      >
         <StatusIcon 
           size={20} 
           className={cn(

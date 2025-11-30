@@ -5,16 +5,32 @@
  * 1. Fetching the context root using useContextRoot
  * 2. Fetching the resource tree using useResourceTree
  * 3. Transforming flat resources into a nested Node tree
- * 4. Rendering via ViewEngine
+ * 4. Providing action callbacks via EngineActionsProvider
+ * 5. Rendering via ViewEngine with navigation support
  * 
  * @module panes/ViewEnginePane
  */
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useCallback } from 'react'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { ViewEngine, resourcesToNodeTree, createEmptyRootNode } from '@/engine'
+import { 
+  ViewEngine, 
+  resourcesToNodeTree, 
+  createEmptyRootNode,
+  EngineActionsProvider,
+  findNodeById,
+} from '@/engine'
 import { useContextRoot } from '@/hooks/useContextRoot'
-import { useResourceTree } from '@/hooks/useResourceData'
+import { useResourceTree, useCycleResourceStatus } from '@/hooks/useResourceData'
+import { 
+  useResourceNavigation, 
+  useResourceForm, 
+  useResourceContextMenu 
+} from '@/store/useResourceStore'
+import { ResourceBreadcrumbs } from '@/components/ResourceBreadcrumbs'
+import { ResourceForm } from '@/components/ResourceForm'
+import { ResourceContextMenu } from '@/components/ResourceContextMenu'
+import { Resource } from '@/types/database'
 
 // =============================================================================
 // TYPES
@@ -73,7 +89,8 @@ function ErrorState({ error, title }: { error: string; title?: string }) {
  * 1. Gets or creates the context root (e.g., household.todos folder)
  * 2. Fetches all descendants of the context root
  * 3. Transforms the flat array into a nested Node tree
- * 4. Renders via the ViewEngine
+ * 4. Provides action callbacks for create/update/delete/navigate
+ * 5. Renders via the ViewEngine with breadcrumb navigation
  * 
  * @example
  * <ViewEnginePane context="household.todos" title="To-Do" />
@@ -94,13 +111,109 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
     error: treeError,
   } = useResourceTree(rootPath)
 
+  // Navigation store
+  const { 
+    setContextRoot, 
+    navigateInto,
+    currentParentId,
+    pathStack,
+  } = useResourceNavigation()
+
+  // Form store
+  const { openCreateForm } = useResourceForm()
+
+  // Context menu store
+  const { showContextMenu } = useResourceContextMenu()
+
+  // Status cycling mutation
+  const cycleStatusMutation = useCycleResourceStatus()
+
+  // Sync context root with navigation store when it changes
+  useEffect(() => {
+    if (rootId) {
+      setContextRoot(rootId, title || context)
+    }
+  }, [rootId, title, context, setContextRoot])
+
   // Step 3: Transform resources to Node tree (memoized for performance)
-  const nodeTree = useMemo(() => {
+  const fullNodeTree = useMemo(() => {
     if (!rootId || !resources || resources.length === 0) {
       return null
     }
     return resourcesToNodeTree(resources, rootId)
   }, [rootId, resources])
+
+  // Step 4: Get the current view node based on navigation
+  // If we've navigated into a folder, show that folder's subtree
+  const currentNodeTree = useMemo(() => {
+    if (!fullNodeTree) return null
+    
+    // If at root (no path stack), show full tree
+    if (pathStack.length === 0) {
+      return fullNodeTree
+    }
+    
+    // Find the current folder in the tree
+    const currentFolderId = currentParentId
+    if (!currentFolderId) return fullNodeTree
+    
+    const currentNode = findNodeById(fullNodeTree, currentFolderId)
+    if (!currentNode) return fullNodeTree
+    
+    // Return the found node as the new root for rendering
+    return currentNode
+  }, [fullNodeTree, pathStack, currentParentId])
+
+  // ==========================================================================
+  // ACTION CALLBACKS
+  // ==========================================================================
+
+  /**
+   * Handle opening the create form
+   */
+  const handleOpenCreateForm = useCallback((type: 'folder' | 'task', parentId: string) => {
+    openCreateForm(type)
+    // The form will use currentParentId from the store
+  }, [openCreateForm])
+
+  /**
+   * Handle navigating into a folder
+   */
+  const handleNavigateInto = useCallback((nodeId: string, nodeTitle: string, nodePath: string) => {
+    // Find the resource for this node to get path info
+    const resource = resources?.find(r => r.id === nodeId)
+    if (resource) {
+      navigateInto(resource)
+    }
+  }, [resources, navigateInto])
+
+  /**
+   * Handle opening context menu
+   */
+  const handleOpenContextMenu = useCallback((e: React.MouseEvent | React.TouchEvent, resource: Resource) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Get coordinates based on event type
+    let x: number, y: number
+    if ('touches' in e) {
+      const touch = e.touches[0] || e.changedTouches[0]
+      x = touch.clientX
+      y = touch.clientY
+    } else {
+      x = e.clientX
+      y = e.clientY
+    }
+    
+    showContextMenu(x, y, resource)
+  }, [showContextMenu])
+
+  /**
+   * Handle cycling resource status
+   */
+  const handleCycleStatus = useCallback((resource: Resource) => {
+    cycleStatusMutation.mutate({ resource })
+  }, [cycleStatusMutation])
 
   // === Loading State ===
   if (isContextLoading || isTreeLoading) {
@@ -118,7 +231,7 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
 
   // === Empty State ===
   // Context root exists but has no children yet
-  if (!nodeTree && rootId) {
+  if (!currentNodeTree && rootId) {
     const emptyRoot = createEmptyRootNode(
       rootId,
       title || context,
@@ -126,14 +239,32 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
     )
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        <ViewEngine root={emptyRoot} className="flex-1 overflow-y-auto" />
+        {/* Breadcrumbs */}
+        <div className="px-3 py-2 border-b border-dark-200">
+          <ResourceBreadcrumbs />
+        </div>
+        
+        <EngineActionsProvider
+          rootId={rootId}
+          currentParentId={currentParentId}
+          onOpenCreateForm={handleOpenCreateForm}
+          onNavigateInto={handleNavigateInto}
+          onOpenContextMenu={handleOpenContextMenu}
+          onCycleStatus={handleCycleStatus}
+        >
+          <ViewEngine root={emptyRoot} className="flex-1 overflow-y-auto" />
+        </EngineActionsProvider>
+        
+        {/* Form & Context Menu */}
+        <ResourceForm />
+        <ResourceContextMenu />
       </div>
     )
   }
 
   // === No Data State ===
   // This shouldn't happen if context root creation worked
-  if (!nodeTree) {
+  if (!currentNodeTree) {
     return (
       <ErrorState 
         error="Unable to load data. Please try again." 
@@ -145,7 +276,25 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
   // === Success: Render ViewEngine ===
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <ViewEngine root={nodeTree} className="flex-1 overflow-y-auto" />
+      {/* Breadcrumbs */}
+      <div className="px-3 py-2 border-b border-dark-200">
+        <ResourceBreadcrumbs />
+      </div>
+      
+      <EngineActionsProvider
+        rootId={rootId}
+        currentParentId={currentParentId}
+        onOpenCreateForm={handleOpenCreateForm}
+        onNavigateInto={handleNavigateInto}
+        onOpenContextMenu={handleOpenContextMenu}
+        onCycleStatus={handleCycleStatus}
+      >
+        <ViewEngine root={currentNodeTree} className="flex-1 overflow-y-auto" />
+      </EngineActionsProvider>
+      
+      {/* Form & Context Menu */}
+      <ResourceForm />
+      <ResourceContextMenu />
     </div>
   )
 }

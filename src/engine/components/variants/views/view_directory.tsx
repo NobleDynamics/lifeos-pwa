@@ -2,16 +2,17 @@
  * ViewDirectory Variant Component
  * 
  * A container variant with search bar header and vertical stack of children.
- * Includes client-side filtering and "New" button.
+ * Includes client-side filtering and "New" button with type selection.
  * Purely structural - uses slots for all display data.
  * 
  * @module engine/components/variants/views/view_directory
  */
 
 import { useState, useMemo } from 'react'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Folder, CheckSquare, X } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode, useChildCount } from '../../../context/NodeContext'
+import { useEngineActions } from '../../../context/EngineActionsContext'
 import { useSlot } from '../../../hooks/useSlot'
 import { renderChildren } from '../../ViewEngine'
 import { cn } from '@/lib/utils'
@@ -39,9 +40,13 @@ import { cn } from '@/lib/utils'
 export function ViewDirectory({ node }: VariantComponentProps) {
   const { depth, rootId } = useNode()
   const childCount = useChildCount()
+  const actions = useEngineActions()
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
+  
+  // Type selector state
+  const [showTypeSelector, setShowTypeSelector] = useState(false)
   
   // Slot-based data access
   const searchPlaceholder = useSlot<string>('search_placeholder', 'Search...')
@@ -77,6 +82,21 @@ export function ViewDirectory({ node }: VariantComponentProps) {
   const hasFilteredResults = filteredChildren && filteredChildren.length > 0
   const isFiltering = searchQuery.trim().length > 0
   
+  // Handle "+ New" button click - show type selector
+  const handleNewClick = () => {
+    if (actions) {
+      setShowTypeSelector(true)
+    }
+  }
+  
+  // Handle type selection
+  const handleTypeSelect = (type: 'folder' | 'task') => {
+    setShowTypeSelector(false)
+    if (actions) {
+      actions.onOpenCreateForm(type, node.id)
+    }
+  }
+  
   return (
     <div
       className="flex flex-col h-full"
@@ -108,20 +128,66 @@ export function ViewDirectory({ node }: VariantComponentProps) {
         
         {/* Action Button */}
         {showActionButton && (
-          <button
-            className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-lg",
-              "text-sm font-medium text-white",
-              "bg-gradient-to-r from-cyan-600 to-cyan-500",
-              "hover:from-cyan-500 hover:to-cyan-400",
-              "active:scale-95 transition-all duration-150",
-              "shadow-lg shadow-cyan-500/20"
+          <div className="relative">
+            <button
+              onClick={handleNewClick}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 rounded-lg",
+                "text-sm font-medium text-white",
+                "bg-gradient-to-r from-cyan-600 to-cyan-500",
+                "hover:from-cyan-500 hover:to-cyan-400",
+                "active:scale-95 transition-all duration-150",
+                "shadow-lg shadow-cyan-500/20"
+              )}
+              type="button"
+            >
+              <Plus size={16} />
+              {actionLabel}
+            </button>
+            
+            {/* Type Selector Dropdown */}
+            {showTypeSelector && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowTypeSelector(false)}
+                />
+                
+                {/* Dropdown */}
+                <div 
+                  className={cn(
+                    "absolute right-0 top-full mt-2 z-50",
+                    "min-w-[160px] py-2 rounded-lg shadow-lg",
+                    "bg-dark-100 border border-dark-300"
+                  )}
+                >
+                  <button
+                    onClick={() => handleTypeSelect('folder')}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left text-sm",
+                      "flex items-center gap-3",
+                      "text-white hover:bg-dark-200 transition-colors"
+                    )}
+                  >
+                    <Folder size={16} className="text-cyan-400" />
+                    Folder
+                  </button>
+                  <button
+                    onClick={() => handleTypeSelect('task')}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left text-sm",
+                      "flex items-center gap-3",
+                      "text-white hover:bg-dark-200 transition-colors"
+                    )}
+                  >
+                    <CheckSquare size={16} className="text-green-400" />
+                    Task
+                  </button>
+                </div>
+              </>
             )}
-            type="button"
-          >
-            <Plus size={16} />
-            {actionLabel}
-          </button>
+          </div>
         )}
       </div>
       

@@ -46,6 +46,18 @@ export {
 
 export type { NodeContextValue, NodeProviderProps } from './context/NodeContext'
 
+// Engine Actions Context (for wiring variants to data layer)
+export {
+  EngineActionsProvider,
+  useEngineActions,
+  useEngineActionsWithFallback,
+} from './context/EngineActionsContext'
+
+export type {
+  EngineActionsValue,
+  EngineActionsProviderProps,
+} from './context/EngineActionsContext'
+
 // =============================================================================
 // REGISTRY EXPORTS
 // =============================================================================

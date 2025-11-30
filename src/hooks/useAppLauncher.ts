@@ -50,28 +50,33 @@ export interface AppConfig {
 }
 
 /**
- * Helper to resolve icon string to Lucide Component
- * e.g. "icon:leaf" -> Leaf component
+ * Helper to resolve icon string to Lucide Component and Color
+ * e.g. "icon:leaf" -> { Icon: Leaf, color: undefined }
+ * e.g. "icon:shopping-cart:#10B981" -> { Icon: ShoppingCart, color: "#10B981" }
  */
-function resolveIcon(iconName?: string): LucideIcon {
-    if (!iconName) return AppWindow
+function resolveIcon(iconString?: string): { Icon: LucideIcon, color?: string } {
+    if (!iconString) return { Icon: AppWindow }
 
-    // Remove "icon:" prefix if present
-    const cleanName = iconName.replace(/^icon:/, '')
+    // Remove "icon:" prefix
+    const raw = iconString.replace(/^icon:/, '')
 
-    // Convert kebab-case to PascalCase (e.g. "layout-dashboard" -> "LayoutDashboard")
-    // Or just try to find it in the icons object if keys are PascalCase
-    // Lucide exports are PascalCase.
+    // Split by colon to get name and optional color
+    const parts = raw.split(':')
+    const name = parts[0]
+    const color = parts[1] // Might be undefined
 
-    // Simple PascalCase converter
-    const pascalName = cleanName
+    // Convert kebab-case to PascalCase
+    const pascalName = name
         .split('-')
         .map(part => part.charAt(0).toUpperCase() + part.slice(1))
         .join('') as keyof typeof icons
 
     const IconComponent = icons[pascalName] as LucideIcon | undefined
 
-    return IconComponent || AppWindow
+    return {
+        Icon: IconComponent || AppWindow,
+        color: color
+    }
 }
 
 export function useAppLauncher() {
@@ -85,17 +90,32 @@ export function useAppLauncher() {
         return contextRoots.map(root => {
             const meta = root.meta_data as Record<string, any> || {}
             const isSystem = meta.is_system_app === true
+            const context = meta.context as string
 
-            // If it's a known system app, use its ID
-            // Otherwise use the root ID as the pane ID
-            const id = isSystem && SYSTEM_APPS[meta.system_id] ? meta.system_id : root.id
+            // Determine ID:
+            // 1. If explicitly a system app with a system_id, use that.
+            // 2. If the context matches a known system context, map it to the system ID.
+            // 3. Otherwise, use the resource UUID.
+            let id = root.id
+
+            if (isSystem && meta.system_id && SYSTEM_APPS[meta.system_id]) {
+                id = meta.system_id
+            } else if (context === 'household.todos') {
+                id = 'household'
+            } else if (context === 'cloud.files') {
+                id = 'cloud'
+            } else if (context === 'health.dashboard') {
+                id = 'health'
+            } else if (context === 'finance.dashboard') {
+                id = 'finance'
+            }
 
             return {
                 id,
                 title: root.title,
                 icon: meta.icon, // Keep raw string here
                 context: meta.context,
-                isSystem
+                isSystem: isSystem || !!SYSTEM_APPS[id] // Treat as system if it maps to one
             } as DynamicPane
         })
     }, [contextRoots])
@@ -129,12 +149,16 @@ export function useAppLauncher() {
                 return
             }
 
+            // Resolve icon and color
+            const { Icon, color } = resolveIcon(pane.icon)
+
             // It's a user app
             appMap.set(pane.id, {
                 id: pane.id,
                 label: pane.title,
-                icon: resolveIcon(pane.icon), // Resolve string to component
-                color: 'text-cyan-400', // Default color
+                icon: Icon,
+                // Use parsed color, or default to cyan if not provided
+                color: color ? `text-[${color}]` : 'text-cyan-400',
                 isSystem: false,
                 context: pane.context
             })
@@ -150,6 +174,10 @@ export function useAppLauncher() {
         const currentSet = new Set(paneOrder)
         const newApps = Array.from(apps.keys()).filter(id => !currentSet.has(id))
 
+        console.log('useAppLauncher: Current paneOrder:', paneOrder)
+        console.log('useAppLauncher: Discovered apps:', Array.from(apps.keys()))
+        console.log('useAppLauncher: New apps to add:', newApps)
+
         if (newApps.length > 0) {
             // Insert new apps before Settings
             const settingsIndex = paneOrder.indexOf('settings')
@@ -161,6 +189,7 @@ export function useAppLauncher() {
                 newOrder.push(...newApps)
             }
 
+            console.log('useAppLauncher: Updating paneOrder to:', newOrder)
             updatePaneOrder(newOrder)
         }
     }, [apps, paneOrder, updatePaneOrder, isLoading])

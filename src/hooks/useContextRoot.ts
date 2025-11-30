@@ -13,7 +13,7 @@ const db = supabase as any
 
 export const contextRootKeys = {
   all: ['context-roots'] as const,
-  byContext: (context: string, userId: string) => 
+  byContext: (context: string, userId: string) =>
     [...contextRootKeys.all, context, userId] as const,
 }
 
@@ -70,7 +70,7 @@ async function createContextRoot(
 
   if (error) throw error
   if (!data) throw new Error('No data returned from insert')
-  
+
   return data as Resource
 }
 
@@ -148,11 +148,11 @@ export function useContextRoot(context: string): ContextRootResult {
 
   // Lazy initialization: Create context root if it doesn't exist
   // This is idempotent - multiple calls won't create duplicates
-  const shouldCreate = 
-    !isQueryLoading && 
-    !queryError && 
-    contextRoot === null && 
-    user && 
+  const shouldCreate =
+    !isQueryLoading &&
+    !queryError &&
+    contextRoot === null &&
+    user &&
     !createMutation.isPending &&
     !createMutation.isSuccess
 
@@ -202,7 +202,7 @@ export function useIsContextRoot(resourceId: string | null): boolean {
         .single()
 
       if (error) return false
-      
+
       const meta = data?.meta_data as Record<string, unknown>
       return meta?.is_system === true && typeof meta?.context === 'string'
     },
@@ -225,15 +225,24 @@ export function useAllContextRoots() {
     queryFn: async (): Promise<Resource[]> => {
       if (!user) return []
 
+      console.log('Fetching context roots for user:', user.id)
+
       const { data, error } = await db
         .from('resources')
         .select('*')
-        .eq('user_id', user.id)
+        // We rely on RLS to filter for user_id OR household_id access
+        // .eq('user_id', user.id) 
         .is('deleted_at', null)
-        .filter('meta_data->>is_system', 'eq', 'true')
+        // Fetch any resource that has a 'context' property in meta_data
+        .not('meta_data->>context', 'is', null)
         .order('title', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching context roots:', error)
+        throw error
+      }
+
+      console.log('Fetched context roots:', data)
       return (data || []) as Resource[]
     },
     enabled: !!user,

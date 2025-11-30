@@ -349,7 +349,7 @@ export function useHouseholdMembers(householdId: string | null) {
         .from('household_members')
         .select(`
           *,
-          profile:profiles(*)
+          profile:profiles!household_members_user_id_fkey(*)
         `)
         .eq('household_id', householdId)
         .order('role', { ascending: true })

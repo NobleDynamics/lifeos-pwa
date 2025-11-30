@@ -1,11 +1,12 @@
 import { ReactNode, useRef, useState, useCallback, useEffect } from 'react'
 import { useAppStore, type PaneType } from '@/store/useAppStore'
 import { useBackButton } from '@/hooks/useBackButton'
-import { 
-  Home, 
+import { useAppLauncher } from '@/hooks/useAppLauncher'
+import {
+  Home,
   Dumbbell,
-  HeartPulse, 
-  Calendar, 
+  HeartPulse,
+  Calendar,
   MessageSquare,
   LayoutDashboard,
   Rss,
@@ -31,20 +32,6 @@ import {
 
 interface LayoutProps {
   children: ReactNode
-}
-
-// Pane configuration with icons
-const paneConfig: Record<PaneType, { icon: typeof Home; label: string; color: string }> = {
-  household: { icon: Home, label: 'Household', color: 'text-purple-400' },
-  health: { icon: HeartPulse, label: 'Health', color: 'text-red-400' },
-  agenda: { icon: Calendar, label: 'Agenda', color: 'text-blue-400' },
-  chat: { icon: MessageSquare, label: 'Chat', color: 'text-green-400' },
-  dashboard: { icon: LayoutDashboard, label: 'Dashboard', color: 'text-primary' },
-  feed: { icon: Rss, label: 'Feed', color: 'text-yellow-400' },
-  cloud: { icon: Cloud, label: 'Cloud', color: 'text-cyan-400' },
-  finance: { icon: Wallet, label: 'Finance', color: 'text-emerald-400' },
-  settings: { icon: Settings, label: 'Settings', color: 'text-gray-400' },
-  sandbox: { icon: Code, label: 'Sandbox', color: 'text-orange-400' },
 }
 
 // Quick links for drawer - organized by category
@@ -112,7 +99,8 @@ const cyanGlowBarStyle = {
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
 function DrawerWithSwipe() {
   const { isDrawerOpen, closeDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
-  
+  const { apps } = useAppLauncher()
+
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -122,21 +110,21 @@ function DrawerWithSwipe() {
   const [isVisible, setIsVisible] = useState(false) // Controls whether drawer renders
   const [showCameraPopup, setShowCameraPopup] = useState(false)
   const [isMicListening, setIsMicListening] = useState(false)
-  
+
   // Global touch handler for bottom edge detection - now starts a drag instead of instant open
   useEffect(() => {
     const BOTTOM_ZONE_HEIGHT = 80 // px from bottom of screen
     let startY = 0
     let startTime = 0
     let isBottomSwipe = false
-    
+
     const handleGlobalTouchStart = (e: TouchEvent) => {
       // Ignore if drawer is already open/visible
       if (isDrawerOpen || isVisible || isDragging) return
-      
+
       const touch = e.touches[0]
       const screenHeight = window.innerHeight
-      
+
       // Check if touch started in bottom zone
       if (touch.clientY > screenHeight - BOTTOM_ZONE_HEIGHT) {
         startY = touch.clientY
@@ -144,13 +132,13 @@ function DrawerWithSwipe() {
         isBottomSwipe = true
       }
     }
-    
+
     const handleGlobalTouchMove = (e: TouchEvent) => {
       if (!isBottomSwipe || isDrawerOpen || isVisible) return
-      
+
       const touch = e.touches[0]
       const deltaY = startY - touch.clientY // Positive = swiping up
-      
+
       // Need to swipe up at least 20px to start opening
       if (deltaY > 20) {
         // Start opening drawer - show it and set initial height based on drag
@@ -159,7 +147,7 @@ function DrawerWithSwipe() {
         const height = Math.min(1, deltaY / screenHeight)
         setCurrentHeight(height)
         setIsDragging(true)
-        
+
         // Update gesture ref for proper end handling
         gestureRef.current = {
           startY: startY,
@@ -170,26 +158,26 @@ function DrawerWithSwipe() {
           isFromContent: false,
           isFromBottomEdge: true,
         }
-        
+
         isBottomSwipe = false // Transition to drawer's own gesture handling
       }
     }
-    
+
     const handleGlobalTouchEnd = () => {
       isBottomSwipe = false
     }
-    
+
     document.addEventListener('touchstart', handleGlobalTouchStart, { passive: true })
     document.addEventListener('touchmove', handleGlobalTouchMove, { passive: true })
     document.addEventListener('touchend', handleGlobalTouchEnd, { passive: true })
-    
+
     return () => {
       document.removeEventListener('touchstart', handleGlobalTouchStart)
       document.removeEventListener('touchmove', handleGlobalTouchMove)
       document.removeEventListener('touchend', handleGlobalTouchEnd)
     }
   }, [isDrawerOpen, isVisible, isDragging])
-  
+
   // Gesture tracking
   const gestureRef = useRef({
     startY: 0,
@@ -200,15 +188,15 @@ function DrawerWithSwipe() {
     isFromContent: false,
     isFromBottomEdge: false, // Track if opening from bottom edge swipe
   })
-  
+
   // Get screen height
   const getMaxHeight = useCallback(() => window.innerHeight, [])
-  
+
   // Animate to snap point with proper cleanup
   const animateToHeight = useCallback((targetHeight: number) => {
     setIsAnimating(true)
     setCurrentHeight(targetHeight)
-    
+
     setTimeout(() => {
       setIsAnimating(false)
       if (targetHeight === 0) {
@@ -217,29 +205,29 @@ function DrawerWithSwipe() {
       }
     }, ANIMATION_DURATION)
   }, [closeDrawer])
-  
+
   // Find nearest snap point based on position and velocity
   const findNearestSnap = useCallback((height: number, velocity: number): number => {
     // Velocity check: positive = finger moving down (closing), negative = moving up (opening)
     // Note: in handleEnd, velocity is calculated as (startY - lastY) / time
     // If dragging down: lastY > startY, so velocity is negative
     // If dragging up: lastY < startY, so velocity is positive
-    
+
     // Strong velocity in either direction takes priority
     if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
       // Velocity > 0 means finger moved UP (startY > lastY), which is OPENING
       // Velocity < 0 means finger moved DOWN (startY < lastY), which is CLOSING
       return velocity > 0 ? 1 : 0
     }
-    
+
     // Otherwise use position threshold - close if below 25% height
     return height > CLOSE_THRESHOLD ? 1 : 0
   }, [])
-  
+
   // Handle drag start (from handle when open, or from bottom edge when closed)
   const handleStart = useCallback((clientY: number, fromContent: boolean = false, fromBottomEdge: boolean = false) => {
     if (isAnimating) return
-    
+
     const now = Date.now()
     gestureRef.current = {
       startY: clientY,
@@ -251,28 +239,28 @@ function DrawerWithSwipe() {
       isFromBottomEdge: fromBottomEdge,
     }
     setIsDragging(true)
-    
+
     // If opening from bottom edge, make drawer visible
     if (fromBottomEdge && !isVisible) {
       setIsVisible(true)
     }
   }, [isAnimating, currentHeight, isVisible])
-  
+
   // Handle drag move - drawer follows finger
   const handleMove = useCallback((clientY: number) => {
     if (!isDragging) return
-    
+
     const { startY, startHeight, isFromContent, isFromBottomEdge } = gestureRef.current
     const maxHeight = getMaxHeight()
     const deltaY = startY - clientY // Positive = dragging up
-    
+
     // If started from content and not at scroll top, don't resize drawer
     if (isFromContent && !isAtScrollTop && deltaY < 0) {
       return // Let content scroll naturally
     }
-    
+
     let newHeight: number
-    
+
     if (isFromBottomEdge) {
       // Opening from bottom edge - convert pixel drag to percentage
       newHeight = Math.max(0, deltaY / maxHeight)
@@ -281,7 +269,7 @@ function DrawerWithSwipe() {
       const deltaPercent = deltaY / maxHeight
       newHeight = startHeight + deltaPercent
     }
-    
+
     // Clamp with rubber-band effect
     if (newHeight > 1) {
       const overflow = newHeight - 1
@@ -290,66 +278,66 @@ function DrawerWithSwipe() {
     if (newHeight < 0) {
       newHeight = newHeight * 0.3
     }
-    
+
     gestureRef.current.lastY = clientY
     gestureRef.current.lastTime = Date.now()
     setCurrentHeight(Math.max(0, Math.min(1.1, newHeight)))
   }, [isDragging, getMaxHeight, isAtScrollTop])
-  
+
   // Handle drag end
   const handleEnd = useCallback(() => {
     if (!isDragging) return
-    
+
     const { startY, lastY, isFromBottomEdge } = gestureRef.current
-    
+
     // Calculate velocity based on last movement direction
     // Positive velocity = finger moved UP from start (opening direction)
     // Negative velocity = finger moved DOWN from start (closing direction)
     const deltaY = startY - lastY
     const velocity = deltaY / 100 // Normalize
-    
+
     setIsDragging(false)
-    
+
     // If barely opened during bottom edge swipe, close it
     if (isFromBottomEdge && currentHeight < 0.15) {
       animateToHeight(0)
       return
     }
-    
+
     // Find target snap point based on current height and direction
     const targetSnap = findNearestSnap(currentHeight, velocity)
     animateToHeight(targetSnap)
   }, [isDragging, currentHeight, findNearestSnap, animateToHeight])
-  
+
   // Touch events for drawer handle
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     handleStart(e.touches[0].clientY, false, false)
   }, [handleStart])
-  
+
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (isDragging) {
       e.preventDefault()
       handleMove(e.touches[0].clientY)
     }
   }, [isDragging, handleMove])
-  
+
   const handleTouchEnd = useCallback(() => {
     handleEnd()
   }, [handleEnd])
-  
+
   // Touch events for content area (to close when swiping down from top)
   const handleContentTouchStart = useCallback((e: React.TouchEvent) => {
     const scrollEl = scrollRef.current
     setIsAtScrollTop(scrollEl ? scrollEl.scrollTop <= 0 : true)
     handleStart(e.touches[0].clientY, true, false)
   }, [handleStart])
-  
+
   const handleContentTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging) return
-    
+
     const { startY, isFromContent } = gestureRef.current
     const deltaY = startY - e.touches[0].clientY
-    
+
     // If from content and dragging down and at scroll top, intercept
     if (isFromContent && isAtScrollTop && deltaY < 0) {
       e.preventDefault()
@@ -358,30 +346,30 @@ function DrawerWithSwipe() {
       handleMove(e.touches[0].clientY)
     }
   }, [isDragging, isAtScrollTop, handleMove])
-  
-  
+
+
   // Mouse events for handle
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     handleStart(e.clientY, false, false)
   }, [handleStart])
-  
+
   // Global mouse events when dragging
   useEffect(() => {
     if (!isDragging) return
-    
+
     const handleMouseMove = (e: MouseEvent) => handleMove(e.clientY)
     const handleMouseUp = () => handleEnd()
-    
+
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
-    
+
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
   }, [isDragging, handleMove, handleEnd])
-  
+
   // Open drawer with animation when isDrawerOpen changes
   useEffect(() => {
     if (isDrawerOpen && !isVisible) {
@@ -392,7 +380,7 @@ function DrawerWithSwipe() {
       })
     }
   }, [isDrawerOpen, isVisible, animateToHeight])
-  
+
   // Close on escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -400,28 +388,28 @@ function DrawerWithSwipe() {
         animateToHeight(0)
       }
     }
-    
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentHeight, animateToHeight])
-  
+
   // Track scroll position
   useEffect(() => {
     const scrollEl = scrollRef.current
     if (!scrollEl) return
-    
+
     const handleScroll = () => setIsAtScrollTop(scrollEl.scrollTop <= 0)
-    
+
     scrollEl.addEventListener('scroll', handleScroll, { passive: true })
     return () => scrollEl.removeEventListener('scroll', handleScroll)
   }, [])
-  
+
   // Calculate pixel height - always show at least the handle (60px)
   const HANDLE_HEIGHT = 60
   const fullHeightPx = Math.min(currentHeight, 1) * getMaxHeight()
   const heightPx = currentHeight > 0 ? fullHeightPx : HANDLE_HEIGHT
   const isExpanded = isVisible || isDragging || currentHeight > 0
-  
+
   return (
     <>
       {/* Backdrop - only show when expanded */}
@@ -436,7 +424,7 @@ function DrawerWithSwipe() {
           }}
         />
       )}
-      
+
       {/* Drawer - always visible, at least showing handle */}
       <div
         ref={containerRef}
@@ -463,7 +451,7 @@ function DrawerWithSwipe() {
             >
               <Camera size={22} />
             </button>
-            
+
             {/* Draggable handle area */}
             <div
               className="flex-1 flex justify-center cursor-grab active:cursor-grabbing py-2 mx-4"
@@ -472,12 +460,12 @@ function DrawerWithSwipe() {
               onTouchEnd={handleTouchEnd}
               onMouseDown={handleMouseDown}
             >
-              <div 
+              <div
                 className="w-16 h-1 rounded-full"
                 style={cyanGlowBarStyle}
               />
             </div>
-            
+
             {/* Mic button */}
             <button
               onTouchStart={(e) => {
@@ -497,12 +485,12 @@ function DrawerWithSwipe() {
               <Mic size={22} />
             </button>
           </div>
-          
+
           {/* Header - only show when expanded */}
           {currentHeight > 0.1 && (
             <div className="flex items-center justify-between px-6 pb-3">
               <h2 className="text-lg font-semibold">Quick Navigation</h2>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation()
                   animateToHeight(0)
@@ -514,10 +502,10 @@ function DrawerWithSwipe() {
             </div>
           )}
         </div>
-          
+
         {/* Scrollable content - only show when expanded */}
         {currentHeight > 0.1 && (
-          <div 
+          <div
             ref={scrollRef}
             className="overflow-y-auto px-4 pb-8 overscroll-contain"
             style={{ height: `calc(100% - 88px)` }}
@@ -529,27 +517,31 @@ function DrawerWithSwipe() {
             <div className="mb-6">
               <p className="text-xs text-dark-500 uppercase tracking-wider mb-3 px-2">All Panes</p>
               <div className="grid grid-cols-5 gap-2">
-                {paneOrder.map((pane) => {
-                  const config = paneConfig[pane]
+                {paneOrder.map((paneId) => {
+                  const appConfig = apps.get(paneId)
+                  if (!appConfig) return null
+
+                  const Icon = appConfig.icon
+
                   return (
                     <button
-                      key={pane}
+                      key={paneId}
                       onClick={() => {
-                        navigateToPane(pane)
+                        navigateToPane(paneId)
                         animateToHeight(0)
                       }}
                       className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-dark-200 transition-colors active:scale-95"
                     >
-                      <div className={`w-10 h-10 rounded-xl bg-dark-200 flex items-center justify-center ${config.color}`}>
-                        <config.icon size={20} />
+                      <div className={`w-10 h-10 rounded-xl bg-dark-200 flex items-center justify-center ${appConfig.color}`}>
+                        <Icon size={20} />
                       </div>
-                      <span className="text-[10px] text-dark-500">{config.label}</span>
+                      <span className="text-[10px] text-dark-500 truncate w-full text-center">{appConfig.label}</span>
                     </button>
                   )
                 })}
               </div>
             </div>
-            
+
             {/* Quick Links by Category */}
             {drawerQuickLinks.map((category) => (
               <div key={category.category} className="mb-4">
@@ -577,7 +569,7 @@ function DrawerWithSwipe() {
           </div>
         )}
       </div>
-      
+
       {/* Camera coming soon popup */}
       {showCameraPopup && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
@@ -586,7 +578,7 @@ function DrawerWithSwipe() {
           </div>
         </div>
       )}
-      
+
       {/* Mic listening popup */}
       {isMicListening && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
@@ -605,14 +597,14 @@ export const DRAWER_HANDLE_HEIGHT = 60
 export default function Layout({ children }: LayoutProps) {
   // Initialize back button handler for Android hardware back button
   useBackButton()
-  
+
   return (
     <div className="h-screen w-screen bg-dark text-white overflow-hidden">
       {/* Main content area */}
       <main className="h-full w-full">
         {children}
       </main>
-      
+
       {/* Drawer with integrated swipe-to-open */}
       <DrawerWithSwipe />
     </div>

@@ -239,18 +239,20 @@ The application implements three primary, global navigation structures:
 A. The Swipe Deck (Main View)
 Concept: The core content area is a horizontal carousel of full-screen views, referred to as "Panes."
 Interaction: Users navigate by swiping left or right. Utilizes framer-motion for physics-based swiping.
-Default Order:
-Chat (Left)
-Dashboard (Center / Home)
-Feed (Right)
+Architecture:
+- **System Apps:** Hardcoded core modules (Household, Health, Agenda, etc.).
+- **User Apps:** Dynamic `ViewEnginePane` instances driven by "Context Roots" in the database.
+- **Ordering:** System Apps -> User Apps -> Settings.
+
 B. The Dock (Quick Launch)
 Concept: A fixed bar at the bottom, present across all Panes.
 Contents: 4-5 "Quick Launch" application icons.
 Design: Icons must be Hexagon-shaped wrappers for Lucide icons.
+
 C. The App Drawer (Global Access)
 Concept: A global sheet/modal that provides access to all installed apps/widgets.
 Interaction: Vertical swipe gesture from the bottom of any Pane.
-Contents: A scrollable grid layout.
+Contents: A scrollable grid layout showing all System and User Apps.
 
 3. The Dashboard Pane (Home HUD)
 The Dashboard is the central, high-density "Heads Up Display" (HUD).

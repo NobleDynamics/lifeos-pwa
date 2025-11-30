@@ -2,17 +2,8 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 // All available pane types (workout is a tab under Health, not a separate pane)
-export type PaneType = 
-  | 'household'
-  | 'health'
-  | 'agenda'
-  | 'chat'
-  | 'dashboard'
-  | 'feed'
-  | 'cloud'
-  | 'finance'
-  | 'settings'
-  | 'sandbox' // Dev tool for ViewEngine testing
+// Changed to string to support dynamic user apps
+export type PaneType = string
 
 // Tab types for each pane
 export type HealthTab = 'nutrition' | 'exercise' | 'brain' | 'hygiene'
@@ -39,17 +30,27 @@ const DEFAULT_PANE_ORDER: PaneType[] = [
   'sandbox' // Dev tool - swipe right from Settings to access
 ]
 
+export interface DynamicPane {
+  id: string
+  title: string
+  icon?: string // Lucide icon name or emoji
+  context: string // e.g. 'user.gardening'
+  isSystem?: boolean
+}
+
 interface TabState {
   health: HealthTab
   household: HouseholdTab
   agenda: AgendaTab
   finance: FinanceTab
   cloud: CloudTab
+  [key: string]: string // Allow dynamic tabs
 }
 
 interface SubViewState {
   shopping: ShoppingView
   brain: BrainView
+  [key: string]: string // Allow dynamic sub-views
 }
 
 interface AppState {
@@ -57,6 +58,9 @@ interface AppState {
   paneOrder: PaneType[]
   currentPaneIndex: number
   paneHistory: number[] // History of pane indices for back navigation
+  
+  // Dynamic Panes
+  dynamicPanes: DynamicPane[]
   
   // Tab state per pane
   tabs: TabState
@@ -80,8 +84,8 @@ interface AppState {
   goBack: () => boolean // Returns true if navigated back, false if at root
   canGoBack: () => boolean
   
-  setTab: <K extends keyof TabState>(pane: K, tab: TabState[K]) => void
-  setSubView: <K extends keyof SubViewState>(key: K, view: SubViewState[K]) => void
+  setTab: (pane: string, tab: string) => void
+  setSubView: (key: string, view: string) => void
   
   openDrawer: () => void
   closeDrawer: () => void
@@ -91,6 +95,8 @@ interface AppState {
   
   updatePaneOrder: (newOrder: PaneType[]) => void
   resetPaneOrder: () => void
+  
+  registerDynamicPanes: (panes: DynamicPane[]) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -100,6 +106,7 @@ export const useAppStore = create<AppState>()(
       paneOrder: DEFAULT_PANE_ORDER,
       currentPaneIndex: DEFAULT_PANE_ORDER.indexOf('dashboard'), // Start at dashboard
       paneHistory: [], // Empty history at start
+      dynamicPanes: [],
       
       tabs: {
         health: 'nutrition',
@@ -145,11 +152,7 @@ export const useAppStore = create<AppState>()(
         const index = paneOrder.indexOf(pane)
         if (index !== -1) {
           // Update the tab for the target pane
-          const newTabs = { ...tabs }
-          if (pane === 'health') newTabs.health = tab as HealthTab
-          if (pane === 'household') newTabs.household = tab as HouseholdTab
-          if (pane === 'agenda') newTabs.agenda = tab as AgendaTab
-          if (pane === 'cloud') newTabs.cloud = tab as CloudTab
+          const newTabs = { ...tabs, [pane]: tab }
           
           // Add current pane to history if navigating to different pane
           const newHistory = index !== currentPaneIndex 
@@ -243,15 +246,18 @@ export const useAppStore = create<AppState>()(
         set({ activeHealthMetric: metrics[nextIndex] })
       },
       
-  updatePaneOrder: (newOrder) => set({ paneOrder: newOrder }),
-  
-  resetPaneOrder: () => set({ paneOrder: DEFAULT_PANE_ORDER }),
+      updatePaneOrder: (newOrder) => set({ paneOrder: newOrder }),
+      
+      resetPaneOrder: () => set({ paneOrder: DEFAULT_PANE_ORDER }),
+      
+      registerDynamicPanes: (panes) => set({ dynamicPanes: panes }),
     }),
     {
       name: 'lifeos-app-store',
       partialize: (state) => ({
         paneOrder: state.paneOrder,
         tabs: state.tabs,
+        // Don't persist dynamic panes, we'll re-fetch them
       }),
     }
   )

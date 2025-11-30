@@ -118,7 +118,8 @@ export function useContextRoot(context: string): ContextRootResult {
       const { data, error } = await db
         .from('resources')
         .select('*')
-        .eq('user_id', user.id)
+        // We rely on RLS to filter for user_id OR household_id access
+        // .eq('user_id', user.id) 
         .is('deleted_at', null)
         .filter('meta_data->>context', 'eq', context)
         .maybeSingle()

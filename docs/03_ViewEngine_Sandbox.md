@@ -360,9 +360,13 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 | `headline` | string | Primary text (default: node.title) |
 | `subtext` | string | Secondary text |
 | `accent_color` | string | Neon border/glow color (default: #06b6d4) |
+| `icon_start` | string | Lucide icon name (default: 'Folder') - e.g., 'ShoppingCart', 'Dumbbell' |
 | `count_badge` | string/number | Badge text (default: child count) |
 | `end_element` | object/string | Avatar config |
 | `show_chevron` | boolean | Show navigation chevron (default: true) |
+
+**Dynamic Icons:**
+The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamically with the `accent_color` applied. If the icon name is not found, it falls back to the `Folder` icon.
 
 **Example:**
 ```json
@@ -371,6 +375,7 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
   "title": "Groceries",
   "metadata": {
     "color": "#06b6d4",
+    "icon": "ShoppingCart",
     "description": "Weekly shopping list",
     "end_element": "icon:ShoppingCart:#06b6d4"
   },

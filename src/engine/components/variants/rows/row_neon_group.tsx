@@ -9,6 +9,7 @@
  */
 
 import { Folder, ChevronRight } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode, useChildCount } from '../../../context/NodeContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
@@ -16,6 +17,32 @@ import { useSlot } from '../../../hooks/useSlot'
 import { useLongPress } from '@/hooks/useLongPress'
 import { Avatar } from '@/components/shared/Avatar'
 import { cn } from '@/lib/utils'
+
+/**
+ * Dynamically render a Lucide icon by name
+ */
+function DynamicIcon({ 
+  name, 
+  size = 28, 
+  color, 
+  fill 
+}: { 
+  name: string
+  size?: number
+  color?: string
+  fill?: string
+}) {
+  // Get the icon component from LucideIcons
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const IconComponent = (LucideIcons as any)[name]
+  
+  if (!IconComponent) {
+    // Fallback to Folder icon if name not found
+    return <Folder size={size} style={{ color }} fill={fill} />
+  }
+  
+  return <IconComponent size={size} style={{ color }} fill={fill} />
+}
 
 /**
  * RowNeonGroup - Neon-styled row for groups/folders with cyberpunk aesthetic.
@@ -31,7 +58,7 @@ import { cn } from '@/lib/utils'
  * - headline: Primary text (default: node.title)
  * - subtext: Secondary text (default: metadata.description)
  * - accent_color: Neon border/glow color (default: #06b6d4)
- * - icon_start: Icon config (default: folder icon)
+ * - icon_start: Icon name from Lucide (default: 'Folder')
  * - count_badge: Text for count badge (auto: child count)
  * - end_element: Avatar/element config for right side
  * - show_chevron: Whether to show navigation chevron (default: true)
@@ -45,6 +72,7 @@ export function RowNeonGroup({ node }: VariantComponentProps) {
   const headline = useSlot<string>('headline') ?? node.title
   const subtext = useSlot<string>('subtext')
   const accentColor = useSlot<string>('accent_color', '#06b6d4')
+  const iconStart = useSlot<string>('icon_start')
   const countBadge = useSlot<string | number>('count_badge')
   const endElement = useSlot<{ name?: string; avatar?: string } | string>('end_element')
   const showChevron = useSlot<boolean>('show_chevron', true)
@@ -117,11 +145,20 @@ export function RowNeonGroup({ node }: VariantComponentProps) {
     >
       {/* Icon (Left) - Large and colored */}
       <div className="flex-shrink-0">
-        <Folder 
-          size={28} 
-          style={{ color: accentColor }}
-          fill={`${accentColor}33`}
-        />
+        {iconStart ? (
+          <DynamicIcon 
+            name={iconStart}
+            size={28}
+            color={accentColor}
+            fill={`${accentColor}33`}
+          />
+        ) : (
+          <Folder 
+            size={28} 
+            style={{ color: accentColor }}
+            fill={`${accentColor}33`}
+          />
+        )}
       </div>
       
       {/* Middle: Headline and Subtext */}

@@ -350,12 +350,9 @@ export function useCreateResource() {
       return data as Resource
     },
     onSuccess: (data) => {
-      // Invalidate parent's children list
-      queryClient.invalidateQueries({ queryKey: resourceKeys.children(data.parent_id) })
-      // Invalidate all resources for counts
-      queryClient.invalidateQueries({ queryKey: resourceKeys.allResources() })
-      // Invalidate by type
-      queryClient.invalidateQueries({ queryKey: resourceKeys.byType(data.type) })
+      // Invalidate ALL resource queries to ensure tree views refresh
+      // This is necessary because we don't have access to rootPath in mutations
+      queryClient.invalidateQueries({ queryKey: resourceKeys.all })
     },
   })
 }
@@ -383,10 +380,9 @@ export function useUpdateResource() {
       if (!data) throw new Error('No data returned')
       return data as Resource
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: resourceKeys.single(data.id) })
-      queryClient.invalidateQueries({ queryKey: resourceKeys.children(data.parent_id) })
-      queryClient.invalidateQueries({ queryKey: resourceKeys.allResources() })
+    onSuccess: () => {
+      // Invalidate ALL resource queries to ensure tree views refresh
+      queryClient.invalidateQueries({ queryKey: resourceKeys.all })
     },
   })
 }
@@ -411,10 +407,9 @@ export function useDeleteResource() {
       if (error) throw error
       return { id, parentId }
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: resourceKeys.single(data.id) })
-      queryClient.invalidateQueries({ queryKey: resourceKeys.children(data.parentId) })
-      queryClient.invalidateQueries({ queryKey: resourceKeys.allResources() })
+    onSuccess: () => {
+      // Invalidate ALL resource queries to ensure tree views refresh
+      queryClient.invalidateQueries({ queryKey: resourceKeys.all })
     },
   })
 }
@@ -451,12 +446,9 @@ export function useMoveResource() {
 
       return data as Resource
     },
-    onSuccess: (data, variables) => {
-      // Invalidate both old and new parent's children
-      queryClient.invalidateQueries({ queryKey: resourceKeys.children(variables.oldParentId) })
-      queryClient.invalidateQueries({ queryKey: resourceKeys.children(variables.newParentId) })
-      queryClient.invalidateQueries({ queryKey: resourceKeys.single(data.id) })
-      queryClient.invalidateQueries({ queryKey: resourceKeys.allResources() })
+    onSuccess: () => {
+      // Invalidate ALL resource queries to ensure tree views refresh
+      queryClient.invalidateQueries({ queryKey: resourceKeys.all })
     },
   })
 }
@@ -528,10 +520,9 @@ export function useCycleResourceStatus() {
         }
       }
     },
-    onSettled: (data) => {
-      if (data) {
-        queryClient.invalidateQueries({ queryKey: resourceKeys.allResources() })
-      }
+    onSettled: () => {
+      // Invalidate ALL resource queries to ensure tree views refresh
+      queryClient.invalidateQueries({ queryKey: resourceKeys.all })
     },
   })
 }

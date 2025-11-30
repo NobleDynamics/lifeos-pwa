@@ -460,7 +460,7 @@ export function useCycleResourceStatus() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
-  return useMutation<Resource, Error, { resource: Resource }, { previousResource: Resource | undefined }>({
+  return useMutation<Resource, Error, { resource: Resource }, { previousResources?: Resource[]; previousTreeData?: Map<string, Resource[]> }>({
     mutationFn: async ({ resource }): Promise<Resource> => {
       if (!user) throw new Error('No user')
 
@@ -480,18 +480,21 @@ export function useCycleResourceStatus() {
       if (!data) throw new Error('No data returned')
       return data as Resource
     },
-    // Optimistic update
+    // Optimistic update - update both children and tree caches for instant UI feedback
     onMutate: async ({ resource }) => {
-      await queryClient.cancelQueries({ queryKey: resourceKeys.children(resource.parent_id) })
-      
-      const previousResources = queryClient.getQueryData<Resource[]>(
-        resourceKeys.children(resource.parent_id)
-      )
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: resourceKeys.all })
       
       const statusOrder: ResourceStatus[] = ['active', 'completed', 'archived']
       const currentIndex = statusOrder.indexOf(resource.status)
       const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length]
-
+      
+      // Store previous data for rollback
+      const previousResources = queryClient.getQueryData<Resource[]>(
+        resourceKeys.children(resource.parent_id)
+      )
+      
+      // Optimistically update children cache
       if (previousResources) {
         queryClient.setQueryData<Resource[]>(
           resourceKeys.children(resource.parent_id),
@@ -503,25 +506,50 @@ export function useCycleResourceStatus() {
         )
       }
 
-      return { previousResource: previousResources?.find(r => r.id === resource.id) }
-    },
-    onError: (err, { resource }, context) => {
-      if (context?.previousResource) {
-        const previousResources = queryClient.getQueryData<Resource[]>(
-          resourceKeys.children(resource.parent_id)
-        )
-        if (previousResources) {
+      // Optimistically update ALL tree caches (for instant UI in ViewEnginePane)
+      const previousTreeData = new Map<string, Resource[]>()
+      const allTreeQueries = queryClient.getQueriesData<Resource[]>({ 
+        queryKey: ['resources', 'tree'] 
+      })
+      
+      for (const [queryKey, data] of allTreeQueries) {
+        if (data) {
+          // Store previous data for this tree query
+          previousTreeData.set(JSON.stringify(queryKey), data)
+          
+          // Update the tree data optimistically
           queryClient.setQueryData<Resource[]>(
-            resourceKeys.children(resource.parent_id),
-            previousResources.map(r => 
-              r.id === resource.id ? context.previousResource! : r
+            queryKey,
+            data.map(r => 
+              r.id === resource.id 
+                ? { ...r, status: nextStatus, updated_at: new Date().toISOString() }
+                : r
             )
           )
         }
       }
+
+      return { previousResources, previousTreeData }
+    },
+    onError: (err, { resource }, context) => {
+      // Rollback children cache
+      if (context?.previousResources) {
+        queryClient.setQueryData<Resource[]>(
+          resourceKeys.children(resource.parent_id),
+          context.previousResources
+        )
+      }
+      
+      // Rollback all tree caches
+      if (context?.previousTreeData) {
+        for (const [queryKeyStr, data] of context.previousTreeData) {
+          const queryKey = JSON.parse(queryKeyStr)
+          queryClient.setQueryData(queryKey, data)
+        }
+      }
     },
     onSettled: () => {
-      // Invalidate ALL resource queries to ensure tree views refresh
+      // Invalidate ALL resource queries to ensure data stays in sync with DB
       queryClient.invalidateQueries({ queryKey: resourceKeys.all })
     },
   })

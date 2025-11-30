@@ -160,8 +160,13 @@ export function ViewEnginePane({ context, title }: ViewEnginePaneProps) {
     const currentNode = findNodeById(fullNodeTree, currentFolderId)
     if (!currentNode) return fullNodeTree
     
-    // Return the found node as the new root for rendering
-    return currentNode
+    // FIX: When navigating into a folder, override its variant to view_directory
+    // This ensures the folder renders as a container showing its children,
+    // not as a clickable row (which would cause infinite nesting)
+    return {
+      ...currentNode,
+      variant: 'view_directory',
+    }
   }, [fullNodeTree, pathStack, currentParentId])
 
   // ==========================================================================

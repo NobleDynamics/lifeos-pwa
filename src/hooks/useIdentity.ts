@@ -342,6 +342,9 @@ export function useHouseholdMembers(householdId: string | null) {
     queryFn: async (): Promise<HouseholdMemberWithProfile[]> => {
       if (!householdId) return []
 
+      console.log('Fetching members for household:', householdId)
+
+      // Try fetching with profile join first
       const { data, error } = await db
         .from('household_members')
         .select(`
@@ -351,8 +354,40 @@ export function useHouseholdMembers(householdId: string | null) {
         .eq('household_id', householdId)
         .order('role', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching household members (with profile):', error)
 
+        // Fallback: Try fetching without profile join to debug RLS issues
+        console.log('Attempting fallback fetch without profile join...')
+        const { data: rawMembers, error: rawError } = await db
+          .from('household_members')
+          .select('*')
+          .eq('household_id', householdId)
+
+        if (rawError) {
+          console.error('Error fetching raw household members:', rawError)
+          throw error // Throw original error
+        }
+
+        console.log('Fallback fetch successful. Raw members:', rawMembers)
+
+        // Return raw members with placeholder profiles
+        return (rawMembers || []).map((m: any) => ({
+          ...m,
+          profile: {
+            id: m.user_id,
+            full_name: 'Unknown User (RLS Blocked)',
+            avatar_url: null,
+            email: null,
+            is_shadow: false,
+            managed_by_household_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } as Profile
+        })) as HouseholdMemberWithProfile[]
+      }
+
+      console.log('Fetched members:', data)
       return (data || []).map((m: any) => ({
         ...m,
         profile: m.profile,
@@ -394,12 +429,12 @@ export function useHouseholdProfiles(householdId: string | null) {
       // Combine and dedupe
       const memberProfiles = (members || []).map((m: any) => m.profile) as Profile[]
       const shadowProfiles = (shadows || []) as Profile[]
-      
+
       // Use Map to dedupe by ID
       const profileMap = new Map<string, Profile>()
-      ;[...memberProfiles, ...shadowProfiles].forEach(p => {
-        if (p) profileMap.set(p.id, p)
-      })
+        ;[...memberProfiles, ...shadowProfiles].forEach(p => {
+          if (p) profileMap.set(p.id, p)
+        })
 
       return Array.from(profileMap.values())
     },
@@ -452,11 +487,11 @@ export function useCreateShadowUser() {
       return profile as Profile
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ 
-        queryKey: identityKeys.householdMembers(data.managed_by_household_id!) 
+      queryClient.invalidateQueries({
+        queryKey: identityKeys.householdMembers(data.managed_by_household_id!)
       })
-      queryClient.invalidateQueries({ 
-        queryKey: identityKeys.householdProfiles(data.managed_by_household_id!) 
+      queryClient.invalidateQueries({
+        queryKey: identityKeys.householdProfiles(data.managed_by_household_id!)
       })
     },
   })
@@ -484,11 +519,11 @@ export function useUpdateShadowUser() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: identityKeys.profile(data.id) })
       if (data.managed_by_household_id) {
-        queryClient.invalidateQueries({ 
-          queryKey: identityKeys.householdMembers(data.managed_by_household_id) 
+        queryClient.invalidateQueries({
+          queryKey: identityKeys.householdMembers(data.managed_by_household_id)
         })
-        queryClient.invalidateQueries({ 
-          queryKey: identityKeys.householdProfiles(data.managed_by_household_id) 
+        queryClient.invalidateQueries({
+          queryKey: identityKeys.householdProfiles(data.managed_by_household_id)
         })
       }
     },
@@ -512,11 +547,11 @@ export function useDeleteShadowUser() {
       if (error) throw error
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: identityKeys.householdMembers(variables.householdId) 
+      queryClient.invalidateQueries({
+        queryKey: identityKeys.householdMembers(variables.householdId)
       })
-      queryClient.invalidateQueries({ 
-        queryKey: identityKeys.householdProfiles(variables.householdId) 
+      queryClient.invalidateQueries({
+        queryKey: identityKeys.householdProfiles(variables.householdId)
       })
     },
   })
@@ -606,8 +641,8 @@ export function useInviteToHousehold() {
   const queryClient = useQueryClient()
 
   return useMutation<
-    HouseholdMember, 
-    Error, 
+    HouseholdMember,
+    Error,
     { householdId: string; profileId: string; role?: HouseholdRole }
   >({
     mutationFn: async ({ householdId, profileId, role = 'member' }): Promise<HouseholdMember> => {
@@ -629,8 +664,8 @@ export function useInviteToHousehold() {
       return data as HouseholdMember
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: identityKeys.householdMembers(variables.householdId) 
+      queryClient.invalidateQueries({
+        queryKey: identityKeys.householdMembers(variables.householdId)
       })
     },
   })
@@ -652,8 +687,8 @@ export function useRemoveFromHousehold() {
       if (error) throw error
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: identityKeys.householdMembers(variables.householdId) 
+      queryClient.invalidateQueries({
+        queryKey: identityKeys.householdMembers(variables.householdId)
       })
     },
   })

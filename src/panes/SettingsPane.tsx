@@ -347,7 +347,7 @@ export default function SettingsPane() {
   const { data: households = [] } = useHouseholds()
   const { activeHouseholdId } = usePrimaryHousehold()
   const switchHousehold = useSwitchHousehold()
-  const { data: householdMembers = [] } = useHouseholdMembers(activeHouseholdId)
+  const { data: householdMembers = [], error: membersError } = useHouseholdMembers(activeHouseholdId)
 
   // Find active household
   const activeHousehold = households.find(h => h.id === activeHouseholdId)
@@ -638,6 +638,12 @@ export default function SettingsPane() {
               <p className="text-dark-400">Members ({householdMembers.length}):</p>
               <pre>{JSON.stringify(householdMembers.map(m => ({ id: m.user_id, role: m.role })), null, 2)}</pre>
             </div>
+            {membersError && (
+              <div>
+                <p className="text-red-400">Members Error:</p>
+                <pre className="text-red-300">{JSON.stringify(membersError, null, 2)}</pre>
+              </div>
+            )}
             <div>
               <p className="text-dark-400">Context Roots:</p>
               <pre>{JSON.stringify(useAllContextRoots().data?.map(r => ({ id: r.id, title: r.title, context: r.meta_data?.context })), null, 2)}</pre>

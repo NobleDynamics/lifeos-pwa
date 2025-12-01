@@ -102,12 +102,12 @@ export interface ConnectionUpdate {
 // RESOURCE GRAPH TYPES (Universal Resource Graph)
 // ============================================================================
 
-export type ResourceType = 
-  | 'folder' 
-  | 'project' 
-  | 'task' 
-  | 'recipe' 
-  | 'ingredient' 
+export type ResourceType =
+  | 'folder'
+  | 'project'
+  | 'task'
+  | 'recipe'
+  | 'ingredient'
   | 'stock_item'
   | 'workout'
   | 'exercise'
@@ -116,11 +116,11 @@ export type ResourceType =
 
 export type ResourceStatus = 'active' | 'completed' | 'archived'
 
-export type LinkType = 
-  | 'ingredient_of' 
-  | 'related_to' 
-  | 'blocks' 
-  | 'dependency_of' 
+export type LinkType =
+  | 'ingredient_of'
+  | 'related_to'
+  | 'blocks'
+  | 'dependency_of'
   | 'duplicate_of'
   | 'child_of'
   | 'references'
@@ -142,6 +142,9 @@ export interface Resource {
   updated_at: string
   deleted_at: string | null
   created_by: string | null
+  pointer_table: string | null
+  pointer_id: string | null
+  duration_minutes: number
 }
 
 export interface ResourceInsert {

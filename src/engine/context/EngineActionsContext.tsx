@@ -22,22 +22,22 @@ import type { Node } from '../types/node'
 export interface EngineActionsValue {
   /** The root ID of the current context (e.g., household.todos root folder) */
   rootId: string | null
-  
+
   /** Current parent ID for navigation/creation context */
   currentParentId: string | null
-  
+
   /** Open the create form for a new resource */
   onOpenCreateForm: (type: 'folder' | 'task', parentId: string) => void
-  
+
   /** Navigate into a folder/container */
   onNavigateInto: (nodeId: string, nodeTitle: string, nodePath: string) => void
-  
+
   /** Open context menu for a resource */
   onOpenContextMenu: (e: React.MouseEvent | React.TouchEvent, resource: Resource) => void
-  
+
   /** Cycle resource status (active → completed → archived) */
   onCycleStatus: (resource: Resource) => void
-  
+
   /** Convert a Node to a minimal Resource for mutation hooks */
   nodeToResource: (node: Node) => Resource
 }
@@ -51,22 +51,22 @@ const EngineActionsContext = createContext<EngineActionsValue | null>(null)
 export interface EngineActionsProviderProps {
   /** Root ID of the context */
   rootId: string | null
-  
+
   /** Current parent ID */
   currentParentId: string | null
-  
+
   /** Callback when create form should open */
   onOpenCreateForm: (type: 'folder' | 'task', parentId: string) => void
-  
+
   /** Callback when navigating into a folder */
   onNavigateInto: (nodeId: string, nodeTitle: string, nodePath: string) => void
-  
+
   /** Callback when context menu should open */
   onOpenContextMenu: (e: React.MouseEvent | React.TouchEvent, resource: Resource) => void
-  
+
   /** Callback when cycling status */
   onCycleStatus: (resource: Resource) => void
-  
+
   /** Child components */
   children: ReactNode
 }
@@ -78,15 +78,15 @@ export interface EngineActionsProviderProps {
 function createNodeToResourceMapper(rootId: string | null) {
   return (node: Node): Resource => {
     const metadata = node.metadata as Record<string, unknown>
-    
+
     return {
       id: node.id,
       user_id: '', // Will be filled by mutation hook
       household_id: null,
       parent_id: (metadata.parent_id as string) || rootId,
       path: (metadata.path as string) || 'root',
-      type: node.type === 'container' ? 'folder' : 
-            node.type === 'collection' ? 'project' : 'task',
+      type: node.type === 'container' ? 'folder' :
+        node.type === 'collection' ? 'project' : 'task',
       title: node.title,
       description: (metadata.description as string) || null,
       status: (metadata.status as 'active' | 'completed' | 'archived') || 'active',
@@ -97,6 +97,9 @@ function createNodeToResourceMapper(rootId: string | null) {
       updated_at: (metadata.updated_at as string) || new Date().toISOString(),
       deleted_at: null,
       created_by: null,
+      pointer_table: (metadata.pointer_table as string) || null,
+      pointer_id: (metadata.pointer_id as string) || null,
+      duration_minutes: (metadata.duration_minutes as number) || 0,
     }
   }
 }
@@ -183,21 +186,21 @@ export function useEngineActions(): EngineActionsValue | null {
  */
 export function useEngineActionsWithFallback() {
   const actions = useEngineActions()
-  
-  const noOp = useCallback(() => {}, [])
-  const noOpContextMenu = useCallback((_e: React.MouseEvent | React.TouchEvent, _r: Resource) => {}, [])
-  const noOpCreateForm = useCallback((_t: 'folder' | 'task', _p: string) => {}, [])
-  const noOpNavigate = useCallback((_id: string, _title: string, _path: string) => {}, [])
-  const noOpCycleStatus = useCallback((_r: Resource) => {}, [])
+
+  const noOp = useCallback(() => { }, [])
+  const noOpContextMenu = useCallback((_e: React.MouseEvent | React.TouchEvent, _r: Resource) => { }, [])
+  const noOpCreateForm = useCallback((_t: 'folder' | 'task', _p: string) => { }, [])
+  const noOpNavigate = useCallback((_id: string, _title: string, _path: string) => { }, [])
+  const noOpCycleStatus = useCallback((_r: Resource) => { }, [])
   const defaultNodeToResource = useMemo(() => createNodeToResourceMapper(null), [])
-  
+
   if (actions) {
     return {
       ...actions,
       isInteractive: true,
     }
   }
-  
+
   return {
     rootId: null,
     currentParentId: null,

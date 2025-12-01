@@ -23,19 +23,19 @@ import { z } from 'zod'
  */
 export const NodeTypes = ['space', 'container', 'collection', 'item'] as const
 export type NodeType = (typeof NodeTypes)[number]
-
 /**
  * Relationship types that mirror the backend `resource_links.link_type` enum.
  * Used for lateral (non-hierarchical) connections between nodes.
  */
 export const RelationshipTypes = [
-  'ingredient_of',
-  'related_to',
-  'blocks',
-  'dependency_of',
-  'duplicate_of',
-  'child_of',
-  'references',
+  'HIERARCHY',
+  'COMPONENT',
+  'DEPENDENCY',
+  'TRANSACTIONAL',
+  'SPATIAL',
+  'TEMPORAL',
+  'SOCIAL',
+  'REFERENCE',
 ] as const
 export type RelationshipType = (typeof RelationshipTypes)[number]
 
@@ -140,20 +140,20 @@ export interface NodeRelationship {
 export interface Node {
   /** Unique identifier (UUID) */
   id: string
-  
+
   /** Abstract node type - determines default rendering if variant is missing */
   type: NodeType
-  
+
   /** 
    * Variant string that drives rendering.
    * Maps to a React component via the registry.
    * Examples: 'list_row', 'grid_card', 'container_stack', 'hero_detail'
    */
   variant: string
-  
+
   /** Display title */
   title: string
-  
+
   /** 
    * Polymorphic metadata object.
    * Contents depend on the node's domain:
@@ -162,12 +162,29 @@ export interface Node {
    * - Recipe Item: { prepTime, cookTime, servings }
    */
   metadata: Record<string, unknown>
-  
+
   /** Nested child nodes (optional) */
   children?: Node[]
-  
+
   /** Lateral relationships to other nodes (optional) */
   relationships?: NodeRelationship[]
+
+  /** 
+   * Hybrid Data Pointer: Table name for strict data
+   * e.g., 'transactions', 'health_logs'
+   */
+  pointer_table?: string
+
+  /** 
+   * Hybrid Data Pointer: UUID in the strict table
+   */
+  pointer_id?: string
+
+  /** 
+   * Agenda Protocol: Duration in minutes for time blocking
+   * Default: 0
+   */
+  duration_minutes?: number
 }
 
 // =============================================================================
@@ -235,16 +252,16 @@ export function parseNodeJson(jsonString: string): {
   try {
     const parsed = JSON.parse(jsonString)
     const result = NodeSchema.safeParse(parsed)
-    
+
     if (result.success) {
       return { success: true, data: result.data }
     }
-    
+
     // Format Zod errors for display
     const errorMessages = result.error.issues
       .map((e) => `${e.path.join('.')}: ${e.message}`)
       .join('\n')
-    
+
     return { success: false, error: errorMessages }
   } catch (e) {
     return {
@@ -272,13 +289,13 @@ export function countNodes(node: Node): number {
  */
 export function findNodeById(root: Node, id: string): Node | null {
   if (root.id === id) return root
-  
+
   if (root.children) {
     for (const child of root.children) {
       const found = findNodeById(child, id)
       if (found) return found
     }
   }
-  
+
   return null
 }

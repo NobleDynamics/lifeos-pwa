@@ -379,6 +379,9 @@ Columns:
 - updated_at (Timestamp, default now()) - Auto-updated via trigger
 - deleted_at (Timestamp, Nullable) - Soft delete
 - created_by (UUID, Nullable)
+- pointer_table (TEXT, Nullable) - For Hybrid Data (e.g., 'transactions', 'health_logs')
+- pointer_id (UUID, Nullable) - ID in the strict table
+- duration_minutes (INTEGER, default 0) - For Agenda time blocking
 
 Indexes:
 - GIST index on `path` for ltree queries (CRITICAL for performance)
@@ -410,7 +413,7 @@ Columns:
 - id (UUID, PK, default uuid_generate_v4())
 - source_id (UUID FK to resources, NOT NULL)
 - target_id (UUID FK to resources, NOT NULL)
-- link_type (Enum link_type): 'ingredient_of', 'related_to', 'blocks', 'dependency_of', 'duplicate_of', 'child_of', 'references'
+- link_type (Enum link_type): 'HIERARCHY', 'COMPONENT', 'DEPENDENCY', 'TRANSACTIONAL', 'SPATIAL', 'TEMPORAL', 'SOCIAL', 'REFERENCE'
 - meta_data (JSONB, default '{}') - Link-specific data:
   - ingredient_of: `{"quantity": 2, "unit": "cups"}`
   - blocks: `{"reason": "Waiting for approval"}`

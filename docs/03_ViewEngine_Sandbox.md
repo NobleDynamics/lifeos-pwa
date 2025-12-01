@@ -71,7 +71,11 @@ interface Node {
   title: string
   metadata: Record<string, unknown>  // Polymorphic data
   children?: Node[]
+
   relationships?: NodeRelationship[]
+  pointer_table?: string
+  pointer_id?: string
+  duration_minutes?: number
 }
 ```
 

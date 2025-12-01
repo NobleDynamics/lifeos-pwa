@@ -236,6 +236,57 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 
 ---
 
+## Layouts (App Shells)
+
+### `layout_app_shell`
+**Structure:** Header + Search Bar + Tab Content + Bottom Tab Bar
+**Use for:** Top-level App Containers (e.g., "Household", "Health")
+
+```
+┌────────────────────────────────────────────────┐
+│  App Title                       [Action Btn]  │
+│  [🔍 Search...                               ] │
+├────────────────────────────────────────────────┤
+│                                                │
+│  Active Tab Content                            │
+│  (Renders children[activeTabId])               │
+│                                                │
+├────────────────────────────────────────────────┤
+│  [Tab 1]   [Tab 2]   [Tab 3]   [Tab 4]         │
+└────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `title` | string | App Title (Header) |
+| `action_label` | string | Label for top-right action button |
+| `search_enabled` | boolean | Show/hide global search bar |
+| `default_tab_id` | string | UUID of child to show first (optional) |
+
+**Behavior:**
+- **Controller:** Acts as a controller for its children.
+- **Tabs:** Children are rendered as tabs in the bottom bar.
+- **Search:** Manages a shared search state (`ShellContext`) that children can consume to filter their content.
+
+**Example:**
+```json
+{
+  "variant": "layout_app_shell",
+  "title": "Household",
+  "metadata": {
+    "action_label": "Add Item",
+    "search_enabled": true
+  },
+  "children": [
+    { "title": "To-Do", "metadata": { "icon": "CheckSquare" }, ... },
+    { "title": "Shopping", "metadata": { "icon": "ShoppingCart" }, ... }
+  ]
+}
+```
+
+---
+
 ## Views (Containers)
 
 ### `view_list_stack`

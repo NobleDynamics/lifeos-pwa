@@ -24,9 +24,14 @@ The ViewEngine is a data-driven rendering system that renders recursive Node tre
 
 | Variant | Component | Use Case |
 |---------|-----------|----------|
-| `list_row` | `ListRow` | Task/item rows with status icons |
-| `grid_card` | `GridCard` | Cards with thumbnail and metadata |
-| `container_stack` | `ContainerStack` | Collapsible folders with neon glow |
+| Variant | Component | Use Case |
+|---------|-----------|----------|
+| `layout_app_shell` | `LayoutAppShell` | App container with tabs and search |
+| `view_directory` | `ViewDirectory` | Searchable list with action button |
+| `view_list_stack` | `ViewListStack` | Collapsible folders with neon glow |
+| `row_detail_check` | `RowDetailCheck` | Task/item rows with status icons |
+| `row_neon_group` | `RowNeonGroup` | Folder rows with neon border |
+| `card_media_top` | `CardMediaTop` | Cards with thumbnail and metadata |
 
 ### Node Schema (Zod Validated)
 

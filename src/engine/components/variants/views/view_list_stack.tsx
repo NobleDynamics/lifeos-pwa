@@ -7,12 +7,13 @@
  * @module engine/components/variants/views/view_list_stack
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Folder, ChevronDown, ChevronRight } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode, useChildCount, useIsRoot } from '../../../context/NodeContext'
 import { useSlot } from '../../../hooks/useSlot'
 import { renderChildren } from '../../ViewEngine'
+import { useShell } from '../../../context/ShellContext'
 import { cn } from '@/lib/utils'
 
 /**
@@ -38,17 +39,42 @@ export function ViewListStack({ node }: VariantComponentProps) {
   const { depth, rootId } = useNode()
   const childCount = useChildCount()
   const isRoot = useIsRoot()
-  
+
   // Collapsible state - starts expanded
   const [isExpanded, setIsExpanded] = useState(true)
-  
+
   // Slot-based data access
   const headline = useSlot<string>('headline') ?? node.title
   const subtext = useSlot<string>('subtext')
   const accentColor = useSlot<string>('accent_color', '#06b6d4')
-  
+
+  // Shell context for filtering
+  const { searchQuery } = useShell()
+
+  // Filter children based on search query
+  const filteredChildren = useMemo(() => {
+    if (!searchQuery.trim() || !node.children) {
+      return node.children
+    }
+
+    const query = searchQuery.toLowerCase().trim()
+    return node.children.filter(child => {
+      if (child.title.toLowerCase().includes(query)) return true
+      const description = child.metadata.description as string | undefined
+      if (description?.toLowerCase().includes(query)) return true
+      return false
+    })
+  }, [node.children, searchQuery])
+
+  // Create a virtual node with filtered children for rendering
+  const nodeWithFilteredChildren = useMemo(() => ({
+    ...node,
+    children: filteredChildren
+  }), [node, filteredChildren])
+
   const hasChildren = childCount > 0
-  
+  const hasFilteredResults = filteredChildren && filteredChildren.length > 0
+
   return (
     <div
       className={cn(
@@ -56,14 +82,14 @@ export function ViewListStack({ node }: VariantComponentProps) {
         "transition-all duration-200",
         !isRoot && "my-2"
       )}
-      style={{ 
+      style={{
         marginLeft: depth > 0 ? 8 : 0,
       }}
       data-variant="view_list_stack"
       data-node-id={node.id}
     >
       {/* Header with Neon Glow */}
-      <div 
+      <div
         className={cn(
           "flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer",
           "bg-dark-100/80 hover:bg-dark-100",
@@ -86,23 +112,23 @@ export function ViewListStack({ node }: VariantComponentProps) {
             )}
           </span>
         )}
-        
+
         {/* Icon */}
-        <Folder 
-          size={18} 
+        <Folder
+          size={18}
           className="flex-shrink-0"
           style={{ color: accentColor }}
           fill={`${accentColor}33`}
         />
-        
+
         {/* Headline */}
         <span className="flex-1 font-medium text-sm truncate">
           {headline}
         </span>
-        
+
         {/* Child Count Badge */}
         {hasChildren && (
-          <span 
+          <span
             className="text-xs px-2 py-0.5 rounded-full bg-dark-200/80"
             style={{ color: accentColor }}
           >
@@ -110,24 +136,24 @@ export function ViewListStack({ node }: VariantComponentProps) {
           </span>
         )}
       </div>
-      
+
       {/* Subtext (if provided and expanded) */}
       {subtext && isExpanded && (
         <div className="px-3 py-2 text-xs text-dark-400" style={{ marginLeft: hasChildren ? 24 : 0 }}>
           {subtext}
         </div>
       )}
-      
+
       {/* Children */}
       {hasChildren && isExpanded && (
-        <div 
+        <div
           className="pl-2 pt-1 pb-1 border-l-2 ml-4"
           style={{ borderColor: `${accentColor}33` }}
         >
-          {renderChildren(node, depth, rootId)}
+          {renderChildren(nodeWithFilteredChildren, depth, rootId)}
         </div>
       )}
-      
+
       {/* Empty State */}
       {!hasChildren && isExpanded && (
         <div className="px-3 py-4 text-center text-xs text-dark-500 italic">

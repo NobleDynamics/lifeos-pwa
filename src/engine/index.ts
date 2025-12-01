@@ -113,6 +113,7 @@ export { DebugNode } from './components/DebugNode'
 // Views (Containers)
 export { ViewListStack } from './components/variants/views/view_list_stack'
 export { ViewDirectory } from './components/variants/views/view_directory'
+export { LayoutAppShell } from './components/variants/layouts/layout_app_shell'
 
 // Rows (List Items)
 export { RowDetailCheck } from './components/variants/rows/row_detail_check'
@@ -132,6 +133,7 @@ import { DebugNode } from './components/DebugNode'
 // New Structural Components
 import { ViewListStack } from './components/variants/views/view_list_stack'
 import { ViewDirectory } from './components/variants/views/view_directory'
+import { LayoutAppShell } from './components/variants/layouts/layout_app_shell'
 import { RowDetailCheck } from './components/variants/rows/row_detail_check'
 import { RowNeonGroup } from './components/variants/rows/row_neon_group'
 import { RowSimple } from './components/variants/rows/row_simple'
@@ -148,21 +150,22 @@ import { CardMediaTop } from './components/variants/cards/card_media_top'
 export function initializeEngine(): void {
   // Register fallback component
   setFallbackComponent(DebugNode)
-  
+
   // Register structural variants (new taxonomy)
   registerVariants({
     // Views (Containers)
     view_list_stack: ViewListStack,
     view_directory: ViewDirectory,
-    
+    layout_app_shell: LayoutAppShell,
+
     // Rows (List Items)
     row_detail_check: RowDetailCheck,
     row_neon_group: RowNeonGroup,
     row_simple: RowSimple,
-    
+
     // Cards (Grid Items)
     card_media_top: CardMediaTop,
-    
+
     // =========================================
     // LEGACY ALIASES (Backwards Compatibility)
     // =========================================
@@ -173,15 +176,15 @@ export function initializeEngine(): void {
     folder_row_neon: RowNeonGroup,
     list_row: RowSimple,
     grid_card: CardMediaTop,
-    
+
     // Convenience aliases
     row: RowSimple,
     card: CardMediaTop,
     stack: ViewListStack,
     container: ViewListStack,
   })
-  
-  console.log('[ViewEngine] Initialized with structural taxonomy:', 
+
+  console.log('[ViewEngine] Initialized with structural taxonomy:',
     'view_list_stack', 'view_directory', 'row_detail_check', 'row_neon_group', 'row_simple', 'card_media_top')
 }
 

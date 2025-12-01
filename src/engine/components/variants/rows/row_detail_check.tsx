@@ -11,7 +11,7 @@
 import { Circle, CheckCircle2, PlayCircle, Calendar, MapPin } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
-import { useEngineActions } from '../../../context/EngineActionsContext'
+import { useEngineActions, type BehaviorConfig } from '../../../context/EngineActionsContext'
 import { useSlot } from '../../../hooks/useSlot'
 import { useLongPress } from '@/hooks/useLongPress'
 import { Avatar } from '@/components/shared/Avatar'
@@ -61,7 +61,7 @@ const statusDisplayText: Record<string, string> = {
 export function RowDetailCheck({ node }: VariantComponentProps) {
   const { depth } = useNode()
   const actions = useEngineActions()
-  
+
   // Slot-based data access
   const headline = useSlot<string>('headline') ?? node.title
   const subtext = useSlot<string>('subtext')
@@ -72,34 +72,42 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
   const badge2Icon = useSlot<string>('badge_2_icon')
   const badge3Icon = useSlot<string>('badge_3_icon')
   const endElement = useSlot<{ name?: string; avatar?: string } | string>('end_element')
-  
+
   // Get status icon
   const StatusIcon = statusIcons[status as keyof typeof statusIcons] || Circle
   const isCompleted = status === 'completed' || status === 'done'
-  
+
   // Derive avatar props from end_element
-  const avatarSrc = typeof endElement === 'string' 
-    ? endElement 
+  const avatarSrc = typeof endElement === 'string'
+    ? endElement
     : endElement?.avatar
-  const avatarName = typeof endElement === 'string' 
-    ? undefined 
+  const avatarName = typeof endElement === 'string'
+    ? undefined
     : endElement?.name
-  
+
   // Check if we have any badges to show
   const hasBadges = badge1 || badge2 || badge3
-  
+
   // Resolve badge icons
   const Badge2Icon = badge2Icon === 'calendar' ? Calendar : badge2Icon === 'mappin' ? MapPin : null
   const Badge3Icon = badge3Icon === 'calendar' ? Calendar : badge3Icon === 'mappin' ? MapPin : null
-  
+
   // Auto-detect badge icons if not specified (convention over config)
   const shouldShowCalendarIcon = !badge2Icon && badge2 && !Badge2Icon
   const shouldShowLocationIcon = !badge3Icon && badge3 && !Badge3Icon
 
-  // Handle status icon click - cycle status
+  // Handle status icon click - cycle status or trigger behavior
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (actions) {
+    if (!actions) return
+
+    // Check for custom behavior in metadata
+    const behavior = node.metadata.behavior as BehaviorConfig | undefined
+
+    if (behavior) {
+      actions.onTriggerBehavior(node, behavior)
+    } else {
+      // Fallback to default status cycling
       const resource = actions.nodeToResource(node)
       actions.onCycleStatus(resource)
     }
@@ -119,7 +127,7 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
     (e) => handleContextMenu(e as React.MouseEvent | React.TouchEvent),
     { threshold: 500 }
   )
-  
+
   return (
     <div
       className={cn(
@@ -139,25 +147,25 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
       onTouchEnd={longPressHandlers.onTouchEnd}
     >
       {/* Status Icon (Left) - Clickable to cycle status */}
-      <div 
+      <div
         className="flex-shrink-0 pt-0.5 cursor-pointer hover:scale-110 transition-transform"
         onClick={handleStatusClick}
         role="button"
         aria-label={`Toggle status: currently ${status}`}
       >
-        <StatusIcon 
-          size={20} 
+        <StatusIcon
+          size={20}
           className={cn(
             isCompleted ? "text-green-500" : "text-dark-400",
             status === 'in_progress' && "text-cyan-500"
           )}
         />
       </div>
-      
+
       {/* Middle: Headline, Subtext, Badges */}
       <div className="flex-1 min-w-0">
         {/* Headline */}
-        <div 
+        <div
           className={cn(
             "text-sm font-medium truncate",
             isCompleted && "line-through text-dark-500"
@@ -165,20 +173,20 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
         >
           {headline}
         </div>
-        
+
         {/* Subtext */}
         {subtext && (
           <div className="text-xs text-dark-400 mt-0.5 line-clamp-2">
             {subtext}
           </div>
         )}
-        
+
         {/* Badges Row */}
         {hasBadges && (
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             {/* Badge 1 (Status) */}
             {badge1 && (
-              <span 
+              <span
                 className={cn(
                   "text-xs px-2 py-0.5 rounded-full",
                   "bg-dark-200/80 text-dark-400"
@@ -187,7 +195,7 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
                 {badge1}
               </span>
             )}
-            
+
             {/* Badge 2 (e.g., Date) */}
             {badge2 && (
               <span className="flex items-center gap-1 text-xs text-dark-500">
@@ -196,7 +204,7 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
                 {badge2}
               </span>
             )}
-            
+
             {/* Badge 3 (e.g., Location) */}
             {badge3 && (
               <span className="flex items-center gap-1 text-xs text-dark-500">
@@ -208,14 +216,14 @@ export function RowDetailCheck({ node }: VariantComponentProps) {
           </div>
         )}
       </div>
-      
+
       {/* Right: End Element (Avatar) */}
       {endElement && (
         <div className="flex-shrink-0">
-          <Avatar 
-            src={avatarSrc} 
-            name={avatarName} 
-            size="sm" 
+          <Avatar
+            src={avatarSrc}
+            name={avatarName}
+            size="sm"
           />
         </div>
       )}

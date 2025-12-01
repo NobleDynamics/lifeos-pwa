@@ -56,6 +56,7 @@ export {
 export type {
   EngineActionsValue,
   EngineActionsProviderProps,
+  BehaviorConfig,
 } from './context/EngineActionsContext'
 
 // =============================================================================
@@ -113,12 +114,15 @@ export { DebugNode } from './components/DebugNode'
 // Views (Containers)
 export { ViewListStack } from './components/variants/views/view_list_stack'
 export { ViewDirectory } from './components/variants/views/view_directory'
+export { ViewGridFixed } from './components/variants/views/view_grid_fixed'
 export { LayoutAppShell } from './components/variants/layouts/layout_app_shell'
 
 // Rows (List Items)
 export { RowDetailCheck } from './components/variants/rows/row_detail_check'
 export { RowNeonGroup } from './components/variants/rows/row_neon_group'
 export { RowSimple } from './components/variants/rows/row_simple'
+export { RowInputStepper } from './components/variants/rows/row_input_stepper'
+export { RowInputCurrency } from './components/variants/rows/row_input_currency'
 
 // Cards (Grid Items)
 export { CardMediaTop } from './components/variants/cards/card_media_top'
@@ -133,10 +137,13 @@ import { DebugNode } from './components/DebugNode'
 // New Structural Components
 import { ViewListStack } from './components/variants/views/view_list_stack'
 import { ViewDirectory } from './components/variants/views/view_directory'
+import { ViewGridFixed } from './components/variants/views/view_grid_fixed'
 import { LayoutAppShell } from './components/variants/layouts/layout_app_shell'
 import { RowDetailCheck } from './components/variants/rows/row_detail_check'
 import { RowNeonGroup } from './components/variants/rows/row_neon_group'
 import { RowSimple } from './components/variants/rows/row_simple'
+import { RowInputStepper } from './components/variants/rows/row_input_stepper'
+import { RowInputCurrency } from './components/variants/rows/row_input_currency'
 import { CardMediaTop } from './components/variants/cards/card_media_top'
 
 /**
@@ -156,12 +163,15 @@ export function initializeEngine(): void {
     // Views (Containers)
     view_list_stack: ViewListStack,
     view_directory: ViewDirectory,
+    view_grid_fixed: ViewGridFixed,
     layout_app_shell: LayoutAppShell,
 
     // Rows (List Items)
     row_detail_check: RowDetailCheck,
     row_neon_group: RowNeonGroup,
     row_simple: RowSimple,
+    row_input_stepper: RowInputStepper,
+    row_input_currency: RowInputCurrency,
 
     // Cards (Grid Items)
     card_media_top: CardMediaTop,

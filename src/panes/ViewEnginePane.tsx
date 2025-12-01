@@ -19,9 +19,17 @@ import {
   createEmptyRootNode,
   EngineActionsProvider,
   findNodeById,
+  type BehaviorConfig,
+  type Node,
 } from '@/engine'
 import { useContextRoot } from '@/hooks/useContextRoot'
-import { useResourceTree, useCycleResourceStatus } from '@/hooks/useResourceData'
+import {
+  useResourceTree,
+  useCycleResourceStatus,
+  useUpdateResource,
+  useMoveResource,
+  useCreateResource,
+} from '@/hooks/useResourceData'
 import {
   useResourceNavigation,
   useResourceForm,
@@ -115,6 +123,9 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
 
   // Status cycling mutation
   const cycleStatusMutation = useCycleResourceStatus()
+  const updateResourceMutation = useUpdateResource()
+  const moveResourceMutation = useMoveResource()
+  const createResourceMutation = useCreateResource()
 
   // Sync context root with navigation store when it changes
   useEffect(() => {
@@ -208,6 +219,83 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
     cycleStatusMutation.mutate({ resource })
   }, [cycleStatusMutation])
 
+  /**
+   * Handle generic behavior triggers
+   */
+  const handleTriggerBehavior = useCallback((node: Node, config: BehaviorConfig) => {
+    console.log('[ViewEnginePane] Trigger Behavior:', config, 'on Node:', node.id)
+
+    switch (config.action) {
+      case 'update_field': {
+        if (!config.target) {
+          console.warn('[ViewEnginePane] update_field missing target')
+          return
+        }
+
+        // Merge new value into metadata
+        const currentMeta = node.metadata as Record<string, unknown>
+        const updates = {
+          meta_data: {
+            ...currentMeta,
+            [config.target]: config.payload
+          }
+        }
+
+        updateResourceMutation.mutate({
+          id: node.id,
+          updates
+        })
+        break
+      }
+
+      case 'toggle_status': {
+        // Find resource to cycle status
+        const resource = resources?.find(r => r.id === node.id)
+        if (resource) {
+          cycleStatusMutation.mutate({ resource })
+        }
+        break
+      }
+
+      case 'move_node': {
+        if (!config.payload?.parent_id) {
+          console.warn('[ViewEnginePane] move_node missing payload.parent_id')
+          return
+        }
+
+        // Find current parent to pass as oldParentId (optional but good for cache updates)
+        const resource = resources?.find(r => r.id === node.id)
+
+        moveResourceMutation.mutate({
+          id: node.id,
+          newParentId: config.payload.parent_id,
+          oldParentId: resource?.parent_id || null
+        })
+        break
+      }
+
+      case 'log_event': {
+        // Create a new child node of type 'event' (stored as task/item)
+        createResourceMutation.mutate({
+          user_id: '', // Handled by hook
+          type: 'task',
+          parent_id: node.id,
+          title: config.payload?.title || 'Event Logged',
+          description: config.payload?.description || new Date().toLocaleString(),
+          meta_data: {
+            is_event: true,
+            timestamp: new Date().toISOString(),
+            ...config.payload
+          }
+        })
+        break
+      }
+
+      default:
+        console.warn(`[ViewEnginePane] Unknown behavior action: ${config.action}`)
+    }
+  }, [resources, updateResourceMutation, cycleStatusMutation, moveResourceMutation, createResourceMutation])
+
   // === Loading State ===
   if (isContextLoading || isTreeLoading) {
     return <LoadingState title={title} />
@@ -244,6 +332,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           onNavigateInto={handleNavigateInto}
           onOpenContextMenu={handleOpenContextMenu}
           onCycleStatus={handleCycleStatus}
+          onTriggerBehavior={handleTriggerBehavior}
         >
           <ViewEngine root={emptyRoot} className="flex-1 overflow-y-auto" />
         </EngineActionsProvider>
@@ -281,6 +370,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
         onNavigateInto={handleNavigateInto}
         onOpenContextMenu={handleOpenContextMenu}
         onCycleStatus={handleCycleStatus}
+        onTriggerBehavior={handleTriggerBehavior}
       >
         <ViewEngine root={currentNodeTree} className="flex-1 overflow-y-auto" />
       </EngineActionsProvider>

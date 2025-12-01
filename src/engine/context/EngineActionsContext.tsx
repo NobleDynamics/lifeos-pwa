@@ -38,8 +38,26 @@ export interface EngineActionsValue {
   /** Cycle resource status (active → completed → archived) */
   onCycleStatus: (resource: Resource) => void
 
+  /** 
+   * Trigger a generic behavior action defined by metadata 
+   * This replaces specific handlers like onCycleStatus for data-driven interactions
+   */
+  onTriggerBehavior: (node: Node, config: BehaviorConfig) => void
+
   /** Convert a Node to a minimal Resource for mutation hooks */
   nodeToResource: (node: Node) => Resource
+}
+
+/**
+ * Configuration for a behavior action
+ */
+export interface BehaviorConfig {
+  /** The action to perform (e.g., 'update_field', 'move_node', 'log_event') */
+  action: string
+  /** Optional target field or destination */
+  target?: string
+  /** Action-specific payload */
+  payload?: any
 }
 
 const EngineActionsContext = createContext<EngineActionsValue | null>(null)
@@ -66,6 +84,9 @@ export interface EngineActionsProviderProps {
 
   /** Callback when cycling status */
   onCycleStatus: (resource: Resource) => void
+
+  /** Callback for generic behaviors */
+  onTriggerBehavior: (node: Node, config: BehaviorConfig) => void
 
   /** Child components */
   children: ReactNode
@@ -114,6 +135,7 @@ export function EngineActionsProvider({
   onNavigateInto,
   onOpenContextMenu,
   onCycleStatus,
+  onTriggerBehavior,
   children,
 }: EngineActionsProviderProps) {
   const nodeToResource = useMemo(
@@ -129,9 +151,10 @@ export function EngineActionsProvider({
       onNavigateInto,
       onOpenContextMenu,
       onCycleStatus,
+      onTriggerBehavior,
       nodeToResource,
     }),
-    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, nodeToResource]
+    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, onTriggerBehavior, nodeToResource]
   )
 
   return (
@@ -208,6 +231,7 @@ export function useEngineActionsWithFallback() {
     onNavigateInto: noOpNavigate,
     onOpenContextMenu: noOpContextMenu,
     onCycleStatus: noOpCycleStatus,
+    onTriggerBehavior: useCallback((_n: Node, _c: BehaviorConfig) => { }, []),
     nodeToResource: defaultNodeToResource,
     isInteractive: false,
   }

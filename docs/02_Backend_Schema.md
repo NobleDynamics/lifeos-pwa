@@ -373,6 +373,7 @@ Columns:
   - Recipe: `{"prep_time": 30, "cook_time": 45, "servings": 4}`
   - Task: `{"priority": "high", "legacy_status": "in_progress"}`
   - Workout: `{"muscle_groups": ["chest"], "difficulty": "intermediate"}`
+  - Commerce: `{"behavior": {"action": "log_event", "payload": {...}}}`
 - is_schedulable (Boolean, default false)
 - scheduled_at (Timestamp, Nullable)
 - created_at (Timestamp, default now())

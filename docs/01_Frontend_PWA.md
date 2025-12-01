@@ -32,6 +32,9 @@ The ViewEngine is a data-driven rendering system that renders recursive Node tre
 | `row_detail_check` | `RowDetailCheck` | Task/item rows with status icons |
 | `row_neon_group` | `RowNeonGroup` | Folder rows with neon border |
 | `card_media_top` | `CardMediaTop` | Cards with thumbnail and metadata |
+| `row_input_stepper` | `RowInputStepper` | Numeric stepper with thresholds |
+| `row_input_currency` | `RowInputCurrency` | Currency input with checkbox |
+| `view_grid_fixed` | `ViewGridFixed` | Responsive grid container |
 
 ### Node Schema (Zod Validated)
 

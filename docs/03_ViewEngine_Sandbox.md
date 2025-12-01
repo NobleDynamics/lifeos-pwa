@@ -348,17 +348,36 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 {
   "variant": "view_directory",
   "title": "Tasks",
-  "metadata": { "search_placeholder": "Search tasks...", "action_label": "Task" }
+  "metadata": { "placeholder": "Search tasks..." }
 }
 ```
+
+---
+
+### `view_grid_fixed`
+**Structure:** Responsive Grid (2-col mobile, 4-col desktop)
+**Use for:** Pantries, wardrobes, galleries
+
+```
+┌────────────────────────────────────────────────┐
+│ [ Card 1 ]  [ Card 2 ]                         │
+│ [ Card 3 ]  [ Card 4 ]                         │
+└────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Optional section title |
+| `subtext` | string | Optional description |
 
 ---
 
 ## Rows (List Items)
 
 ### `row_detail_check`
-**Structure:** Checkbox left | Headline + Subtext + Badges | Action right
-**Use for:** Items with status, detailed info, and optional avatar
+**Structure:** Checkbox | Headline + Subtext + Badges | Avatar
+**Use for:** Tasks, detailed list items
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -464,17 +483,68 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 {
   "variant": "row_simple",
   "title": "Quick task",
-  "metadata": { "status": "active", "badge": "high" }
+  "metadata": { "status": "active" }
 }
 ```
+
+---
+
+### `row_input_stepper`
+**Structure:** Info left | Stepper control right
+**Use for:** Inventory counts, servings, ratings
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ Headline                      [ - ] [ 5 ] [ + ]               │
+│ Subtext                                                        │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text |
+| `subtext` | string | Secondary text |
+| `value` | number | Current numeric value |
+| `min_threshold` | number | Value below which to show alert (red) |
+| `max_threshold` | number | Max allowed value |
+| `step` | number | Increment step (default: 1) |
+| `unit` | string | Unit label (e.g., "kg", "pcs") |
+
+**Behavior:**
+- Buttons trigger `update_field` on the `value` slot.
+
+---
+
+### `row_input_currency`
+**Structure:** Checkbox | Info | Currency Input
+**Use for:** Prices, costs, budgeting
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ [○] Headline                                     [ $ 10.00 ]  │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text |
+| `value` | number | Price value |
+| `currency_symbol` | string | Symbol to show (default: "$") |
+| `status` | string | Controls checkbox state |
+
+**Behavior:**
+- Input triggers `update_field` on `value` (on Blur/Enter).
+- Checkbox triggers `toggle_status` OR custom `metadata.behavior`.
 
 ---
 
 ## Cards (Grid Items)
 
 ### `card_media_top`
-**Structure:** Image top | Headline + Subtext + Badges bottom
-**Use for:** Visual items like recipes, documents, media
+**Structure:** Image Top + Content Bottom
+**Use for:** Recipes, gallery items, rich content
 
 ```
 ┌───────────────────────────────────────┐
@@ -559,20 +629,56 @@ backdrop-filter: blur(12px);
 
 If a variant is not found in the registry, `DebugNode` renders automatically:
 - Shows node ID, type, variant, and metadata
-- Yellow warning styling
-- Still renders children (tree doesn't break)
-- Useful for developing new variants
+- Helps identify missing or misspelled variants
+
+---
+
+## The Behavior System (Interaction Protocol)
+
+The ViewEngine supports a generic "Behavior Protocol" that allows nodes to define what happens when they are interacted with. This decouples the UI from the logic.
+
+### Triggering Behaviors
+Variants call `actions.onTriggerBehavior(node, config)` where `config` is:
+
+```typescript
+interface BehaviorConfig {
+  action: 'update_field' | 'toggle_status' | 'move_node' | 'log_event'
+  target?: string  // Field to update
+  payload?: any    // Value to set or data to use
+}
+```
+
+### Supported Actions
+
+| Action | Description | Payload Example |
+|--------|-------------|-----------------|
+| `update_field` | Updates a specific metadata key | `{ target: 'value', payload: 5 }` |
+| `toggle_status` | Cycles status (active → completed → archived) | `null` |
+| `move_node` | Moves node to a new parent | `{ parent_id: 'uuid' }` |
+| `log_event` | Creates a child node of type 'event' | `{ title: 'Purchased', description: '...' }` |
+
+### Defining Behaviors in JSON
+You can define custom behaviors in `node.metadata.behavior`:
+
+```json
+{
+  "variant": "row_input_currency",
+  "metadata": {
+    "behavior": {
+      "action": "log_event",
+      "payload": { "title": "Price Updated" }
+    }
+  }
+}
+```
 
 ---
 
 ## Phase 2 Roadmap (Future)
 
-Once variants are stable in Sandbox:
-
-1. **Connect to Database**
-   - Transform `resources` table rows into Node trees
-   - Map `resource_type` → `node.type` using `ResourceTypeToNodeType`
-   - Store `variant` in `resources.meta_data.variant`
+1. **Implement Drag-and-Drop**
+   - Use `dnd-kit`
+   - Update `parent_id` on drop
 
 2. **Replace Hardcoded Pages**
    - `HierarchyPane` → `<ViewEngine root={nodeTree} />`
@@ -744,3 +850,4 @@ Once variants are stable in Sandbox:
     }
   ]
 }
+```

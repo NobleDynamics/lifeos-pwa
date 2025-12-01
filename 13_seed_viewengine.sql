@@ -5,12 +5,13 @@
 -- Purpose: Seed the resources table with test data that includes ViewEngine
 --          variant and slot configuration metadata.
 --
--- This script:
---   1. Cleans existing test data (preserves profiles, households, connections)
---   2. Creates "Household" App Shell (layout_app_shell)
---   3. Creates "To-Do" Tab (view_directory)
---   4. Creates "Shopping" Tab (view_list_stack)
---   5. Populates tabs with folders and items
+-- Structure:
+-- 1. Household (layout_app_shell)
+--    2. Shopping (layout_top_tabs)
+--       3. Lists (view_list_stack) -> Grocery List
+--       3. Items (view_directory) -> All Products
+--    2. Stock (view_grid_fixed)
+--    2. To-Do (view_directory)
 --
 -- IMPORTANT: Run this migration AFTER all previous migrations
 -- ============================================================================
@@ -60,7 +61,7 @@ INSERT INTO resources (
         "variant": "layout_app_shell",
         "search_enabled": true,
         "action_label": "Add Item",
-        "default_tab_id": "00000000-0000-0000-0000-000000000105"
+        "default_tab_id": "00000000-0000-0000-0000-000000000103"
     }'::jsonb,
     false,
     '11111111-1111-1111-1111-111111111111'::uuid
@@ -70,7 +71,73 @@ INSERT INTO resources (
 -- SECTION 3: CREATE TABS (Children of App Shell)
 -- ============================================================================
 
--- Tab 1: To-Do (View Directory)
+-- Tab 1: Shopping (Layout Top Tabs)
+INSERT INTO resources (
+    id,
+    user_id,
+    household_id,
+    parent_id,
+    path,
+    type,
+    title,
+    description,
+    status,
+    meta_data,
+    is_schedulable,
+    created_by
+) VALUES (
+    '00000000-0000-0000-0000-000000000103'::uuid,
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    NULL,
+    '00000000-0000-0000-0000-000000000100'::uuid,
+    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103'::ltree,
+    'folder'::resource_type,
+    'Shopping',
+    'Shopping Lists & Items',
+    'active'::resource_status,
+    '{
+        "variant": "layout_top_tabs",
+        "icon": "ShoppingCart",
+        "default_tab_id": "00000000-0000-0000-0000-000000000131"
+    }'::jsonb,
+    false,
+    '11111111-1111-1111-1111-111111111111'::uuid
+);
+
+-- Tab 2: Stock (View Grid Fixed)
+INSERT INTO resources (
+    id,
+    user_id,
+    household_id,
+    parent_id,
+    path,
+    type,
+    title,
+    description,
+    status,
+    meta_data,
+    is_schedulable,
+    created_by
+) VALUES (
+    '00000000-0000-0000-0000-000000000104'::uuid,
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    NULL,
+    '00000000-0000-0000-0000-000000000100'::uuid,
+    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000104'::ltree,
+    'folder'::resource_type,
+    'Stock',
+    'Pantry Inventory',
+    'active'::resource_status,
+    '{
+        "variant": "view_grid_fixed",
+        "icon": "Package",
+        "color": "#f59e0b"
+    }'::jsonb,
+    false,
+    '11111111-1111-1111-1111-111111111111'::uuid
+);
+
+-- Tab 3: To-Do (View Directory)
 INSERT INTO resources (
     id,
     user_id,
@@ -106,7 +173,11 @@ INSERT INTO resources (
     '11111111-1111-1111-1111-111111111111'::uuid
 );
 
--- Tab 2: Shopping (View List Stack)
+-- ============================================================================
+-- SECTION 4: SHOPPING SUB-TABS (Children of Shopping)
+-- ============================================================================
+
+-- Sub-Tab A: Lists (View List Stack)
 INSERT INTO resources (
     id,
     user_id,
@@ -121,29 +192,24 @@ INSERT INTO resources (
     is_schedulable,
     created_by
 ) VALUES (
-    '00000000-0000-0000-0000-000000000103'::uuid,
+    '00000000-0000-0000-0000-000000000131'::uuid,
     '11111111-1111-1111-1111-111111111111'::uuid,
     NULL,
-    '00000000-0000-0000-0000-000000000100'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103'::ltree,
+    '00000000-0000-0000-0000-000000000103'::uuid,
+    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103.00000000_0000_0000_0000_000000000131'::ltree,
     'folder'::resource_type,
-    'Shopping',
-    'Shopping List',
+    'Lists',
+    'My Shopping Lists',
     'active'::resource_status,
     '{
         "variant": "view_list_stack",
-        "icon": "ShoppingCart",
-        "color": "#10b981"
+        "icon": "List"
     }'::jsonb,
     false,
     '11111111-1111-1111-1111-111111111111'::uuid
 );
 
--- ============================================================================
--- SECTION 4: POPULATE TO-DO TAB
--- ============================================================================
-
--- Folder: Chores (Child of To-Do)
+-- Sub-Tab B: Items (View Directory)
 INSERT INTO resources (
     id,
     user_id,
@@ -158,279 +224,29 @@ INSERT INTO resources (
     is_schedulable,
     created_by
 ) VALUES (
-    '00000000-0000-0000-0000-000000000101'::uuid,
+    '00000000-0000-0000-0000-000000000132'::uuid,
     '11111111-1111-1111-1111-111111111111'::uuid,
     NULL,
-    '00000000-0000-0000-0000-000000000105'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000101'::ltree,
+    '00000000-0000-0000-0000-000000000103'::uuid,
+    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103.00000000_0000_0000_0000_000000000132'::ltree,
     'folder'::resource_type,
-    'Chores',
-    'Weekly household chores',
+    'Items',
+    'All Products',
     'active'::resource_status,
     '{
-        "variant": "row_neon_group",
-        "color": "#06b6d4",
-        "icon": "home",
-        "__config": {
-            "slot_headline": "title",
-            "slot_subtext": "description",
-            "slot_accent_color": "color",
-            "slot_icon_start": "icon"
-        }
+        "variant": "view_directory",
+        "icon": "Grid",
+        "placeholder": "Search products..."
     }'::jsonb,
     false,
-    '11111111-1111-1111-1111-111111111111'::uuid
-);
-
--- Folder: Work Projects (Child of To-Do)
-INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    created_by
-) VALUES (
-    '00000000-0000-0000-0000-000000000102'::uuid,
-    '11111111-1111-1111-1111-111111111111'::uuid,
-    NULL,
-    '00000000-0000-0000-0000-000000000105'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000102'::ltree,
-    'folder'::resource_type,
-    'Work Projects',
-    'Professional tasks',
-    'active'::resource_status,
-    '{
-        "variant": "row_neon_group",
-        "color": "#8b5cf6",
-        "icon": "briefcase",
-        "__config": {
-            "slot_headline": "title",
-            "slot_subtext": "description",
-            "slot_accent_color": "color",
-            "slot_icon_start": "icon"
-        }
-    }'::jsonb,
-    false,
-    '11111111-1111-1111-1111-111111111111'::uuid
-);
-
--- Task: Buy Milk (Child of Chores)
-INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    scheduled_at,
-    created_by
-) VALUES (
-    '00000000-0000-0000-0000-000000000201'::uuid,
-    '11111111-1111-1111-1111-111111111111'::uuid,
-    NULL,
-    '00000000-0000-0000-0000-000000000101'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000101.00000000_0000_0000_0000_000000000201'::ltree,
-    'task'::resource_type,
-    'Buy Milk',
-    'Get 2% milk',
-    'active'::resource_status,
-    '{
-        "variant": "row_detail_check",
-        "status": "active",
-        "priority": "high",
-        "location": "Costco",
-        "__config": {
-            "slot_headline": "title",
-            "slot_subtext": "description",
-            "slot_status": "status",
-            "slot_badge_1": "priority",
-            "slot_badge_3": "location"
-        }
-    }'::jsonb,
-    true,
-    '2025-11-30T18:00:00Z',
-    '11111111-1111-1111-1111-111111111111'::uuid
-);
-
--- Task: Clean Kitchen (Child of Chores)
-INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    scheduled_at,
-    created_by
-) VALUES (
-    '00000000-0000-0000-0000-000000000202'::uuid,
-    '11111111-1111-1111-1111-111111111111'::uuid,
-    NULL,
-    '00000000-0000-0000-0000-000000000101'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000101.00000000_0000_0000_0000_000000000202'::ltree,
-    'task'::resource_type,
-    'Clean Kitchen',
-    'Wipe counters',
-    'active'::resource_status,
-    '{
-        "variant": "row_detail_check",
-        "status": "in_progress",
-        "priority": "medium",
-        "__config": {
-            "slot_headline": "title",
-            "slot_subtext": "description",
-            "slot_status": "status",
-            "slot_badge_1": "priority"
-        }
-    }'::jsonb,
-    true,
-    '2025-11-29T20:00:00Z',
-    '11111111-1111-1111-1111-111111111111'::uuid
-);
-
--- Task: Take Out Trash (Child of Chores)
-INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    created_by
-) VALUES (
-    '00000000-0000-0000-0000-000000000203'::uuid,
-    '11111111-1111-1111-1111-111111111111'::uuid,
-    NULL,
-    '00000000-0000-0000-0000-000000000101'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000101.00000000_0000_0000_0000_000000000203'::ltree,
-    'task'::resource_type,
-    'Take Out Trash',
-    'Weekly garbage',
-    'completed'::resource_status,
-    '{
-        "variant": "row_detail_check",
-        "status": "completed",
-        "priority": "low",
-        "__config": {
-            "slot_headline": "title",
-            "slot_subtext": "description",
-            "slot_status": "status",
-            "slot_badge_1": "priority"
-        }
-    }'::jsonb,
-    false,
-    '11111111-1111-1111-1111-111111111111'::uuid
-);
-
--- Task: Q4 Report (Child of Work Projects)
-INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    scheduled_at,
-    created_by
-) VALUES (
-    '00000000-0000-0000-0000-000000000301'::uuid,
-    '11111111-1111-1111-1111-111111111111'::uuid,
-    NULL,
-    '00000000-0000-0000-0000-000000000102'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000102.00000000_0000_0000_0000_000000000301'::ltree,
-    'task'::resource_type,
-    'Q4 Report',
-    'Review financials',
-    'active'::resource_status,
-    '{
-        "variant": "row_detail_check",
-        "status": "in_progress",
-        "priority": "critical",
-        "__config": {
-            "slot_headline": "title",
-            "slot_subtext": "description",
-            "slot_status": "status",
-            "slot_badge_1": "priority"
-        }
-    }'::jsonb,
-    true,
-    '2025-12-01T17:00:00Z',
-    '11111111-1111-1111-1111-111111111111'::uuid
-);
-
--- Task: Team Meeting Prep (Child of Work Projects)
-INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    scheduled_at,
-    created_by
-) VALUES (
-    '00000000-0000-0000-0000-000000000302'::uuid,
-    '11111111-1111-1111-1111-111111111111'::uuid,
-    NULL,
-    '00000000-0000-0000-0000-000000000102'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000102.00000000_0000_0000_0000_000000000302'::ltree,
-    'task'::resource_type,
-    'Team Meeting Prep',
-    'Prepare slides',
-    'active'::resource_status,
-    '{
-        "variant": "row_detail_check",
-        "status": "active",
-        "priority": "medium",
-        "__config": {
-            "slot_headline": "title",
-            "slot_subtext": "description",
-            "slot_status": "status",
-            "slot_badge_1": "priority"
-        }
-    }'::jsonb,
-    true,
-    '2025-12-02T09:00:00Z',
     '11111111-1111-1111-1111-111111111111'::uuid
 );
 
 -- ============================================================================
--- SECTION 5: POPULATE SHOPPING TAB
+-- SECTION 5: POPULATE LISTS (Grocery List)
 -- ============================================================================
 
--- Task: Eggs (Child of Shopping)
+-- Grocery List (Child of Lists)
 INSERT INTO resources (
     id,
     user_id,
@@ -448,59 +264,47 @@ INSERT INTO resources (
     '00000000-0000-0000-0000-000000000401'::uuid,
     '11111111-1111-1111-1111-111111111111'::uuid,
     NULL,
-    '00000000-0000-0000-0000-000000000103'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103.00000000_0000_0000_0000_000000000401'::ltree,
-    'task'::resource_type,
-    'Eggs',
-    '1 dozen organic',
+    '00000000-0000-0000-0000-000000000131'::uuid,
+    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103.00000000_0000_0000_0000_000000000131.00000000_0000_0000_0000_000000000401'::ltree,
+    'folder'::resource_type,
+    'Grocery List',
+    'Weekly Essentials',
     'active'::resource_status,
     '{
-        "variant": "row_detail_check",
-        "status": "active",
-        "priority": "high",
-        "location": "Safeway",
+        "variant": "row_neon_group",
+        "color": "#10b981",
+        "icon": "ShoppingCart",
         "__config": {
             "slot_headline": "title",
             "slot_subtext": "description",
-            "slot_status": "status",
-            "slot_badge_3": "location"
+            "slot_accent_color": "color",
+            "slot_icon_start": "icon"
         }
     }'::jsonb,
     false,
     '11111111-1111-1111-1111-111111111111'::uuid
 );
 
--- Task: Bread (Child of Shopping)
+-- Item: Milk (Child of Grocery List) - NOW USING CURRENCY ROW
 INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    created_by
+    id, user_id, household_id, parent_id, path, type, title, description, status, meta_data, is_schedulable, created_by
 ) VALUES (
     '00000000-0000-0000-0000-000000000402'::uuid,
     '11111111-1111-1111-1111-111111111111'::uuid,
     NULL,
-    '00000000-0000-0000-0000-000000000103'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103.00000000_0000_0000_0000_000000000402'::ltree,
+    '00000000-0000-0000-0000-000000000401'::uuid,
+    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103.00000000_0000_0000_0000_000000000131.00000000_0000_0000_0000_000000000401.00000000_0000_0000_0000_000000000402'::ltree,
     'task'::resource_type,
-    'Bread',
-    'Whole wheat',
-    'completed'::resource_status,
+    'Milk',
+    '2% Organic',
+    'active'::resource_status,
     '{
-        "variant": "row_detail_check",
-        "status": "completed",
-        "priority": "low",
+        "variant": "row_input_currency",
+        "estimated_cost": 4.50,
+        "status": "active",
         "__config": {
             "slot_headline": "title",
-            "slot_subtext": "description",
+            "slot_value": "estimated_cost",
             "slot_status": "status"
         }
     }'::jsonb,
@@ -509,47 +313,35 @@ INSERT INTO resources (
 );
 
 -- ============================================================================
--- SECTION 6: CREATE ROOT-LEVEL TASK (Direct child of To-Do Tab)
+-- SECTION 6: POPULATE ITEMS (All Products)
 -- ============================================================================
 
--- Task: Schedule Dentist Appointment
+-- Product: Apple (Child of Items) - NOW USING STEPPER ROW
 INSERT INTO resources (
-    id,
-    user_id,
-    household_id,
-    parent_id,
-    path,
-    type,
-    title,
-    description,
-    status,
-    meta_data,
-    is_schedulable,
-    scheduled_at,
-    created_by
+    id, user_id, household_id, parent_id, path, type, title, description, status, meta_data, is_schedulable, created_by
 ) VALUES (
     '00000000-0000-0000-0000-000000000501'::uuid,
     '11111111-1111-1111-1111-111111111111'::uuid,
     NULL,
-    '00000000-0000-0000-0000-000000000105'::uuid,
-    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000105.00000000_0000_0000_0000_000000000501'::ltree,
-    'task'::resource_type,
-    'Schedule Dentist Appointment',
-    'Annual checkup',
+    '00000000-0000-0000-0000-000000000132'::uuid,
+    'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000103.00000000_0000_0000_0000_000000000132.00000000_0000_0000_0000_000000000501'::ltree,
+    'stock_item'::resource_type,
+    'Apple',
+    'Fuji (Pantry Stock)',
     'active'::resource_status,
     '{
-        "variant": "row_detail_check",
-        "status": "active",
-        "priority": "medium",
+        "variant": "row_input_stepper",
+        "quantity": 5,
+        "min_qty": 2,
+        "unit": "pcs",
         "__config": {
             "slot_headline": "title",
             "slot_subtext": "description",
-            "slot_status": "status",
-            "slot_badge_1": "priority"
+            "slot_value": "quantity",
+            "slot_min_threshold": "min_qty"
         }
     }'::jsonb,
-    true,
-    '2025-12-15T10:00:00Z',
+    false,
     '11111111-1111-1111-1111-111111111111'::uuid
 );
 

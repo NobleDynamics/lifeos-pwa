@@ -27,6 +27,7 @@ The ViewEngine is a data-driven rendering system that renders recursive Node tre
 | Variant | Component | Use Case |
 |---------|-----------|----------|
 | `layout_app_shell` | `LayoutAppShell` | App container with tabs and search |
+| `layout_top_tabs` | `LayoutTopTabs` | Segmented control sub-navigation |
 | `view_directory` | `ViewDirectory` | Searchable list with action button |
 | `view_list_stack` | `ViewListStack` | Collapsible folders with neon glow |
 | `row_detail_check` | `RowDetailCheck` | Task/item rows with status icons |

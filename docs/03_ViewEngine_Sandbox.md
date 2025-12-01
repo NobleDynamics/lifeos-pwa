@@ -282,6 +282,44 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
     { "title": "To-Do", "metadata": { "icon": "CheckSquare" }, ... },
     { "title": "Shopping", "metadata": { "icon": "ShoppingCart" }, ... }
   ]
+  ]
+}
+```
+
+---
+
+### `layout_top_tabs`
+**Structure:** Segmented Control (Pills) + Active Tab Content
+**Use for:** Secondary navigation within an App Shell (e.g., "Shopping" -> "Lists" | "Items")
+
+```
+┌────────────────────────────────────────────────┐
+│  [ Pill 1 ] [ Pill 2 ] [ Pill 3 ]              │
+├────────────────────────────────────────────────┤
+│                                                │
+│  Active Tab Content                            │
+│                                                │
+└────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `default_tab_id` | string | UUID of child to show first (optional) |
+
+**Behavior:**
+- **Segmented Control:** Renders children as a horizontal scrollable list of pills.
+- **Nested:** Designed to sit inside `layout_app_shell` or other containers.
+
+**Example:**
+```json
+{
+  "variant": "layout_top_tabs",
+  "title": "Shopping",
+  "children": [
+    { "title": "Lists", "variant": "view_list_stack", ... },
+    { "title": "Items", "variant": "view_directory", ... }
+  ]
 }
 ```
 

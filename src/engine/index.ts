@@ -116,6 +116,7 @@ export { ViewListStack } from './components/variants/views/view_list_stack'
 export { ViewDirectory } from './components/variants/views/view_directory'
 export { ViewGridFixed } from './components/variants/views/view_grid_fixed'
 export { LayoutAppShell } from './components/variants/layouts/layout_app_shell'
+export { LayoutTopTabs } from './components/variants/layouts/layout_top_tabs'
 
 // Rows (List Items)
 export { RowDetailCheck } from './components/variants/rows/row_detail_check'
@@ -139,6 +140,7 @@ import { ViewListStack } from './components/variants/views/view_list_stack'
 import { ViewDirectory } from './components/variants/views/view_directory'
 import { ViewGridFixed } from './components/variants/views/view_grid_fixed'
 import { LayoutAppShell } from './components/variants/layouts/layout_app_shell'
+import { LayoutTopTabs } from './components/variants/layouts/layout_top_tabs'
 import { RowDetailCheck } from './components/variants/rows/row_detail_check'
 import { RowNeonGroup } from './components/variants/rows/row_neon_group'
 import { RowSimple } from './components/variants/rows/row_simple'
@@ -165,6 +167,7 @@ export function initializeEngine(): void {
     view_directory: ViewDirectory,
     view_grid_fixed: ViewGridFixed,
     layout_app_shell: LayoutAppShell,
+    layout_top_tabs: LayoutTopTabs,
 
     // Rows (List Items)
     row_detail_check: RowDetailCheck,

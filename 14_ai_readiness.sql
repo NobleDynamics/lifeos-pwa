@@ -17,6 +17,9 @@ CREATE TYPE link_type AS ENUM (
     'REFERENCE'
 );
 
+-- Drop default value to avoid casting errors
+ALTER TABLE resource_links ALTER COLUMN link_type DROP DEFAULT;
+
 -- Alter the column to use the new type, with mapping logic
 ALTER TABLE resource_links 
     ALTER COLUMN link_type TYPE link_type 
@@ -30,6 +33,9 @@ ALTER TABLE resource_links
         WHEN link_type::text = 'references' THEN 'REFERENCE'::link_type
         ELSE 'REFERENCE'::link_type -- Fallback for any other values
     END;
+
+-- Set new default value
+ALTER TABLE resource_links ALTER COLUMN link_type SET DEFAULT 'REFERENCE'::link_type;
 
 -- Drop the old type
 DROP TYPE link_type_old;

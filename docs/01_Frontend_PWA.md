@@ -249,9 +249,11 @@ A. The Swipe Deck (Main View)
 Concept: The core content area is a horizontal carousel of full-screen views, referred to as "Panes."
 Interaction: Users navigate by swiping left or right. Utilizes framer-motion for physics-based swiping.
 Architecture:
-- **System Apps:** Hardcoded core modules (Household, Health, Agenda, etc.).
-- **User Apps:** Dynamic `ViewEnginePane` instances driven by "Context Roots" in the database.
-- **Ordering:** System Apps -> User Apps -> Settings.
+- **System Apps:** Hardcoded core modules (Health, Agenda, Chat, Dashboard, Feed, Cloud, Finance, Settings, Sandbox).
+- **User Apps:** Dynamic `ViewEnginePane` instances driven by "Context Roots" in the database (e.g., "My Home").
+- **Ordering:** System Apps -> User Apps (before Settings) -> Settings -> Sandbox.
+
+**Migration Note (Dec 2024):** The "Household" app has been migrated from a hardcoded System App to a database-driven User App ("My Home"). This is now rendered via `ViewEnginePane` using Context Roots.
 
 B. The Dock (Quick Launch)
 Concept: A fixed bar at the bottom, present across all Panes.

@@ -28,7 +28,6 @@ interface SystemAppConfig {
 }
 
 const SYSTEM_APPS: Record<string, SystemAppConfig> = {
-    household: { id: 'household', label: 'Household', icon: Home, color: 'text-purple-400', isSystem: true },
     health: { id: 'health', label: 'Health', icon: HeartPulse, color: 'text-red-400', isSystem: true },
     agenda: { id: 'agenda', label: 'Agenda', icon: Calendar, color: 'text-blue-400', isSystem: true },
     chat: { id: 'chat', label: 'Chat', icon: MessageSquare, color: 'text-green-400', isSystem: true },
@@ -100,8 +99,6 @@ export function useAppLauncher() {
 
             if (isSystem && meta.system_id && SYSTEM_APPS[meta.system_id]) {
                 id = meta.system_id
-            } else if (context === 'household.todos') {
-                id = 'household'
             } else if (context === 'cloud.files') {
                 id = 'cloud'
             } else if (context === 'health.dashboard') {

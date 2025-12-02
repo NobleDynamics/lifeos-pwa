@@ -17,8 +17,8 @@ export type ShoppingView = 'list' | 'items'
 export type BrainView = 'learning' | 'games' | 'social' | 'sleep'
 
 // Default pane order (Dashboard in center for easy access)
+// Note: 'household' removed - now DB-driven as "My Home" via Context Roots
 const DEFAULT_PANE_ORDER: PaneType[] = [
-  'household',
   'health',
   'agenda',
   'chat',

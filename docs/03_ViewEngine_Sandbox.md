@@ -63,19 +63,43 @@ ViewEnginePane
     ↓
 Always renders: fullNodeTree (Context Root = App Shell)
     ↓
-ShellNavigationProvider { targetNodeId }
+ShellNavigationProvider { targetNodeId, onNavigate }
+    ↓
+ShellActionProvider (inside layout_app_shell)
     ↓
 layout_app_shell
-    ├── Header (shows current title, back button when deep)
+    ├── Header (dynamic title + action button from ShellActionContext)
     ├── Viewport → renders targetNodeId OR active tab
     └── Tab Bar (always visible, highlights containing tab)
 ```
 
 **Key Principle:** The App Shell never gets swapped out. Only the viewport content changes based on navigation. This ensures:
-- Bottom tabs are always visible
+- Bottom tabs are always visible (sticky with `h-[100dvh]` and `z-10`)
 - Header chrome stays persistent
-- Browser back button works correctly
+- Browser back button works correctly (Passive Listening pattern)
 - Input interactions don't lose state
+
+### Navigation State Management (Passive Listening)
+
+The navigation system uses URL hash state with a "Passive Listening" strategy to prevent race conditions:
+
+**Forward Navigation (clicking folder):**
+```
+User clicks folder → pushNodeToHistory(nodeId) → URL hash updates → React state updates
+```
+
+**Back Navigation (pressing back button):**
+```
+Back pressed → popstate fires → Global useBackButton calls handlers → 
+ViewEnginePane handler reads URL, updates React state → Returns true
+```
+
+**Critical Rules:**
+- **Forward:** Use `history.pushState()` (creates new history entry)
+- **Back:** React to `popstate` only - do NOT call `pushState/replaceState/back()`
+- **Exit Gate:** If at root, handler returns `false` to let app-level navigation handle it
+
+This prevents the "Rapid Rewind" bug where competing popstate handlers cause navigation cascades.
 
 ---
 
@@ -209,6 +233,8 @@ Use these inside variant components:
 | `useHasChildren()` | `boolean` | Check if node has children |
 | `useChildCount()` | `number` | Count of direct children |
 | `useRenderChildren()` | `() => ReactNode` | Render children helper |
+| `useShellNavigation()` | `{ targetNodeId, navigateToNode, navigateBack, canNavigateBack }` | Shell navigation |
+| `useShellAction()` | `{ actionConfig, setActionConfig, clearActionConfig }` | Dynamic header actions |
 
 ---
 
@@ -289,6 +315,40 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 - **Back Button:** Appears automatically when user navigates into subfolders.
 - **Tab Highlighting:** Correct tab stays highlighted even when deep in a subtree.
 - **Search:** Handled per-directory via `view_directory` (not in shell header).
+- **Dynamic Action Button:** Header "+ New" button controlled by child views via `ShellActionContext`.
+
+**Dynamic Header Actions:**
+Child views (like `view_directory`) can control the header's action button:
+
+```tsx
+// In view_directory.tsx
+const { setActionConfig, clearActionConfig } = useShellAction()
+
+useEffect(() => {
+  setActionConfig({
+    label: 'New',
+    options: [
+      { label: 'Folder', type: 'folder', icon: 'Folder' },
+      { label: 'Task', type: 'task', icon: 'CheckSquare' }
+    ],
+    parentId: node.id
+  })
+  return () => clearActionConfig()
+}, [node.id])
+```
+
+**Custom Create Options:**
+Views can specify custom options via `node.metadata.create_options`:
+```json
+{
+  "metadata": {
+    "create_options": [
+      { "label": "Add Item", "type": "task", "icon": "ShoppingCart" },
+      { "label": "Add Category", "type": "folder", "icon": "Folder" }
+    ]
+  }
+}
+```
 
 **Navigation Context:**
 Uses `ShellNavigationContext` to receive `targetNodeId` from `ViewEnginePane`. When the user taps a folder:
@@ -403,6 +463,18 @@ Uses `ShellNavigationContext` to receive `targetNodeId` from `ViewEnginePane`. W
 
 **Slots:**
 | Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Directory title (optional) |
+| `search_placeholder` | string | Search input placeholder text |
+| `show_action_button` | boolean | Show "+ New" in shell header (default: true) |
+| `action_label` | string | Label for action button (default: "New") |
+
+**Note:** The action button has been moved from the directory to the App Shell header. It is controlled via `ShellActionContext` for consistent positioning.
+
+---
+
+### `view_grid_fixed`
+**Structure:** Responsive grid container
 **Use for:** Pantries, wardrobes, galleries
 
 ```
@@ -560,6 +632,8 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 
 **Behavior:**
 - Buttons trigger `update_field` on the `value` slot.
+- **Optimistic UI:** Uses local state for instant feedback, then persists to DB.
+- **Event Handling:** Uses `onPointerDown` with `preventDefault()` and `stopPropagation()` to prevent parent row handler interference.
 
 ---
 
@@ -584,6 +658,7 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 **Behavior:**
 - Input triggers `update_field` on `value` (on Blur/Enter).
 - Checkbox triggers `toggle_status` OR custom `metadata.behavior`.
+- **Event Handling:** Uses `onPointerDown` with `stopPropagation()` to prevent parent row handler interference while allowing focus.
 
 ---
 

@@ -67,7 +67,8 @@ export function RowInputCurrency({ node }: VariantComponentProps) {
     }
 
     // Handle Checkbox Click
-    const handleCheckboxClick = (e: React.MouseEvent) => {
+    const handleCheckboxClick = (e: React.MouseEvent | React.PointerEvent) => {
+        e.preventDefault()
         e.stopPropagation()
         if (!actions) return
 
@@ -98,6 +99,10 @@ export function RowInputCurrency({ node }: VariantComponentProps) {
             {/* Left: Checkbox */}
             <div
                 className="flex-shrink-0 pt-0.5 cursor-pointer hover:scale-110 transition-transform"
+                onPointerDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                }}
                 onClick={handleCheckboxClick}
                 role="button"
             >
@@ -124,11 +129,21 @@ export function RowInputCurrency({ node }: VariantComponentProps) {
             </div>
 
             {/* Right: Currency Input */}
-            <div className="flex items-center gap-1 bg-dark-200/50 rounded-md px-2 py-1 border border-transparent focus-within:border-primary/50 transition-colors">
+            <div 
+                className="flex items-center gap-1 bg-dark-200/50 rounded-md px-2 py-1 border border-transparent focus-within:border-primary/50 transition-colors"
+                onPointerDown={(e) => {
+                    // Prevent parent row handler from triggering
+                    e.stopPropagation()
+                }}
+            >
                 <span className="text-dark-400 text-sm font-medium">{currencySymbol}</span>
                 <input
                     type="number"
                     value={localValue}
+                    onPointerDown={(e) => {
+                        // Stop propagation but don't prevent default (allow focus)
+                        e.stopPropagation()
+                    }}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) => setLocalValue(e.target.value)}
                     onFocus={() => setIsFocused(true)}

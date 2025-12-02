@@ -61,6 +61,8 @@ interface Node {
 | `useHasChildren()` | Check if node has children |
 | `useChildCount()` | Get number of direct children |
 | `useRenderChildren()` | Render children from within variants |
+| `useShellNavigation()` | Navigation context: targetNodeId, navigateToNode, navigateBack |
+| `useShellAction()` | Dynamic header actions: setActionConfig, clearActionConfig |
 
 ### Sandbox Pane (Dev Tool)
 

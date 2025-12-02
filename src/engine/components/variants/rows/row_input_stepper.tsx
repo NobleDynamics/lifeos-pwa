@@ -3,10 +3,12 @@
  * 
  * A row with an interactive stepper for numeric values (stock, quantity, etc.).
  * Features min/max thresholds and visual alerts.
+ * Uses optimistic UI for responsive feel.
  * 
  * @module engine/components/variants/rows/row_input_stepper
  */
 
+import { useState, useEffect, useCallback } from 'react'
 import { Minus, Plus, AlertCircle } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
@@ -27,22 +29,36 @@ export function RowInputStepper({ node }: VariantComponentProps) {
     const step = useSlot<number>('step', 1)
     const unit = useSlot<string>('unit', '')
 
-    // Logic
-    const isLowStock = value <= minThreshold
-    const isOverStock = value >= maxThreshold
+    // ==========================================================================
+    // OPTIMISTIC UI: Local state for immediate feedback
+    // ==========================================================================
+    const [localValue, setLocalValue] = useState(value)
+    
+    // Sync local value when prop changes (e.g., from DB update)
+    useEffect(() => {
+        setLocalValue(value)
+    }, [value])
 
-    const handleUpdate = (newValue: number) => {
+    // Logic based on LOCAL value for instant feedback
+    const isLowStock = localValue <= minThreshold
+    const isOverStock = localValue >= maxThreshold
+
+    const handleUpdate = useCallback((newValue: number) => {
         if (!actions) return
 
-        // Prevent going below 0 (unless specifically allowed, but for stock usually 0 is floor)
+        // Prevent going below 0
         if (newValue < 0) return
 
+        // Optimistic update: Set local value immediately
+        setLocalValue(newValue)
+
+        // Then persist to DB
         actions.onTriggerBehavior(node, {
             action: 'update_field',
-            target: 'value', // This assumes the metadata key is 'value', or whatever the slot maps to
+            target: 'value',
             payload: newValue
         })
-    }
+    }, [actions, node])
 
     return (
         <div
@@ -73,17 +89,22 @@ export function RowInputStepper({ node }: VariantComponentProps) {
             {/* Right: Stepper Control */}
             <div className="flex items-center gap-3 bg-dark-200/50 rounded-lg p-1">
                 <button
+                    onPointerDown={(e) => {
+                        // Prevent event from bubbling to parent row handlers
+                        e.preventDefault()
+                        e.stopPropagation()
+                    }}
                     onClick={(e) => {
                         e.stopPropagation()
-                        handleUpdate(value - step)
+                        handleUpdate(localValue - step)
                     }}
                     className={cn(
                         "w-8 h-8 flex items-center justify-center rounded-md transition-colors",
                         "hover:bg-dark-300 active:bg-dark-400",
                         "text-dark-400 hover:text-dark-100",
-                        value <= 0 && "opacity-30 cursor-not-allowed"
+                        localValue <= 0 && "opacity-30 cursor-not-allowed"
                     )}
-                    disabled={value <= 0}
+                    disabled={localValue <= 0}
                     aria-label="Decrease quantity"
                 >
                     <Minus size={16} />
@@ -93,14 +114,19 @@ export function RowInputStepper({ node }: VariantComponentProps) {
                     "min-w-[2rem] text-center font-mono text-sm font-medium",
                     isLowStock ? "text-red-400" : "text-dark-100"
                 )}>
-                    {value}
+                    {localValue}
                     {unit && <span className="text-xs text-dark-400 ml-1">{unit}</span>}
                 </div>
 
                 <button
+                    onPointerDown={(e) => {
+                        // Prevent event from bubbling to parent row handlers
+                        e.preventDefault()
+                        e.stopPropagation()
+                    }}
                     onClick={(e) => {
                         e.stopPropagation()
-                        handleUpdate(value + step)
+                        handleUpdate(localValue + step)
                     }}
                     className={cn(
                         "w-8 h-8 flex items-center justify-center rounded-md transition-colors",

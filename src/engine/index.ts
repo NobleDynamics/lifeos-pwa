@@ -68,6 +68,17 @@ export {
   findContainingChild,
 } from './context/ShellNavigationContext'
 
+// Shell Action Context (for dynamic header actions)
+export {
+  ShellActionProvider,
+  useShellAction,
+} from './context/ShellActionContext'
+
+export type {
+  CreateOption,
+  ActionConfig,
+} from './context/ShellActionContext'
+
 // =============================================================================
 // REGISTRY EXPORTS
 // =============================================================================

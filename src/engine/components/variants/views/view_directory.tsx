@@ -2,18 +2,19 @@
  * ViewDirectory Variant Component
  * 
  * A container variant with search bar header and vertical stack of children.
- * Includes client-side filtering and "New" button with type selection.
+ * Includes client-side filtering. The "New" button is controlled via ShellActionContext
+ * so it appears in the App Shell header.
  * Purely structural - uses slots for all display data.
  * 
  * @module engine/components/variants/views/view_directory
  */
 
-import { useState, useMemo } from 'react'
-import { Search, Plus, Folder, CheckSquare } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Search } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode, useChildCount } from '../../../context/NodeContext'
-import { useEngineActions } from '../../../context/EngineActionsContext'
 import { useSlot } from '../../../hooks/useSlot'
+import { useShellAction, type CreateOption } from '../../../context/ShellActionContext'
 import { renderChildren } from '../../ViewEngine'
 import { cn } from '@/lib/utils'
 
@@ -40,19 +41,47 @@ import { cn } from '@/lib/utils'
 export function ViewDirectory({ node }: VariantComponentProps) {
   const { depth, rootId } = useNode()
   const childCount = useChildCount()
-  const actions = useEngineActions()
+  const { setActionConfig, clearActionConfig } = useShellAction()
 
   // Local Search state - always use local search (shell search removed)
   const [localQuery, setLocalQuery] = useState('')
   const searchQuery = localQuery
 
-  // Type selector state
-  const [showTypeSelector, setShowTypeSelector] = useState(false)
-
   // Slot-based data access
   const searchPlaceholder = useSlot<string>('search_placeholder', 'Search...')
   const showActionButton = useSlot<boolean>('show_action_button', true)
   const actionLabel = useSlot<string>('action_label', 'New')
+
+  // ==========================================================================
+  // SHELL ACTION CONFIG (Phase 2: Dynamic Header)
+  // ==========================================================================
+  
+  // Set action config on mount, clear on unmount
+  useEffect(() => {
+    if (!showActionButton) {
+      clearActionConfig()
+      return
+    }
+
+    // Build options from metadata or use defaults
+    const customOptions = node.metadata.create_options as CreateOption[] | undefined
+    
+    const options: CreateOption[] = customOptions || [
+      { label: 'Folder', type: 'folder', icon: 'Folder' },
+      { label: 'Task', type: 'task', icon: 'CheckSquare' }
+    ]
+
+    setActionConfig({
+      label: actionLabel,
+      options,
+      parentId: node.id
+    })
+
+    // Cleanup on unmount
+    return () => {
+      clearActionConfig()
+    }
+  }, [node.id, node.metadata.create_options, showActionButton, actionLabel, setActionConfig, clearActionConfig])
 
   // Filter children based on search query
   const filteredChildren = useMemo(() => {
@@ -83,28 +112,13 @@ export function ViewDirectory({ node }: VariantComponentProps) {
   const hasFilteredResults = filteredChildren && filteredChildren.length > 0
   const isFiltering = searchQuery.trim().length > 0
 
-  // Handle "+ New" button click - show type selector
-  const handleNewClick = () => {
-    if (actions) {
-      setShowTypeSelector(true)
-    }
-  }
-
-  // Handle type selection
-  const handleTypeSelect = (type: 'folder' | 'task') => {
-    setShowTypeSelector(false)
-    if (actions) {
-      actions.onOpenCreateForm(type, node.id)
-    }
-  }
-
   return (
     <div
       className="flex flex-col h-full"
       data-variant="view_directory"
       data-node-id={node.id}
     >
-      {/* Top Bar: Search + Action Button */}
+      {/* Top Bar: Search Only (Action button moved to Shell Header) */}
       <div className="flex items-center gap-3 px-3 py-3 border-b border-dark-200">
         {/* Search Input - Always show local search per directory */}
         <div className="flex-1 relative">
@@ -126,115 +140,6 @@ export function ViewDirectory({ node }: VariantComponentProps) {
             )}
           />
         </div>
-
-        {/* Action Button */}
-        {showActionButton && (
-          <div className="relative">
-            <button
-              onClick={handleNewClick}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-lg",
-                "text-sm font-medium text-white",
-                "bg-gradient-to-r from-cyan-600 to-cyan-500",
-                "hover:from-cyan-500 hover:to-cyan-400",
-                "active:scale-95 transition-all duration-150",
-                "shadow-lg shadow-cyan-500/20"
-              )}
-              type="button"
-            >
-              <Plus size={16} />
-              {actionLabel}
-            </button>
-
-            {/* Type Selector Dropdown */}
-            {showTypeSelector && (
-              <>
-                {/* Backdrop */}
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowTypeSelector(false)}
-                />
-
-                {/* Dropdown */}
-                <div
-                  className={cn(
-                    "absolute right-0 top-full mt-2 z-50",
-                    "min-w-[160px] py-2 rounded-lg shadow-lg",
-                    "bg-dark-100 border border-dark-300"
-                  )}
-                >
-                  {/* Custom Options from Metadata */}
-                  {node.metadata.create_options ? (
-                    (node.metadata.create_options as any[]).map((option, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          // If variant is provided, we might need a way to pass it.
-                          // For now, we assume standard types or that the form handles it.
-                          // But wait, the user said: "If create_options exists... render those options".
-                          // The `onOpenCreateForm` takes `type` ('folder' | 'task').
-                          // If we need custom variants, we might need to extend `onOpenCreateForm` or pass extra data.
-                          // However, the prompt says: "If create_options exists (e.g., [{ label: 'Add Item', variant: 'row_input_currency' }])".
-                          // This implies we should be able to create items with specific variants.
-                          // Since `onOpenCreateForm` signature is `(type: 'folder' | 'task', parentId: string)`, 
-                          // we might be limited. 
-                          // Let's assume 'task' is the generic type for items, and we might need to set the variant later?
-                          // OR, maybe we just pass 'task' and the user will configure it?
-                          // Actually, let's look at `EngineActionsContext`.
-                          // It seems `onOpenCreateForm` is simple.
-                          // Let's just map everything to 'task' for now unless it's explicitly 'folder'.
-                          // And maybe we can pass the variant in a way that the form picks it up?
-                          // For now, I will just implement the UI part as requested.
-                          // If the backend/form doesn't support it yet, that's a separate issue, 
-                          // but I should try to pass the variant if possible.
-                          // The `useResourceForm` hook might need update, but I can't see it.
-                          // I will just call handleTypeSelect with 'task' or 'folder' based on some logic,
-                          // or just default to 'task' for custom items.
-                          handleTypeSelect(option.type || 'task')
-                        }}
-                        className={cn(
-                          "w-full px-4 py-2.5 text-left text-sm",
-                          "flex items-center gap-3",
-                          "text-white hover:bg-dark-200 transition-colors"
-                        )}
-                      >
-                        {/* We can try to map icons if needed, or just use a default */}
-                        <CheckSquare size={16} className="text-cyan-400" />
-                        {option.label}
-                      </button>
-                    ))
-                  ) : (
-                    /* Default Options */
-                    <>
-                      <button
-                        onClick={() => handleTypeSelect('folder')}
-                        className={cn(
-                          "w-full px-4 py-2.5 text-left text-sm",
-                          "flex items-center gap-3",
-                          "text-white hover:bg-dark-200 transition-colors"
-                        )}
-                      >
-                        <Folder size={16} className="text-cyan-400" />
-                        Folder
-                      </button>
-                      <button
-                        onClick={() => handleTypeSelect('task')}
-                        className={cn(
-                          "w-full px-4 py-2.5 text-left text-sm",
-                          "flex items-center gap-3",
-                          "text-white hover:bg-dark-200 transition-colors"
-                        )}
-                      >
-                        <CheckSquare size={16} className="text-green-400" />
-                        Task
-                      </button>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )}
       </div>
 
       {/* List Area */}

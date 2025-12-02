@@ -17,7 +17,7 @@
  * @module panes/ViewEnginePane
  */
 
-import { useMemo, useEffect, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState } from 'react'
 import { Loader2, AlertCircle } from 'lucide-react'
 import {
   ViewEngine,
@@ -107,18 +107,18 @@ function getNodeIdFromUrl(): string | null {
 }
 
 /**
- * Update URL hash with nodeId
+ * Update URL hash with nodeId (FORWARD navigation only)
+ * 
+ * NAVIGATION RULES:
+ * - Forward (clicking folder): Use pushState (creates new history entry)
+ * - Back (pressing back): React to popstate (do NOT push/replace)
+ * - The global useBackButton system handles back button interception
  */
-function updateUrlWithNodeId(nodeId: string | null, replace = false) {
+function pushNodeToHistory(nodeId: string | null) {
   const newHash = nodeId ? `#node=${nodeId}` : ''
   const url = new URL(window.location.href)
   url.hash = newHash
-  
-  if (replace) {
-    window.history.replaceState({ nodeId }, '', url.toString())
-  } else {
-    window.history.pushState({ nodeId }, '', url.toString())
-  }
+  window.history.pushState({ nodeId }, '', url.toString())
 }
 
 // =============================================================================
@@ -173,36 +173,33 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [rootId, resources])
 
   // ==========================================================================
-  // URL STATE MANAGEMENT (Phase 2)
+  // URL STATE MANAGEMENT
   // ==========================================================================
-
-  // Handle popstate (browser back/forward)
-  useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      const nodeId = event.state?.nodeId || getNodeIdFromUrl()
-      setTargetNodeId(nodeId)
-    }
-
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
+  
+  // NOTE: We do NOT add a separate popstate listener here.
+  // The global useBackButton system handles popstate events.
+  // Our handleBack callback (registered below) reacts to back button presses.
+  // This prevents the "War of the Handlers" bug where two listeners compete.
 
   // ==========================================================================
   // NAVIGATION CALLBACKS
   // ==========================================================================
 
   /**
-   * Handle navigation changes from ShellNavigationProvider
+   * Handle FORWARD navigation from ShellNavigationProvider
+   * (Called when user clicks on a folder or tab)
    */
   const handleNavigate = useCallback((nodeId: string | null, _path: string[]) => {
-    // Don't push to history if navigating to root (rootId)
+    // Update React state
     if (nodeId === rootId) {
       setTargetNodeId(null)
-      updateUrlWithNodeId(null)
     } else {
       setTargetNodeId(nodeId)
-      updateUrlWithNodeId(nodeId)
     }
+    
+    // FORWARD navigation: Push new history entry
+    // This allows back button to return to previous location
+    pushNodeToHistory(nodeId === rootId ? null : nodeId)
   }, [rootId])
 
   /**
@@ -214,12 +211,14 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [openCreateForm])
 
   /**
-   * Handle navigating into a folder
+   * Handle navigating into a folder (FORWARD navigation)
    */
   const handleNavigateInto = useCallback((nodeId: string, _nodeTitle: string, _nodePath: string) => {
-    // Use the ShellNavigationProvider's navigation via URL state
+    // Update React state
     setTargetNodeId(nodeId)
-    updateUrlWithNodeId(nodeId)
+    
+    // FORWARD navigation: Push new history entry
+    pushNodeToHistory(nodeId)
   }, [])
 
   /**
@@ -338,26 +337,45 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [resources, updateResourceMutation, cycleStatusMutation, moveResourceMutation, createResourceMutation])
 
   // ==========================================================================
-  // BACK BUTTON HANDLING (Phase 2)
+  // BACK BUTTON HANDLING (PASSIVE LISTENING STRATEGY)
   // ==========================================================================
   
   // Determine if we can navigate back within the ViewEngine
   const canNavigateBack = targetNodeId !== null && targetNodeId !== rootId
   
-  // Back button handler - returns true if we handled it
+  /**
+   * Back button handler - called by the global useBackButton system
+   * 
+   * PASSIVE LISTENING STRATEGY:
+   * - When popstate fires, the URL has ALREADY changed to the previous entry
+   * - We just need to update React state to match the new URL
+   * - We do NOT call history.back() or history.push() here
+   * - The global system handles history management
+   * 
+   * Returns true if we handled the back (was in a deep view)
+   * Returns false if we're at root (let app-level navigation handle it)
+   */
   const handleBack = useCallback(() => {
-    // If we're at a deeper level, go back
-    if (targetNodeId && targetNodeId !== rootId) {
-      // Let browser handle it via popstate
-      window.history.back()
-      return true
+    // If we're not in a deep view, we can't handle back
+    // Let the app-level handler deal with it (navigate to previous pane)
+    if (!targetNodeId || targetNodeId === rootId) {
+      return false
     }
     
-    // At root of ViewEngine - don't handle, let pane navigation take over
-    return false
+    // We're in a deep view - the browser already popped to the previous URL
+    // Read the new nodeId from the URL (which has already changed)
+    const newNodeId = getNodeIdFromUrl()
+    
+    // Update React state to match the browser's URL
+    // This is "passive listening" - we react to the URL change, not cause it
+    setTargetNodeId(newNodeId)
+    
+    // Return true to indicate we handled the back action
+    return true
   }, [targetNodeId, rootId])
   
   // Register with the global back button system at PRIORITY 20
+  // This is higher than modals (10) and app-level (0)
   useBackButton({
     onCloseModal: handleBack,
     priority: 20,

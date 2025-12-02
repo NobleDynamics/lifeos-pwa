@@ -17,20 +17,29 @@
  */
 
 import { useState, useMemo, useEffect } from 'react'
-import { ChevronLeft, LayoutGrid } from 'lucide-react'
+import { ChevronLeft, LayoutGrid, Plus, Folder, CheckSquare } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNodeMeta } from '../../../context/NodeContext'
 import { ViewEngine } from '../../ViewEngine'
 import { useShellNavigation, findContainingChild, findNodeInTree } from '../../../context/ShellNavigationContext'
+import { ShellActionProvider, useShellAction, type CreateOption } from '../../../context/ShellActionContext'
+import { useEngineActions } from '../../../context/EngineActionsContext'
 import { cn } from '@/lib/utils'
 
-export function LayoutAppShell({ node }: VariantComponentProps) {
+function LayoutAppShellContent({ node }: VariantComponentProps) {
     const { title } = node
     const defaultTabId = useNodeMeta<string>('default_tab_id')
 
     // Get navigation context
     const { targetNodeId, navigateBack, canNavigateBack, targetPath, navigateToNode } = useShellNavigation()
+    
+    // Get action context for header button
+    const { actionConfig } = useShellAction()
+    const actions = useEngineActions()
+    
+    // Dropdown state for action button
+    const [showActionDropdown, setShowActionDropdown] = useState(false)
 
     // =========================================================================
     // TAB STATE MANAGEMENT
@@ -142,12 +151,27 @@ export function LayoutAppShell({ node }: VariantComponentProps) {
         navigateToNode(tabId)
     }
 
+    // Handle action button click
+    const handleActionClick = () => {
+        if (actionConfig) {
+            setShowActionDropdown(true)
+        }
+    }
+
+    // Handle option selection from dropdown
+    const handleOptionSelect = (option: CreateOption) => {
+        setShowActionDropdown(false)
+        if (actions && actionConfig) {
+            actions.onOpenCreateForm(option.type, actionConfig.parentId)
+        }
+    }
+
     // =========================================================================
     // RENDER
     // =========================================================================
 
     return (
-        <div className="flex flex-col h-full bg-dark-950 text-white overflow-hidden">
+        <div className="flex flex-col h-[100dvh] bg-dark-950 text-white overflow-hidden">
             {/* Header Section - FIXED at top */}
             <div className="flex-none border-b border-dark-800 bg-dark-900/50 backdrop-blur-sm z-10">
                 {/* Title Bar */}
@@ -170,7 +194,67 @@ export function LayoutAppShell({ node }: VariantComponentProps) {
                         {displayTitle}
                     </h1>
 
-                    {/* Removed: Action button - now handled per-directory */}
+                    {/* Dynamic Action Button - controlled by child views */}
+                    {actionConfig && (
+                        <div className="relative">
+                            <button
+                                onClick={handleActionClick}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                                    "text-sm font-medium text-white",
+                                    "bg-gradient-to-r from-cyan-600 to-cyan-500",
+                                    "hover:from-cyan-500 hover:to-cyan-400",
+                                    "active:scale-95 transition-all duration-150",
+                                    "shadow-lg shadow-cyan-500/20"
+                                )}
+                                type="button"
+                            >
+                                <Plus size={16} />
+                                {actionConfig.label}
+                            </button>
+
+                            {/* Action Dropdown */}
+                            {showActionDropdown && (
+                                <>
+                                    {/* Backdrop */}
+                                    <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setShowActionDropdown(false)}
+                                    />
+
+                                    {/* Dropdown Menu */}
+                                    <div
+                                        className={cn(
+                                            "absolute right-0 top-full mt-2 z-50",
+                                            "min-w-[160px] py-2 rounded-lg shadow-lg",
+                                            "bg-dark-100 border border-dark-300"
+                                        )}
+                                    >
+                                        {actionConfig.options.map((option, idx) => {
+                                            const iconName = option.icon || (option.type === 'folder' ? 'Folder' : 'CheckSquare')
+                                            // @ts-ignore - Dynamic icon lookup
+                                            const IconComponent = LucideIcons[iconName] || (option.type === 'folder' ? Folder : CheckSquare)
+                                            
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleOptionSelect(option)}
+                                                    className={cn(
+                                                        "w-full px-4 py-2.5 text-left text-sm",
+                                                        "flex items-center gap-3",
+                                                        "text-white hover:bg-dark-200 transition-colors"
+                                                    )}
+                                                >
+                                                    <IconComponent size={16} className={option.type === 'folder' ? "text-cyan-400" : "text-green-400"} />
+                                                    {option.label}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Removed: Search Zone - now handled per-directory */}
@@ -189,7 +273,7 @@ export function LayoutAppShell({ node }: VariantComponentProps) {
 
             {/* Tab Bar - FIXED at bottom */}
             {node.children && node.children.length > 0 && (
-                <div className="flex-none flex items-center justify-around border-t border-dark-800 bg-dark-900/90 backdrop-blur-md pb-safe">
+                <div className="flex-none flex items-center justify-around border-t border-dark-800 bg-dark-900/90 backdrop-blur-md pb-safe z-10">
                     {node.children.map(child => {
                         // A tab is active if:
                         // 1. It's the selected tab AND we're not in deep view
@@ -216,5 +300,17 @@ export function LayoutAppShell({ node }: VariantComponentProps) {
                 </div>
             )}
         </div>
+    )
+}
+
+// =============================================================================
+// WRAPPER WITH PROVIDER
+// =============================================================================
+
+export function LayoutAppShell({ node }: VariantComponentProps) {
+    return (
+        <ShellActionProvider>
+            <LayoutAppShellContent node={node} />
+        </ShellActionProvider>
     )
 }

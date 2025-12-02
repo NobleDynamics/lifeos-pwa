@@ -129,6 +129,7 @@ export function RowInputCurrency({ node }: VariantComponentProps) {
                 <input
                     type="number"
                     value={localValue}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) => setLocalValue(e.target.value)}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => {
@@ -136,6 +137,7 @@ export function RowInputCurrency({ node }: VariantComponentProps) {
                         handleCommit()
                     }}
                     onKeyDown={handleKeyDown}
+                    enterKeyHint="done"
                     className="w-20 bg-transparent text-right text-sm font-mono outline-none text-dark-100 placeholder-dark-500"
                     placeholder="0.00"
                     step="0.01"

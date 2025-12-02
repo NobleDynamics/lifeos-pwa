@@ -327,21 +327,6 @@ Task List: Filters the unified tasks table for category='health' or category='ch
 Stock Indicator: Dot (Green/Red) linked to pantry_items.
 Interactions: Modal to set Frequency (Cron) in routines and Linked Inventory Item.
 
-4.2 View: Household Pane
-Tabs: To-Do, Shopping List, Stock, Recipes.
-A. Global Feature: The "Household" Toggle
-UI: Toggle for "Shared View" vs "Private View".
-Logic: Filters tasks and lists by the household_id column.
-B. Tab: To-Do (Universal Resource Graph) [REFACTORED ✅]
-Structure: Infinite hierarchy using ltree paths. Folders can contain folders or tasks at any depth.
-Data Source: Queries the `resources` table with ltree operators.
-Components:
-- `HierarchyPane`: Main container with header, breadcrumbs, search, and create dropdown
-- `ResourceListView`: Renders `FolderRow` (neon glow, chevron) and `TaskRow` (checkbox)
-- `ResourceBreadcrumbs`: Clickable path trail (Root > Folder > Subfolder)
-- `ResourceForm`: Universal creator with dynamic fields (color for folders, due date for tasks)
-
-Visual Design:
 - **Folders**: Cyberpunk neon glow border, folder icon with custom color, chevron `>` indicator
 - **Tasks**: Standard dark card, checkbox (Circle → PlayCircle → CheckCircle), due date highlighting
 

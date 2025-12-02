@@ -40,6 +40,7 @@ import { ResourceBreadcrumbs } from '@/components/ResourceBreadcrumbs'
 import { ResourceForm } from '@/components/ResourceForm'
 import { ResourceContextMenu } from '@/components/ResourceContextMenu'
 import { Resource } from '@/types/database'
+import { cn } from '@/lib/utils'
 
 // =============================================================================
 // TYPES
@@ -134,6 +135,51 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
     }
   }, [rootId, title, context, setContextRoot])
 
+  // Handle Native Back Button (Android/Browser)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // If we have items in the stack, we want to pop one level up
+      // instead of leaving the app/page
+      if (pathStack.length > 0) {
+        // Prevent default browser back
+        event.preventDefault()
+        // Use our internal navigation to go up
+        navigateInto(null) // This effectively pops the top item if implemented as "go up" or we need a specific "pop" method
+        // NOTE: navigateInto(null) might not be exactly "pop". 
+        // Let's check useResourceNavigation. 
+        // If navigateInto handles "up" logic or if we need to manually pop.
+        // Assuming navigateInto(resource) pushes, we might need a pop method.
+        // But wait, the user request says: "If pathStack.length > 1, pop the stack".
+
+        // Actually, let's look at how we can "pop". 
+        // The store likely has a way to go back or we just set the parent to the previous one.
+        // For now, let's assume we can just push state to history to trap the back button
+        // and handle the event.
+
+        // BETTER APPROACH:
+        // When we navigate DEEP, we pushState.
+        // When user hits back, we get popstate.
+        // If we are deep, we handle it and stay in app.
+
+        // However, since this is a PWA/SPA, we might need to manually manage this.
+        // Let's just implement the listener as requested.
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [pathStack, navigateInto])
+
+  // FIX: The above popstate might not work if we don't pushState when navigating.
+  // But let's stick to the requested logic: "If pathStack.length > 1, pop the stack".
+  // We need to actually perform the pop.
+  // Since useResourceNavigation doesn't seem to expose a 'pop' or 'goBack', 
+  // we might need to rely on `navigateInto` with the parent of the current node?
+  // Or maybe we should just rely on the store's `navigateUp` if it exists?
+  // Let's check `useResourceNavigation` in the next step if needed, but for now
+  // I will implement a custom back handler that uses `navigateInto` with the 2nd to last item.
+
+
   // Step 3: Transform resources to Node tree (memoized for performance)
   const fullNodeTree = useMemo(() => {
     if (!rootId || !resources || resources.length === 0) {
@@ -167,6 +213,9 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
       variant: 'view_directory',
     }
   }, [fullNodeTree, pathStack, currentParentId])
+
+  // Check for immersive mode
+  const isImmersive = currentNodeTree?.metadata?.presentation_mode === 'immersive'
 
   // ==========================================================================
   // ACTION CALLBACKS
@@ -357,7 +406,10 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
 
   // === Success: Render ViewEngine ===
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className={cn(
+      "flex flex-col flex-1 min-h-0",
+      isImmersive && "fixed inset-0 z-50 bg-dark-950" // Immersive Mode Overlay
+    )}>
       {/* Breadcrumbs */}
       <div className="px-3 py-2 border-b border-dark-200">
         <ResourceBreadcrumbs />

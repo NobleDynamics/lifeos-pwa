@@ -376,24 +376,6 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 
 **Slots:**
 | Slot | Type | Description |
-|------|------|-------------|
-| `search_placeholder` | string | Placeholder text (default: "Search...") |
-| `show_action_button` | boolean | Show "+ New" button (default: true) |
-| `action_label` | string | Button label (default: "New") |
-
-**Example:**
-```json
-{
-  "variant": "view_directory",
-  "title": "Tasks",
-  "metadata": { "placeholder": "Search tasks..." }
-}
-```
-
----
-
-### `view_grid_fixed`
-**Structure:** Responsive Grid (2-col mobile, 4-col desktop)
 **Use for:** Pantries, wardrobes, galleries
 
 ```

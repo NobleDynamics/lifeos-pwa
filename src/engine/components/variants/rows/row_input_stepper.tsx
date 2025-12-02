@@ -101,7 +101,7 @@ export function RowInputStepper({ node }: VariantComponentProps) {
                     className={cn(
                         "w-8 h-8 flex items-center justify-center rounded-md transition-colors",
                         "hover:bg-dark-300 active:bg-dark-400",
-                        "text-dark-400 hover:text-dark-100",
+                        "text-dark-400 hover:text-white",
                         localValue <= 0 && "opacity-30 cursor-not-allowed"
                     )}
                     disabled={localValue <= 0}
@@ -112,10 +112,10 @@ export function RowInputStepper({ node }: VariantComponentProps) {
 
                 <div className={cn(
                     "min-w-[2rem] text-center font-mono text-sm font-medium",
-                    isLowStock ? "text-red-400" : "text-dark-100"
+                    isLowStock ? "text-red-400" : "text-white"
                 )}>
                     {localValue}
-                    {unit && <span className="text-xs text-dark-400 ml-1">{unit}</span>}
+                    {unit && <span className="text-xs text-dark-500 ml-1">{unit}</span>}
                 </div>
 
                 <button
@@ -131,7 +131,7 @@ export function RowInputStepper({ node }: VariantComponentProps) {
                     className={cn(
                         "w-8 h-8 flex items-center justify-center rounded-md transition-colors",
                         "hover:bg-dark-300 active:bg-dark-400",
-                        "text-dark-400 hover:text-dark-100"
+                        "text-dark-400 hover:text-white"
                     )}
                     aria-label="Increase quantity"
                 >

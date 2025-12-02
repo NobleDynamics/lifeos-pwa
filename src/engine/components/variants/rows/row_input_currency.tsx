@@ -136,7 +136,7 @@ export function RowInputCurrency({ node }: VariantComponentProps) {
                     e.stopPropagation()
                 }}
             >
-                <span className="text-dark-400 text-sm font-medium">{currencySymbol}</span>
+                <span className="text-dark-500 text-sm font-medium">{currencySymbol}</span>
                 <input
                     type="number"
                     value={localValue}
@@ -153,7 +153,7 @@ export function RowInputCurrency({ node }: VariantComponentProps) {
                     }}
                     onKeyDown={handleKeyDown}
                     enterKeyHint="done"
-                    className="w-20 bg-transparent text-right text-sm font-mono outline-none text-dark-100 placeholder-dark-500"
+                    className="w-20 bg-transparent text-right text-sm font-mono outline-none text-white placeholder-dark-500"
                     placeholder="0.00"
                     step="0.01"
                 />

@@ -275,6 +275,10 @@ INSERT INTO resources (
         "variant": "row_neon_group",
         "color": "#10b981",
         "icon": "ShoppingCart",
+        "create_options": [
+            { "label": "Add Item", "type": "item", "variant": "row_input_currency", "icon": "ShoppingBag" },
+            { "label": "Add Note", "type": "item", "variant": "row_simple", "icon": "FileText" }
+        ],
         "__config": {
             "slot_headline": "title",
             "slot_subtext": "description",

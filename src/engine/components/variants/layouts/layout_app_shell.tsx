@@ -172,8 +172,8 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
 
     return (
         <div className="flex flex-col h-[100dvh] bg-dark-950 text-white overflow-hidden">
-            {/* Header Section - FIXED at top */}
-            <div className="flex-none border-b border-dark-800 bg-dark-900/50 backdrop-blur-sm z-10">
+            {/* Header Section - FIXED at top, z-50 ensures dropdowns float above tab content */}
+            <div className="flex-none border-b border-dark-800 bg-dark-900/50 backdrop-blur-sm z-50">
                 {/* Title Bar */}
                 <div className="flex items-center gap-3 px-4 py-3">
                     {/* Back Button (when deep) */}
@@ -271,9 +271,9 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                 )}
             </div>
 
-            {/* Tab Bar - FIXED at bottom */}
+            {/* Tab Bar - FIXED at bottom, pb-24 clears the global App Drawer handle */}
             {node.children && node.children.length > 0 && (
-                <div className="flex-none flex items-center justify-around border-t border-dark-800 bg-dark-900/90 backdrop-blur-md pb-safe z-10">
+                <div className="flex-none flex items-center justify-around border-t border-dark-800 bg-dark-900/90 backdrop-blur-md pb-24 z-10">
                     {node.children.map(child => {
                         // A tab is active if:
                         // 1. It's the selected tab AND we're not in deep view

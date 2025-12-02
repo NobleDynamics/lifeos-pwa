@@ -97,7 +97,7 @@ ViewEnginePane handler reads URL, updates React state → Returns true
 **Critical Rules:**
 - **Forward:** Use `history.pushState()` (creates new history entry)
 - **Back:** React to `popstate` only - do NOT call `pushState/replaceState/back()`
-- **Exit Gate:** If at root, handler returns `false` to let app-level navigation handle it
+- **Root Trap:** If at root, handler returns `true` to consume the event (prevents Android app exit). User must use drawer/swipe to leave.
 
 This prevents the "Rapid Rewind" bug where competing popstate handlers cause navigation cascades.
 
@@ -291,17 +291,21 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 **Persistent Shell Architecture:** This component implements the "persistent shell" pattern. The shell chrome (header, tabs) is always visible while the viewport content changes based on navigation.
 
 ```
-┌────────────────────────────────────────────────┐
-│  [←] Current Title                             │  ← Back button when deep
+┌────────────────────────────────────────────────┐  z-50 (Header)
+│  [←] Current Title               [+ New ▼]    │  ← Back button when deep
 ├────────────────────────────────────────────────┤
 │                                                │
 │  Viewport Content                              │  ← Changes based on targetNodeId
 │  (Active Tab OR drilled-in folder)             │
 │                                                │
-├────────────────────────────────────────────────┤
-│  [Tab 1]   [Tab 2]   [Tab 3]   [Tab 4]         │  ← Always visible
+├────────────────────────────────────────────────┤  z-10 (Tab Bar)
+│  [Tab 1]   [Tab 2]   [Tab 3]   [Tab 4]         │  ← Always visible, pb-24 clears drawer
 └────────────────────────────────────────────────┘
 ```
+
+**CSS Notes:**
+- **Header:** `z-50` ensures dropdown menus float above all viewport content including `layout_top_tabs`.
+- **Tab Bar:** `pb-24` (96px) padding clears the global App Drawer handle on mobile.
 
 **Slots:**
 | Slot | Type | Description |
@@ -634,6 +638,7 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 - Buttons trigger `update_field` on the `value` slot.
 - **Optimistic UI:** Uses local state for instant feedback, then persists to DB.
 - **Event Handling:** Uses `onPointerDown` with `preventDefault()` and `stopPropagation()` to prevent parent row handler interference.
+- **Text Colors:** Uses `text-white` for value display and `hover:text-white` for button icons (not `text-dark-100` which is nearly black in the inverted color scheme).
 
 ---
 
@@ -659,6 +664,7 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 - Input triggers `update_field` on `value` (on Blur/Enter).
 - Checkbox triggers `toggle_status` OR custom `metadata.behavior`.
 - **Event Handling:** Uses `onPointerDown` with `stopPropagation()` to prevent parent row handler interference while allowing focus.
+- **Text Colors:** Uses `text-white` for input text and `text-dark-500` for currency symbol (not `text-dark-100`/`text-dark-400` which are nearly black in the inverted color scheme).
 
 ---
 

@@ -352,14 +352,17 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
    * - We do NOT call history.back() or history.push() here
    * - The global system handles history management
    * 
-   * Returns true if we handled the back (was in a deep view)
-   * Returns false if we're at root (let app-level navigation handle it)
+   * Returns true if we handled the back (was in a deep view OR at root)
+   * At root: We "trap" the user to prevent accidental app exit (Android back closes app)
+   * User must use global navigation (drawer/swipe) to leave the app view.
    */
   const handleBack = useCallback(() => {
-    // If we're not in a deep view, we can't handle back
-    // Let the app-level handler deal with it (navigate to previous pane)
+    // If we're at root, consume the back event but don't navigate
+    // This prevents Android app from exiting - user must use drawer to leave
     if (!targetNodeId || targetNodeId === rootId) {
-      return false
+      // Return true to indicate we "handled" the back (by consuming it)
+      // This traps the user at the root - standard behavior for root views
+      return true
     }
     
     // We're in a deep view - the browser already popped to the previous URL

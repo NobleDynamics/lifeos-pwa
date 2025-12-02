@@ -265,6 +265,46 @@ Concept: A global sheet/modal that provides access to all installed apps/widgets
 Interaction: Vertical swipe gesture from the bottom of any Pane.
 Contents: A scrollable grid layout showing all System and User Apps.
 
+D. Back Button Handling (Android/Browser)
+
+The back button follows a **Chain of Command** pattern with priority-based handlers:
+
+| Priority | Handler | Action |
+|----------|---------|--------|
+| 30+ | Modals/Sheets | Close open modal/sheet |
+| 20 | `ViewEnginePane` | Navigate up folder hierarchy (if deep) |
+| 10 | Custom handlers | Component-specific back actions |
+| 0 | App-level | Close drawer → Pane history → Dashboard |
+
+**Implementation:**
+- Single global `popstate` listener in `useBackButton.ts`
+- Components register handlers with `useBackButton({ onCloseModal, priority })`
+- Handlers return `true` if they consumed the event, `false` to propagate
+- Higher priority handlers are called first
+
+**ViewEnginePane Integration:**
+- Registers at priority 20
+- If `pathStack.length > 0`, calls `navigateBack()` and returns `true`
+- Otherwise returns `false` to let app-level navigation take over
+
+**Example Usage:**
+```tsx
+// In a modal component
+useBackButton({
+  onCloseModal: () => {
+    closeModal()
+    return true // We handled it
+  },
+  priority: 30
+})
+
+// In ViewEnginePane (automatic)
+useBackButton({
+  onCloseModal: () => pathStack.length > 0 ? (navigateBack(), true) : false,
+  priority: 20
+})
+```
+
 3. The Dashboard Pane (Home HUD)
 The Dashboard is the central, high-density "Heads Up Display" (HUD).
 Layout Requirement

@@ -9,13 +9,12 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Search, Plus, Folder, CheckSquare, X } from 'lucide-react'
+import { Search, Plus, Folder, CheckSquare } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode, useChildCount } from '../../../context/NodeContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
 import { useSlot } from '../../../hooks/useSlot'
 import { renderChildren } from '../../ViewEngine'
-import { useShell } from '../../../context/ShellContext'
 import { cn } from '@/lib/utils'
 
 /**
@@ -43,14 +42,9 @@ export function ViewDirectory({ node }: VariantComponentProps) {
   const childCount = useChildCount()
   const actions = useEngineActions()
 
-  // Shell context
-  const { searchQuery: shellQuery, isSearchEnabled: shellSearchEnabled } = useShell()
-
-  // Local Search state (used if not in shell)
+  // Local Search state - always use local search (shell search removed)
   const [localQuery, setLocalQuery] = useState('')
-
-  // Effective query
-  const searchQuery = shellSearchEnabled ? shellQuery : localQuery
+  const searchQuery = localQuery
 
   // Type selector state
   const [showTypeSelector, setShowTypeSelector] = useState(false)
@@ -112,28 +106,26 @@ export function ViewDirectory({ node }: VariantComponentProps) {
     >
       {/* Top Bar: Search + Action Button */}
       <div className="flex items-center gap-3 px-3 py-3 border-b border-dark-200">
-        {/* Search Input - Only show if NOT shell enabled */}
-        {!shellSearchEnabled && (
-          <div className="flex-1 relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500"
-            />
-            <input
-              type="text"
-              value={localQuery}
-              onChange={(e) => setLocalQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              className={cn(
-                "w-full pl-9 pr-3 py-2 rounded-lg",
-                "bg-dark-100/50 border border-dark-200",
-                "text-sm text-white placeholder:text-dark-500",
-                "focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/25",
-                "transition-colors"
-              )}
-            />
-          </div>
-        )}
+        {/* Search Input - Always show local search per directory */}
+        <div className="flex-1 relative">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500"
+          />
+          <input
+            type="text"
+            value={localQuery}
+            onChange={(e) => setLocalQuery(e.target.value)}
+            placeholder={searchPlaceholder}
+            className={cn(
+              "w-full pl-9 pr-3 py-2 rounded-lg",
+              "bg-dark-100/50 border border-dark-200",
+              "text-sm text-white placeholder:text-dark-500",
+              "focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/25",
+              "transition-colors"
+            )}
+          />
+        </div>
 
         {/* Action Button */}
         {showActionButton && (

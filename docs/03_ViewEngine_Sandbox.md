@@ -57,6 +57,26 @@ JSON → parseNodeJson() → Node Tree → ViewEngine → registry.resolveVarian
                     Variant Component reads node.metadata
 ```
 
+### Persistent Shell Architecture
+```
+ViewEnginePane
+    ↓
+Always renders: fullNodeTree (Context Root = App Shell)
+    ↓
+ShellNavigationProvider { targetNodeId }
+    ↓
+layout_app_shell
+    ├── Header (shows current title, back button when deep)
+    ├── Viewport → renders targetNodeId OR active tab
+    └── Tab Bar (always visible, highlights containing tab)
+```
+
+**Key Principle:** The App Shell never gets swapped out. Only the viewport content changes based on navigation. This ensures:
+- Bottom tabs are always visible
+- Header chrome stays persistent
+- Browser back button works correctly
+- Input interactions don't lose state
+
 ---
 
 ## Node Schema
@@ -239,35 +259,43 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 ## Layouts (App Shells)
 
 ### `layout_app_shell`
-**Structure:** Header + Search Bar + Tab Content + Bottom Tab Bar
+**Structure:** Persistent Header + Viewport + Bottom Tab Bar
 **Use for:** Top-level App Containers (e.g., "Household", "Health")
+
+**Persistent Shell Architecture:** This component implements the "persistent shell" pattern. The shell chrome (header, tabs) is always visible while the viewport content changes based on navigation.
 
 ```
 ┌────────────────────────────────────────────────┐
-│  App Title                       [Action Btn]  │
-│  [🔍 Search...                               ] │
+│  [←] Current Title                             │  ← Back button when deep
 ├────────────────────────────────────────────────┤
 │                                                │
-│  Active Tab Content                            │
-│  (Renders children[activeTabId])               │
+│  Viewport Content                              │  ← Changes based on targetNodeId
+│  (Active Tab OR drilled-in folder)             │
 │                                                │
 ├────────────────────────────────────────────────┤
-│  [Tab 1]   [Tab 2]   [Tab 3]   [Tab 4]         │
+│  [Tab 1]   [Tab 2]   [Tab 3]   [Tab 4]         │  ← Always visible
 └────────────────────────────────────────────────┘
 ```
 
 **Slots:**
 | Slot | Type | Description |
 |------|------|-------------|
-| `title` | string | App Title (Header) |
-| `action_label` | string | Label for top-right action button |
-| `search_enabled` | boolean | Show/hide global search bar |
+| `title` | string | App Title (shown in header when at root) |
 | `default_tab_id` | string | UUID of child to show first (optional) |
 
 **Behavior:**
-- **Controller:** Acts as a controller for its children.
-- **Tabs:** Children are rendered as tabs in the bottom bar.
-- **Search:** Manages a shared search state (`ShellContext`) that children can consume to filter their content.
+- **Persistent Chrome:** Header and tab bar stay visible during deep navigation.
+- **Smart Title:** Shows app title at root, folder title when drilled in.
+- **Back Button:** Appears automatically when user navigates into subfolders.
+- **Tab Highlighting:** Correct tab stays highlighted even when deep in a subtree.
+- **Search:** Handled per-directory via `view_directory` (not in shell header).
+
+**Navigation Context:**
+Uses `ShellNavigationContext` to receive `targetNodeId` from `ViewEnginePane`. When the user taps a folder:
+1. `ViewEnginePane` updates `targetNodeId` and pushes URL state
+2. Shell finds the target node in its tree
+3. Viewport renders that node (with `view_directory` variant override)
+4. Tab bar highlights the tab that contains the target
 
 **Example:**
 ```json
@@ -275,13 +303,12 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
   "variant": "layout_app_shell",
   "title": "Household",
   "metadata": {
-    "action_label": "Add Item",
-    "search_enabled": true
+    "default_tab_id": "00000000-0000-0000-0000-000000000103"
   },
   "children": [
-    { "title": "To-Do", "metadata": { "icon": "CheckSquare" }, ... },
-    { "title": "Shopping", "metadata": { "icon": "ShoppingCart" }, ... }
-  ]
+    { "title": "Shopping", "metadata": { "icon": "ShoppingCart" }, ... },
+    { "title": "Stock", "metadata": { "icon": "Package" }, ... },
+    { "title": "To-Do", "metadata": { "icon": "CheckSquare" }, ... }
   ]
 }
 ```

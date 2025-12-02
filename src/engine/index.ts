@@ -59,6 +59,15 @@ export type {
   BehaviorConfig,
 } from './context/EngineActionsContext'
 
+// Shell Navigation Context (for persistent shell architecture)
+export {
+  ShellNavigationProvider,
+  useShellNavigation,
+  findPathToNode,
+  findNodeInTree,
+  findContainingChild,
+} from './context/ShellNavigationContext'
+
 // =============================================================================
 // REGISTRY EXPORTS
 // =============================================================================

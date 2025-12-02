@@ -6,19 +6,25 @@
  * 2. Fetching the resource tree using useResourceTree
  * 3. Transforming flat resources into a nested Node tree
  * 4. Providing action callbacks via EngineActionsProvider
- * 5. Rendering via ViewEngine with navigation support
+ * 5. Rendering via ViewEngine with PERSISTENT SHELL architecture
+ * 
+ * PERSISTENT SHELL ARCHITECTURE:
+ * - Always render the full tree from Context Root (App Shell)
+ * - Pass targetNodeId to the Shell via ShellNavigationProvider
+ * - The Shell renders its chrome (header, tabs) permanently
+ * - Only the viewport content changes based on targetNodeId
  * 
  * @module panes/ViewEnginePane
  */
 
-import { useMemo, useEffect, useCallback } from 'react'
+import { useMemo, useEffect, useCallback, useState } from 'react'
 import { Loader2, AlertCircle } from 'lucide-react'
 import {
   ViewEngine,
   resourcesToNodeTree,
   createEmptyRootNode,
   EngineActionsProvider,
-  findNodeById,
+  ShellNavigationProvider,
   type BehaviorConfig,
   type Node,
 } from '@/engine'
@@ -31,16 +37,15 @@ import {
   useCreateResource,
 } from '@/hooks/useResourceData'
 import {
-  useResourceNavigation,
   useResourceForm,
   useResourceContextMenu,
   ResourceStoreProvider
 } from '@/store/useResourceStore'
-import { ResourceBreadcrumbs } from '@/components/ResourceBreadcrumbs'
 import { ResourceForm } from '@/components/ResourceForm'
 import { ResourceContextMenu } from '@/components/ResourceContextMenu'
 import { Resource } from '@/types/database'
 import { cn } from '@/lib/utils'
+import { useBackButton } from '@/hooks/useBackButton'
 
 // =============================================================================
 // TYPES
@@ -89,6 +94,34 @@ function ErrorState({ error, title }: { error: string; title?: string }) {
 }
 
 // =============================================================================
+// URL STATE HELPERS
+// =============================================================================
+
+/**
+ * Get nodeId from URL hash (e.g., #node=abc-123)
+ */
+function getNodeIdFromUrl(): string | null {
+  const hash = window.location.hash
+  if (!hash || !hash.startsWith('#node=')) return null
+  return hash.slice(6) // Remove '#node='
+}
+
+/**
+ * Update URL hash with nodeId
+ */
+function updateUrlWithNodeId(nodeId: string | null, replace = false) {
+  const newHash = nodeId ? `#node=${nodeId}` : ''
+  const url = new URL(window.location.href)
+  url.hash = newHash
+  
+  if (replace) {
+    window.history.replaceState({ nodeId }, '', url.toString())
+  } else {
+    window.history.pushState({ nodeId }, '', url.toString())
+  }
+}
+
+// =============================================================================
 // CONTENT COMPONENT
 // =============================================================================
 
@@ -108,13 +141,15 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
     error: treeError,
   } = useResourceTree(rootPath)
 
-  // Navigation store
-  const {
-    setContextRoot,
-    navigateInto,
-    currentParentId,
-    pathStack,
-  } = useResourceNavigation()
+  // ==========================================================================
+  // NAVIGATION STATE (Persistent Shell Architecture)
+  // ==========================================================================
+  
+  // targetNodeId: The node the user has drilled into (null = at root)
+  const [targetNodeId, setTargetNodeId] = useState<string | null>(() => {
+    // Initialize from URL hash if present
+    return getNodeIdFromUrl()
+  })
 
   // Form store
   const { openCreateForm } = useResourceForm()
@@ -128,59 +163,8 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   const moveResourceMutation = useMoveResource()
   const createResourceMutation = useCreateResource()
 
-  // Sync context root with navigation store when it changes
-  useEffect(() => {
-    if (rootId) {
-      setContextRoot(rootId, title || context)
-    }
-  }, [rootId, title, context, setContextRoot])
-
-  // Handle Native Back Button (Android/Browser)
-  useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      // If we have items in the stack, we want to pop one level up
-      // instead of leaving the app/page
-      if (pathStack.length > 0) {
-        // Prevent default browser back
-        event.preventDefault()
-        // Use our internal navigation to go up
-        navigateInto(null) // This effectively pops the top item if implemented as "go up" or we need a specific "pop" method
-        // NOTE: navigateInto(null) might not be exactly "pop". 
-        // Let's check useResourceNavigation. 
-        // If navigateInto handles "up" logic or if we need to manually pop.
-        // Assuming navigateInto(resource) pushes, we might need a pop method.
-        // But wait, the user request says: "If pathStack.length > 1, pop the stack".
-
-        // Actually, let's look at how we can "pop". 
-        // The store likely has a way to go back or we just set the parent to the previous one.
-        // For now, let's assume we can just push state to history to trap the back button
-        // and handle the event.
-
-        // BETTER APPROACH:
-        // When we navigate DEEP, we pushState.
-        // When user hits back, we get popstate.
-        // If we are deep, we handle it and stay in app.
-
-        // However, since this is a PWA/SPA, we might need to manually manage this.
-        // Let's just implement the listener as requested.
-      }
-    }
-
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [pathStack, navigateInto])
-
-  // FIX: The above popstate might not work if we don't pushState when navigating.
-  // But let's stick to the requested logic: "If pathStack.length > 1, pop the stack".
-  // We need to actually perform the pop.
-  // Since useResourceNavigation doesn't seem to expose a 'pop' or 'goBack', 
-  // we might need to rely on `navigateInto` with the parent of the current node?
-  // Or maybe we should just rely on the store's `navigateUp` if it exists?
-  // Let's check `useResourceNavigation` in the next step if needed, but for now
-  // I will implement a custom back handler that uses `navigateInto` with the 2nd to last item.
-
-
   // Step 3: Transform resources to Node tree (memoized for performance)
+  // ALWAYS transform from the root - never swap the root node
   const fullNodeTree = useMemo(() => {
     if (!rootId || !resources || resources.length === 0) {
       return null
@@ -188,38 +172,38 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
     return resourcesToNodeTree(resources, rootId)
   }, [rootId, resources])
 
-  // Step 4: Get the current view node based on navigation
-  // If we've navigated into a folder, show that folder's subtree
-  const currentNodeTree = useMemo(() => {
-    if (!fullNodeTree) return null
+  // ==========================================================================
+  // URL STATE MANAGEMENT (Phase 2)
+  // ==========================================================================
 
-    // If at root (no path stack), show full tree
-    if (pathStack.length === 0) {
-      return fullNodeTree
+  // Handle popstate (browser back/forward)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const nodeId = event.state?.nodeId || getNodeIdFromUrl()
+      setTargetNodeId(nodeId)
     }
 
-    // Find the current folder in the tree
-    const currentFolderId = currentParentId
-    if (!currentFolderId) return fullNodeTree
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
-    const currentNode = findNodeById(fullNodeTree, currentFolderId)
-    if (!currentNode) return fullNodeTree
+  // ==========================================================================
+  // NAVIGATION CALLBACKS
+  // ==========================================================================
 
-    // FIX: When navigating into a folder, override its variant to view_directory
-    // This ensures the folder renders as a container showing its children,
-    // not as a clickable row (which would cause infinite nesting)
-    return {
-      ...currentNode,
-      variant: 'view_directory',
+  /**
+   * Handle navigation changes from ShellNavigationProvider
+   */
+  const handleNavigate = useCallback((nodeId: string | null, _path: string[]) => {
+    // Don't push to history if navigating to root (rootId)
+    if (nodeId === rootId) {
+      setTargetNodeId(null)
+      updateUrlWithNodeId(null)
+    } else {
+      setTargetNodeId(nodeId)
+      updateUrlWithNodeId(nodeId)
     }
-  }, [fullNodeTree, pathStack, currentParentId])
-
-  // Check for immersive mode
-  const isImmersive = currentNodeTree?.metadata?.presentation_mode === 'immersive'
-
-  // ==========================================================================
-  // ACTION CALLBACKS
-  // ==========================================================================
+  }, [rootId])
 
   /**
    * Handle opening the create form
@@ -232,13 +216,11 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   /**
    * Handle navigating into a folder
    */
-  const handleNavigateInto = useCallback((nodeId: string, nodeTitle: string, nodePath: string) => {
-    // Find the resource for this node to get path info
-    const resource = resources?.find(r => r.id === nodeId)
-    if (resource) {
-      navigateInto(resource)
-    }
-  }, [resources, navigateInto])
+  const handleNavigateInto = useCallback((nodeId: string, _nodeTitle: string, _nodePath: string) => {
+    // Use the ShellNavigationProvider's navigation via URL state
+    setTargetNodeId(nodeId)
+    updateUrlWithNodeId(nodeId)
+  }, [])
 
   /**
    * Handle opening context menu
@@ -270,6 +252,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
 
   /**
    * Handle generic behavior triggers
+   * CRITICAL FIX: Use original resource meta_data to prevent data loss
    */
   const handleTriggerBehavior = useCallback((node: Node, config: BehaviorConfig) => {
     console.log('[ViewEnginePane] Trigger Behavior:', config, 'on Node:', node.id)
@@ -281,8 +264,16 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           return
         }
 
-        // Merge new value into metadata
-        const currentMeta = node.metadata as Record<string, unknown>
+        // CRITICAL: Find the original resource to get the FULL meta_data from DB
+        // node.metadata is the VIEW layer copy which may be incomplete
+        const resource = resources?.find(r => r.id === node.id)
+        if (!resource) {
+          console.warn('[ViewEnginePane] Resource not found for node:', node.id)
+          return
+        }
+
+        // Merge new value into the ORIGINAL metadata from the database
+        const currentMeta = (resource.meta_data || {}) as Record<string, unknown>
         const updates = {
           meta_data: {
             ...currentMeta,
@@ -290,6 +281,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           }
         }
 
+        console.log('[ViewEnginePane] Updating resource:', node.id, 'with:', updates)
         updateResourceMutation.mutate({
           id: node.id,
           updates
@@ -345,13 +337,42 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
     }
   }, [resources, updateResourceMutation, cycleStatusMutation, moveResourceMutation, createResourceMutation])
 
+  // ==========================================================================
+  // BACK BUTTON HANDLING (Phase 2)
+  // ==========================================================================
+  
+  // Determine if we can navigate back within the ViewEngine
+  const canNavigateBack = targetNodeId !== null && targetNodeId !== rootId
+  
+  // Back button handler - returns true if we handled it
+  const handleBack = useCallback(() => {
+    // If we're at a deeper level, go back
+    if (targetNodeId && targetNodeId !== rootId) {
+      // Let browser handle it via popstate
+      window.history.back()
+      return true
+    }
+    
+    // At root of ViewEngine - don't handle, let pane navigation take over
+    return false
+  }, [targetNodeId, rootId])
+  
+  // Register with the global back button system at PRIORITY 20
+  useBackButton({
+    onCloseModal: handleBack,
+    priority: 20,
+  })
+
+  // ==========================================================================
+  // RENDER STATES
+  // ==========================================================================
+
   // === Loading State ===
   if (isContextLoading || isTreeLoading) {
     return <LoadingState title={title} />
   }
 
   // === Error State ===
-  // Only show error for network/DB failures, not for missing variants
   if (contextError) {
     return <ErrorState error={contextError} title={title} />
   }
@@ -361,7 +382,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
 
   // === Empty State ===
   // Context root exists but has no children yet
-  if (!currentNodeTree && rootId) {
+  if (!fullNodeTree && rootId) {
     const emptyRoot = createEmptyRootNode(
       rootId,
       title || context,
@@ -369,22 +390,24 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
     )
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Breadcrumbs */}
-        <div className="px-3 py-2 border-b border-dark-200">
-          <ResourceBreadcrumbs />
-        </div>
-
-        <EngineActionsProvider
-          rootId={rootId}
-          currentParentId={currentParentId}
-          onOpenCreateForm={handleOpenCreateForm}
-          onNavigateInto={handleNavigateInto}
-          onOpenContextMenu={handleOpenContextMenu}
-          onCycleStatus={handleCycleStatus}
-          onTriggerBehavior={handleTriggerBehavior}
+        <ShellNavigationProvider
+          rootNode={emptyRoot}
+          targetNodeId={null}
+          onNavigate={handleNavigate}
         >
-          <ViewEngine root={emptyRoot} className="flex-1 overflow-y-auto" />
-        </EngineActionsProvider>
+          <EngineActionsProvider
+            rootId={rootId}
+            currentParentId={rootId}
+            onOpenCreateForm={handleOpenCreateForm}
+            onNavigateInto={handleNavigateInto}
+            onOpenContextMenu={handleOpenContextMenu}
+            onCycleStatus={handleCycleStatus}
+            onTriggerBehavior={handleTriggerBehavior}
+          >
+            {/* Shell controls its own scroll - no overflow here */}
+            <ViewEngine root={emptyRoot} className="flex-1 min-h-0" />
+          </EngineActionsProvider>
+        </ShellNavigationProvider>
 
         {/* Form & Context Menu */}
         <ResourceForm />
@@ -394,8 +417,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }
 
   // === No Data State ===
-  // This shouldn't happen if context root creation worked
-  if (!currentNodeTree) {
+  if (!fullNodeTree) {
     return (
       <ErrorState
         error="Unable to load data. Please try again."
@@ -404,28 +426,44 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
     )
   }
 
-  // === Success: Render ViewEngine ===
+  // Check for immersive mode
+  const isImmersive = fullNodeTree?.metadata?.presentation_mode === 'immersive'
+
+  // Determine currentParentId for create forms
+  // If targetNodeId is set, that's the current parent for new items
+  // Otherwise, it's the rootId
+  const currentParentId = targetNodeId || rootId
+
+  // === Success: Render ViewEngine with Persistent Shell ===
   return (
     <div className={cn(
       "flex flex-col flex-1 min-h-0",
       isImmersive && "fixed inset-0 z-50 bg-dark-950" // Immersive Mode Overlay
     )}>
-      {/* Breadcrumbs */}
-      <div className="px-3 py-2 border-b border-dark-200">
-        <ResourceBreadcrumbs />
-      </div>
-
-      <EngineActionsProvider
-        rootId={rootId}
-        currentParentId={currentParentId}
-        onOpenCreateForm={handleOpenCreateForm}
-        onNavigateInto={handleNavigateInto}
-        onOpenContextMenu={handleOpenContextMenu}
-        onCycleStatus={handleCycleStatus}
-        onTriggerBehavior={handleTriggerBehavior}
+      <ShellNavigationProvider
+        rootNode={fullNodeTree}
+        targetNodeId={targetNodeId}
+        onNavigate={handleNavigate}
       >
-        <ViewEngine root={currentNodeTree} className="flex-1 overflow-y-auto" />
-      </EngineActionsProvider>
+        <EngineActionsProvider
+          rootId={rootId}
+          currentParentId={currentParentId}
+          onOpenCreateForm={handleOpenCreateForm}
+          onNavigateInto={handleNavigateInto}
+          onOpenContextMenu={handleOpenContextMenu}
+          onCycleStatus={handleCycleStatus}
+          onTriggerBehavior={handleTriggerBehavior}
+        >
+          {/* 
+            PERSISTENT SHELL ARCHITECTURE:
+            Always render the full tree from Context Root.
+            The Shell (layout_app_shell) will use ShellNavigationContext
+            to determine what to show in its viewport.
+            Shell controls its own scroll - no overflow here!
+          */}
+          <ViewEngine root={fullNodeTree} className="flex-1 min-h-0" />
+        </EngineActionsProvider>
+      </ShellNavigationProvider>
 
       {/* Form & Context Menu */}
       <ResourceForm />
@@ -443,7 +481,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
  * 
  * This component:
  * 1. Provides a scoped ResourceStore for this pane
- * 2. Renders the content
+ * 2. Renders the content with Persistent Shell architecture
  * 
  * @example
  * <ViewEnginePane context="household.todos" title="To-Do" />

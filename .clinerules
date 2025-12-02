@@ -64,8 +64,9 @@ The ViewEngine is now **live** and connected to Supabase:
 * **Registry:** `src/engine/registry.ts` - Variant → Component mapping
 * **Variants:** `src/engine/components/variants/` - ADD NEW VARIANTS HERE
 * **Utils:** `src/engine/utils/resourcesToNodeTree.ts` - Flat→Tree transformer
-* **Bridge:** `src/panes/ViewEnginePane.tsx` - Supabase → ViewEngine connector
+* **Bridge:** `src/panes/ViewEnginePane.tsx` - Supabase → ViewEngine connector + back button integration
 * **Launcher:** `src/hooks/useAppLauncher.ts` - App discovery & merging logic
+* **Back Button:** `src/hooks/useBackButton.ts` - Global priority-based back handler system
 
 ### Data Flow (Live Integration)
 ```

@@ -114,6 +114,19 @@ export { useRenderChildren } from './components/hooks/useRenderChildren'
 export { useSlot, useSlots, useSlotExists } from './hooks/useSlot'
 export type { UseSlotOptions } from './hooks/useSlot'
 
+// Aggregation Hook for Smart Components
+export { 
+  useChildAggregation, 
+  useChildSum, 
+  useChildCount as useChildAggregationCount,
+  useRechartsData,
+} from './hooks/useChildAggregation'
+export type { 
+  AggregationConfig, 
+  AggregatedItem, 
+  AggregatedData 
+} from './hooks/useChildAggregation'
+
 // =============================================================================
 // UTILITY EXPORTS
 // =============================================================================
@@ -148,6 +161,20 @@ export { RowInputCurrency } from './components/variants/rows/row_input_currency'
 // Cards (Grid Items)
 export { CardMediaTop } from './components/variants/cards/card_media_top'
 
+// Progress Cards
+export { CardProgressSimple } from './components/variants/cards/card_progress_simple'
+export { CardProgressStacked } from './components/variants/cards/card_progress_stacked'
+export { CardProgressMulti } from './components/variants/cards/card_progress_multi'
+
+// Chart Cards
+export { CardChartBar } from './components/variants/cards/card_chart_bar'
+export { CardChartLine } from './components/variants/cards/card_chart_line'
+export { CardChartPie } from './components/variants/cards/card_chart_pie'
+export { CardChartRadar } from './components/variants/cards/card_chart_radar'
+
+// Dashboard Layouts
+export { ViewDashboardMasonry, ViewDashboardResponsive } from './components/variants/layouts/view_dashboard_masonry'
+
 // =============================================================================
 // ENGINE INITIALIZATION
 // =============================================================================
@@ -167,6 +194,20 @@ import { RowSimple } from './components/variants/rows/row_simple'
 import { RowInputStepper } from './components/variants/rows/row_input_stepper'
 import { RowInputCurrency } from './components/variants/rows/row_input_currency'
 import { CardMediaTop } from './components/variants/cards/card_media_top'
+
+// Progress Cards
+import { CardProgressSimple } from './components/variants/cards/card_progress_simple'
+import { CardProgressStacked } from './components/variants/cards/card_progress_stacked'
+import { CardProgressMulti } from './components/variants/cards/card_progress_multi'
+
+// Chart Cards
+import { CardChartBar } from './components/variants/cards/card_chart_bar'
+import { CardChartLine } from './components/variants/cards/card_chart_line'
+import { CardChartPie } from './components/variants/cards/card_chart_pie'
+import { CardChartRadar } from './components/variants/cards/card_chart_radar'
+
+// Dashboard Layouts
+import { ViewDashboardMasonry, ViewDashboardResponsive } from './components/variants/layouts/view_dashboard_masonry'
 
 /**
  * Initialize the ViewEngine with default variants.
@@ -199,6 +240,21 @@ export function initializeEngine(): void {
     // Cards (Grid Items)
     card_media_top: CardMediaTop,
 
+    // Progress Cards
+    card_progress_simple: CardProgressSimple,
+    card_progress_stacked: CardProgressStacked,
+    card_progress_multi: CardProgressMulti,
+
+    // Chart Cards
+    card_chart_bar: CardChartBar,
+    card_chart_line: CardChartLine,
+    card_chart_pie: CardChartPie,
+    card_chart_radar: CardChartRadar,
+
+    // Dashboard Layouts
+    view_dashboard_masonry: ViewDashboardMasonry,
+    view_dashboard_responsive: ViewDashboardResponsive,
+
     // =========================================
     // LEGACY ALIASES (Backwards Compatibility)
     // =========================================
@@ -218,7 +274,9 @@ export function initializeEngine(): void {
   })
 
   console.log('[ViewEngine] Initialized with structural taxonomy:',
-    'view_list_stack', 'view_directory', 'row_detail_check', 'row_neon_group', 'row_simple', 'card_media_top')
+    'view_list_stack', 'view_directory', 'view_dashboard_masonry',
+    'row_detail_check', 'row_neon_group', 'row_simple',
+    'card_media_top', 'card_progress_*', 'card_chart_*')
 }
 
 // =============================================================================

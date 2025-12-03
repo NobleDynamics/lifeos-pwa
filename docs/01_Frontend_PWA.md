@@ -24,18 +24,31 @@ The ViewEngine is a data-driven rendering system that renders recursive Node tre
 
 | Variant | Component | Use Case |
 |---------|-----------|----------|
-| Variant | Component | Use Case |
-|---------|-----------|----------|
+| **Layouts** | | |
 | `layout_app_shell` | `LayoutAppShell` | App container with tabs and search |
 | `layout_top_tabs` | `LayoutTopTabs` | Segmented control sub-navigation |
 | `view_directory` | `ViewDirectory` | Searchable list with action button |
 | `view_list_stack` | `ViewListStack` | Collapsible folders with neon glow |
+| `view_grid_fixed` | `ViewGridFixed` | Responsive grid container |
+| `view_dashboard_masonry` | `ViewDashboardMasonry` | Dashboard grid with column spans |
+| `view_dashboard_responsive` | `ViewDashboardResponsive` | Auto-responsive dashboard grid |
+| **Rows** | | |
 | `row_detail_check` | `RowDetailCheck` | Task/item rows with status icons |
 | `row_neon_group` | `RowNeonGroup` | Folder rows with neon border |
-| `card_media_top` | `CardMediaTop` | Cards with thumbnail and metadata |
+| `row_simple` | `RowSimple` | Basic text row |
 | `row_input_stepper` | `RowInputStepper` | Numeric stepper with thresholds |
 | `row_input_currency` | `RowInputCurrency` | Currency input with checkbox |
-| `view_grid_fixed` | `ViewGridFixed` | Responsive grid container |
+| **Cards** | | |
+| `card_media_top` | `CardMediaTop` | Cards with thumbnail and metadata |
+| **Progress Cards** | | |
+| `card_progress_simple` | `CardProgressSimple` | Single progress bar with value/max |
+| `card_progress_stacked` | `CardProgressStacked` | Stacked colored segments bar |
+| `card_progress_multi` | `CardProgressMulti` | Multiple individual progress bars |
+| **Chart Cards** | | |
+| `card_chart_bar` | `CardChartBar` | Bar chart (Recharts) |
+| `card_chart_line` | `CardChartLine` | Line/area chart (Recharts) |
+| `card_chart_pie` | `CardChartPie` | Pie/donut chart (Recharts) |
+| `card_chart_radar` | `CardChartRadar` | Radar/spider chart (Recharts) |
 
 ### Node Schema (Zod Validated)
 
@@ -63,6 +76,8 @@ interface Node {
 | `useRenderChildren()` | Render children from within variants |
 | `useShellNavigation()` | Navigation context: targetNodeId, navigateToNode, navigateBack |
 | `useShellAction()` | Dynamic header actions: setActionConfig, clearActionConfig |
+| `useChildAggregation()` | Smart aggregation from child nodes (sum/count/avg) |
+| `useSlot()` | Slot-based data access from metadata |
 
 ### Sandbox Pane (Dev Tool)
 
@@ -71,8 +86,11 @@ Access: Swipe right from Settings
 | Feature | Description |
 |---------|-------------|
 | JSON Editor | Textarea with real-time Zod validation |
-| Preview Toggle | Switch between edit and render modes |
+| Preview Mode | See the rendered ViewEngine output |
+| Gallery Mode | Browse all registered variants with mock data |
 | Error Display | Shows validation errors inline |
+
+**Gallery Mode:** Added Dec 2024. Displays all 17+ registered variants with live mock data previews, organized by category (Layout, Row, Card, Progress, Chart).
 
 ---
 

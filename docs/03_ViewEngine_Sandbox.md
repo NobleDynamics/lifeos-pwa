@@ -14,15 +14,29 @@ The ViewEngine is a **data-driven rendering system** that transforms JSON Node t
 3. Tap **"Pane Order"** → **"Reset to Default"**
 4. Swipe right past Settings → **Sandbox** appears
 
+### Three Modes
+| Mode | Purpose |
+|------|---------|
+| **Edit** | JSON textarea with real-time Zod validation |
+| **Preview** | Live ViewEngine render of current JSON |
+| **Gallery** | Browse all registered variants with mock data |
+
 ### Development Cycle
 ```
-1. Edit JSON in Sandbox textarea
-2. Click "Preview" to see ViewEngine render it
-3. Identify needed variant features
-4. Create/modify variant component in src/engine/components/variants/
-5. Test in Sandbox → Repeat
-6. Once stable, integrate into main app
+1. Check Gallery mode for existing variants
+2. If building new: Edit JSON in Editor mode
+3. Click "Preview" to see ViewEngine render it
+4. Identify needed variant features
+5. Create/modify variant component in src/engine/components/variants/
+6. Test in Sandbox → Repeat
+7. Once stable, integrate into main app
 ```
+
+### Gallery Mode (Dec 2024)
+The Gallery displays all 17+ registered variants with live mock data previews, organized by category:
+- **Layout**: Dashboard, Directory, List Stack
+- **Row**: Simple, Detailed, Neon Group, Input variants
+- **Card**: Media, Progress, Charts
 
 ---
 
@@ -37,15 +51,18 @@ src/engine/
 │   └── node.ts                 # Node interface + Zod schemas
 ├── context/
 │   └── NodeContext.tsx         # React context for tree traversal
+├── hooks/
+│   └── useChildAggregation.ts  # Smart data aggregation from children
 └── components/
     ├── ViewEngine.tsx          # Main recursive renderer
     ├── DebugNode.tsx           # Fallback for unknown variants
     ├── hooks/
     │   └── useRenderChildren.tsx
     └── variants/               # ⭐ ADD NEW VARIANTS HERE
-        ├── ListRow.tsx         # list_row variant
-        ├── GridCard.tsx        # grid_card variant
-        └── ContainerStack.tsx  # container_stack variant
+        ├── layouts/            # App shells, dashboards
+        ├── views/              # Directories, lists, grids
+        ├── rows/               # List item variants
+        └── cards/              # Grid cards, charts, progress
 ```
 
 ### Data Flow
@@ -235,6 +252,8 @@ Use these inside variant components:
 | `useRenderChildren()` | `() => ReactNode` | Render children helper |
 | `useShellNavigation()` | `{ targetNodeId, navigateToNode, navigateBack, canNavigateBack }` | Shell navigation |
 | `useShellAction()` | `{ actionConfig, setActionConfig, clearActionConfig }` | Dynamic header actions |
+| `useChildAggregation()` | `{ total, items, max, min, isEmpty }` | Smart aggregation from children |
+| `useSlot<T>()` | `T \| undefined` | Slot-based metadata access |
 
 ---
 
@@ -665,6 +684,160 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 - Checkbox triggers `toggle_status` OR custom `metadata.behavior`.
 - **Event Handling:** Uses `onPointerDown` with `stopPropagation()` to prevent parent row handler interference while allowing focus.
 - **Text Colors:** Uses `text-white` for input text and `text-dark-500` for currency symbol (not `text-dark-100`/`text-dark-400` which are nearly black in the inverted color scheme).
+
+---
+
+## Dashboards (Dec 2024)
+
+### `view_dashboard_masonry`
+**Structure:** CSS Grid with configurable column spans
+**Use for:** Finance dashboards, analytics views, multi-card layouts
+
+```
+┌────────────┬────────────┬────────────────────────┐
+│  Card 1    │  Card 2    │  Card 3 (span: 2)     │
+│  (span 1)  │  (span 1)  │                        │
+├────────────┴────────────┴────────────────────────┤
+│  Card 4 (span: full)                             │
+└──────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `title` | string | Section title |
+| `subtitle` | string | Optional subtitle |
+| `columns` | number | Number of columns (default: 3) |
+| `gap` | number | Gap in pixels (default: 16) |
+
+**Child Metadata:**
+| Key | Type | Description |
+|-----|------|-------------|
+| `col_span` | number \| 'full' | Column span (1, 2, or 'full') |
+
+---
+
+## Progress Cards (Dec 2024)
+
+### `card_progress_simple`
+**Structure:** Single progress bar with value/max
+**Use for:** Simple budget tracking, goal progress
+
+```
+┌─────────────────────────────────────────────────┐
+│  Title                              75%         │
+│  ████████████████░░░░░░░░░░░░░░░░░░░░░         │
+│  $750 of $1,000                                 │
+└─────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `value` | number | Current value (or aggregated from children) |
+| `max` | number | Maximum/goal value (default: 100) |
+| `format` | 'number' \| 'currency' \| 'percent' | Display format |
+| `color` | string | Bar color (default: #06b6d4) |
+| `target_key` | string | Metadata key to sum from children (default: 'amount') |
+
+---
+
+### `card_progress_stacked`
+**Structure:** One bar with multiple colored segments
+**Use for:** Budget breakdowns, category proportions
+
+```
+┌─────────────────────────────────────────────────┐
+│  Monthly Budget                    $2,450       │
+│  ████████████▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░         │
+│  ● Groceries  ● Dining  ● Gas                   │
+└─────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `max` | number | Budget/max value |
+| `segments` | array | Direct segments `[{label, value, color}]` |
+| `target_key` | string | Key to aggregate from children |
+| `group_by` | string | Key to group children by (default: 'category') |
+
+---
+
+### `card_progress_multi`
+**Structure:** Multiple individual progress bars stacked vertically
+**Use for:** Category budgets with individual limits
+
+```
+┌─────────────────────────────────────────────────┐
+│  Groceries          $300 / $400                 │
+│  ████████████████████░░░░░░░░                  │
+│  Dining Out         $150 / $200                 │
+│  ████████████████░░░░░░░░░░░░░                 │
+└─────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `items` | array | Direct items `[{label, value, max, color}]` |
+| `format` | 'number' \| 'currency' \| 'percent' | Display format |
+| `compact` | boolean | Compact spacing (default: false) |
+
+---
+
+## Chart Cards (Dec 2024)
+
+All chart cards use **Recharts** and support:
+- Direct `data` array in metadata
+- Automatic aggregation from children via `useChildAggregation`
+
+### `card_chart_bar`
+**Use for:** Monthly comparisons, category totals
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `data` | array | `[{name, value, color?}]` |
+| `height` | number | Chart height (default: 200) |
+| `horizontal` | boolean | Horizontal bars (default: false) |
+
+---
+
+### `card_chart_line`
+**Use for:** Trends over time, time series
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `data` | array | `[{name, value, ...otherSeries}]` |
+| `series` | array | Multi-series config `[{key, color, name}]` |
+| `show_area` | boolean | Fill area under line (default: true) |
+| `curved` | boolean | Curved lines (default: true) |
+
+---
+
+### `card_chart_pie`
+**Use for:** Category breakdowns, proportions
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `data` | array | `[{name, value, color?}]` |
+| `donut` | boolean | Render as donut (default: true) |
+| `show_center` | boolean | Show center label (default: true) |
+
+---
+
+### `card_chart_radar`
+**Use for:** Multi-dimensional comparison, skills/stats
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `data` | array | `[{name, value}]` |
+| `max` | number | Maximum scale value |
+| `fill_opacity` | number | Fill opacity 0-1 (default: 0.3) |
 
 ---
 

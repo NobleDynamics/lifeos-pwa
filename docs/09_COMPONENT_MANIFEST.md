@@ -79,25 +79,32 @@
 ### `view_dashboard_masonry`
 
 **Category:** Layout  
-**Description:** CSS Grid masonry layout for dashboard cards with configurable column spans.  
+**Description:** Responsive CSS Grid layout for dashboard cards. Uses Tailwind responsive breakpoints for mobile-first design.  
 **When to Use:** Dashboards, analytics views, multi-card layouts.
 
 **Required Children:** Yes (typically progress/chart cards)  
 **Node Type:** `container`
+
+**Responsive Behavior:**
+| Breakpoint | Columns | Class |
+|------------|---------|-------|
+| Mobile (default) | 1 | `grid-cols-1` |
+| Tablet (md: 768px+) | 2 | `md:grid-cols-2` |
+| Desktop (lg: 1024px+) | 3 | `lg:grid-cols-3` |
 
 **Metadata Configuration:**
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `title` | string | node.title | Section title |
 | `subtitle` | string | - | Optional subtitle |
-| `columns` | number | 3 | Number of columns |
-| `gap` | number | 16 | Gap between cards in pixels |
 | `show_title` | boolean | true | Show section header |
 
-**Child Metadata:**
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `col_span` | number \| 'full' | 1 | Column span (1, 2, or 'full') |
+**Child Metadata (col_span):**
+| Value | Behavior | Description |
+|-------|----------|-------------|
+| `undefined` / `1` | Single column | Default, one grid cell |
+| `2` | Two columns | Spans 2 columns on md+ (1 on mobile) |
+| `'full'` | Full width | Spans all columns at every breakpoint (`col-span-full`) |
 
 **Example:**
 ```json
@@ -106,14 +113,14 @@
   "type": "container",
   "variant": "view_dashboard_masonry",
   "title": "Finance Dashboard",
-  "metadata": { "columns": 2 },
+  "metadata": {},
   "children": [
     {
       "id": "...",
       "type": "item",
       "variant": "card_progress_simple",
       "title": "Budget",
-      "metadata": { "col_span": 1, "value": 750, "max": 1000 }
+      "metadata": { "value": 750, "max": 1000 }
     },
     {
       "id": "...",
@@ -124,6 +131,23 @@
     }
   ]
 }
+```
+
+**Layout Result:**
+```
+Mobile (< 768px):
+┌───────────────────────────────────┐
+│ Budget Card                        │
+├───────────────────────────────────┤
+│ Spending Chart (col_span: full)   │
+└───────────────────────────────────┘
+
+Tablet/Desktop (≥ 768px):
+┌────────────────┬─────────────────┐
+│ Budget Card    │ Other Card      │
+├────────────────┴─────────────────┤
+│ Spending Chart (col_span: full)  │
+└──────────────────────────────────┘
 ```
 
 ---

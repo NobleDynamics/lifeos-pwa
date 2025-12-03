@@ -552,6 +552,93 @@ const { rootId, rootPath, isLoading, error } = useContextRoot('household.todos')
 
 ---
 
+### 4.0.8 ViewEngine Seed Data [IMPLEMENTED]
+
+**Migration SQL:** `13_seed_viewengine.sql`
+
+Purpose: Seeds the resources table with ViewEngine-compatible test data that demonstrates the variant system, slot configuration, and smart aggregation patterns.
+
+**Test User:** `11111111-1111-1111-1111-111111111111` (Dev User 1)
+
+**Seed Data Structure:**
+
+```
+My Home (layout_app_shell) [ID: 100]
+├── Shopping (layout_top_tabs) [ID: 103]
+│   ├── Lists (view_list_stack) [ID: 131]
+│   │   └── Grocery List (row_neon_group) [ID: 401]
+│   │       └── Milk (row_input_currency) [ID: 402]
+│   └── Items (view_directory) [ID: 132]
+│       └── Apple (row_input_stepper) [ID: 501]
+├── Stock (view_grid_fixed) [ID: 104]
+├── To-Do (view_directory) [ID: 105]
+└── Finance (view_dashboard_masonry) [ID: 106] ← NEW
+    ├── Monthly Budget (card_progress_multi) [ID: 201]
+    ├── Spending Breakdown (card_chart_pie) [ID: 202]
+    └── Transactions (view_list_stack) [ID: 203]
+        ├── Groceries (row_input_currency) [ID: 204] - $125.50, Food
+        ├── Coffee Shop (row_input_currency) [ID: 205] - $6.75, Food
+        ├── Gas Station (row_input_currency) [ID: 206] - $58.00, Transport
+        ├── Electric Bill (row_input_currency) [ID: 207] - $145.00, Utilities
+        ├── Netflix (row_input_currency) [ID: 208] - $15.99, Entertainment
+        └── Restaurant Dinner (row_input_currency) [ID: 209] - $85.00, Food
+```
+
+**UUID Pattern:** `00000000-0000-0000-0000-0000000001XX`
+- 100-199: Tabs/Views
+- 200-299: Widgets
+- 300-399: Reserved
+- 400-499: List Items
+- 500-599: Product Items
+
+**Smart Aggregation Configuration (Finance Tab):**
+
+The Finance tab demonstrates the smart aggregation pattern where widget cards aggregate data from sibling containers:
+
+| Widget | Variant | Source | Aggregation Config |
+|--------|---------|--------|-------------------|
+| Monthly Budget | `card_progress_multi` | Transactions | `mode: aggregate_children`, `target_key: amount`, `group_by: category`, `max_value: 2000` |
+| Spending Breakdown | `card_chart_pie` | Transactions | `mode: aggregate_children`, `target_key: amount`, `group_by: category` |
+
+**Transaction Categories:** Food ($217.25), Transport ($58.00), Utilities ($145.00), Entertainment ($15.99)
+
+**Key Metadata Patterns:**
+
+1. **Widget → Source Binding:**
+   ```json
+   {
+     "source_container_id": "00000000-0000-0000-0000-000000000203",
+     "__config": {
+       "mode": "aggregate_children",
+       "target_key": "amount",
+       "group_by": "category"
+     }
+   }
+   ```
+
+2. **Row Slot Mapping:**
+   ```json
+   {
+     "amount": 125.50,
+     "category": "Food",
+     "__config": {
+       "slot_headline": "title",
+       "slot_value": "amount",
+       "slot_subtext": "category"
+     }
+   }
+   ```
+
+**Running the Seed:**
+```bash
+# In Supabase SQL Editor or psql
+\i 13_seed_viewengine.sql
+```
+
+**Warning:** This seed includes a `DELETE FROM resources` for test users. Only run in development environments.
+
+---
+
 4.1 The Unified Task Table [FUTURE - Use resources table instead]
 Table: tasks
 Purpose: Single source of truth for all "To-Dos", whether personal, household chores, or Agent sub-steps.

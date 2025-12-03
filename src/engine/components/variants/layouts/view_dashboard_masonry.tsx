@@ -27,15 +27,18 @@ import { cn } from '@/lib/utils'
  * └─────────────────────────────────────────────────────────┘
  * 
  * Children can specify col_span in metadata:
- * - 1 (default): Single column
- * - 2: Two columns
- * - 'full': Full width
+ * - undefined/1 (default): Single column
+ * - 2: Two columns (only applies on md+ screens)
+ * - 'full': Full width across all columns
+ * 
+ * Responsive Behavior:
+ * - Mobile (default): 1 column - everything stacks
+ * - Tablet (md): 2 columns
+ * - Desktop (lg+): 3 columns
  * 
  * Slots:
  * - title: Optional section title
  * - subtitle: Optional section subtitle
- * - columns: Number of columns (default: 3, responsive to 2 on tablet, 1 on mobile)
- * - gap: Gap between items in pixels (default: 16)
  * - show_title: Whether to show section header (default: true if title exists)
  */
 export function ViewDashboardMasonry({ node }: VariantComponentProps) {
@@ -44,8 +47,6 @@ export function ViewDashboardMasonry({ node }: VariantComponentProps) {
   // Slot-based configuration
   const title = useSlot<string>('title') ?? (depth === 0 ? node.title : undefined)
   const subtitle = useSlot<string>('subtitle')
-  const columns = useSlot<number>('columns', 3)
-  const gap = useSlot<number>('gap', 16)
   const showTitle = useSlot<boolean>('show_title', !!title)
   
   const hasChildren = node.children && node.children.length > 0
@@ -76,26 +77,12 @@ export function ViewDashboardMasonry({ node }: VariantComponentProps) {
         </div>
       )}
       
-      {/* Grid Container */}
+      {/* Grid Container - Responsive: 1col mobile, 2col tablet, 3col desktop */}
       {hasChildren ? (
-        <div
-          className="grid w-full"
-          style={{
-            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            gap: `${gap}px`,
-          }}
-        >
+        <div className="grid w-full gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {node.children!.map((child) => {
-            // Get col_span from child metadata
+            // Get col_span from child metadata (defaults to 1 if missing)
             const colSpan = child.metadata.col_span as number | 'full' | undefined
-            
-            // Determine grid column span
-            let gridColumn = 'span 1'
-            if (colSpan === 'full') {
-              gridColumn = `span ${columns}`
-            } else if (typeof colSpan === 'number' && colSpan > 1) {
-              gridColumn = `span ${Math.min(colSpan, columns)}`
-            }
             
             // Resolve and render the child
             const ChildComponent = resolveVariant(child)
@@ -103,8 +90,13 @@ export function ViewDashboardMasonry({ node }: VariantComponentProps) {
             return (
               <div
                 key={child.id}
-                style={{ gridColumn }}
-                className="min-w-0" // Prevent overflow
+                className={cn(
+                  "min-w-0", // Prevent overflow
+                  // col_span: 'full' - spans all columns at every breakpoint
+                  colSpan === 'full' && "col-span-full",
+                  // col_span: 2 - spans 2 columns on md+, 1 on mobile
+                  typeof colSpan === 'number' && colSpan >= 2 && "md:col-span-2"
+                )}
               >
                 <NodeProvider
                   node={child}

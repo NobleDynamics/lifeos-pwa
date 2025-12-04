@@ -244,7 +244,7 @@ Use these inside variant components:
 
 | Hook | Returns | Purpose |
 |------|---------|---------|
-| `useNode()` | `{ node, depth, rootId, parentId }` | Full node context |
+| `useNode()` | `{ node, depth, rootId, rootNode, parentId, findNodeById }` | Full node context |
 | `useNodeMeta<T>(key, default?)` | `T` | Type-safe metadata access |
 | `useIsRoot()` | `boolean` | Check if current node is tree root |
 | `useHasChildren()` | `boolean` | Check if node has children |
@@ -252,7 +252,8 @@ Use these inside variant components:
 | `useRenderChildren()` | `() => ReactNode` | Render children helper |
 | `useShellNavigation()` | `{ targetNodeId, navigateToNode, navigateBack, canNavigateBack }` | Shell navigation |
 | `useShellAction()` | `{ actionConfig, setActionConfig, clearActionConfig }` | Dynamic header actions |
-| `useChildAggregation()` | `{ total, items, max, min, isEmpty }` | Smart aggregation from children |
+| `useChildAggregation()` | `{ total, items, max, min, isEmpty }` | Aggregate from own children |
+| `useSlotBasedAggregation()` | `{ total, items, ... }` | Aggregate from source_id sibling (for charts) |
 | `useSlot<T>()` | `T \| undefined` | Slot-based metadata access |
 
 ---
@@ -684,6 +685,59 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 - Checkbox triggers `toggle_status` OR custom `metadata.behavior`.
 - **Event Handling:** Uses `onPointerDown` with `stopPropagation()` to prevent parent row handler interference while allowing focus.
 - **Text Colors:** Uses `text-white` for input text and `text-dark-500` for currency symbol (not `text-dark-100`/`text-dark-400` which are nearly black in the inverted color scheme).
+
+---
+
+### `row_transaction_history`
+**Structure:** Category Icon | Title + Date | Amount (Read-Only)
+**Use for:** Transaction history, expense logs, read-only financial records
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ [🍔]  Whole Foods                                 -$125.50    │
+│       Dec 1, 2024                                              │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Merchant/description (default: node.title) |
+| `amount` | number | Transaction amount (negative for expenses) |
+| `category` | string | Category name for icon selection |
+| `date` | string | Transaction date (auto-formatted) |
+
+**Category Icons (Built-in):**
+| Category | Icon | Color |
+|----------|------|-------|
+| Food | UtensilsCrossed | #10b981 |
+| Dining | Coffee | #f59e0b |
+| Coffee | Coffee | #a16207 |
+| Transport | Car | #06b6d4 |
+| Utilities | Zap | #eab308 |
+| Entertainment | Tv | #a855f7 |
+| Shopping | ShoppingBag | #ec4899 |
+| Health | Heart | #ef4444 |
+| Income | TrendingUp | #22c55e |
+| (default) | Receipt | #6b7280 |
+
+**Behavior:**
+- **Read-Only:** No inputs or checkboxes. Purely display.
+- **Color-Coded:** Amounts shown in red (expense) or green (income).
+- **Date Formatting:** Automatically formats ISO dates to human-readable.
+
+**Example:**
+```json
+{
+  "variant": "row_transaction_history",
+  "title": "Whole Foods",
+  "metadata": {
+    "amount": 125.50,
+    "category": "Food",
+    "date": "2024-12-01"
+  }
+}
+```
 
 ---
 

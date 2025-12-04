@@ -164,11 +164,55 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
       variant: 'card_media_top',
       title: 'Pasta Carbonara',
       metadata: { 
-        description: 'Classic Italian comfort food',
+        media: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&h=300&fit=crop',
+        subtext: 'Classic Italian comfort food',
         accent_color: '#f59e0b',
         badge_1: '30 min',
         badge_1_icon: 'clock',
         badge_2: '4 servings',
+      },
+    },
+  },
+  card_media_thumbnail: {
+    category: 'Card',
+    description: 'Square thumbnail for photo galleries',
+    node: {
+      id: 'mock-card-thumbnail',
+      type: 'item',
+      variant: 'card_media_thumbnail',
+      title: 'Beach Sunset',
+      metadata: { 
+        url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=200&h=200&fit=crop',
+      },
+    },
+  },
+  card_media_cover: {
+    category: 'Card',
+    description: 'Poster-style card with overlay text',
+    node: {
+      id: 'mock-card-cover',
+      type: 'item',
+      variant: 'card_media_cover',
+      title: 'The Matrix',
+      metadata: { 
+        url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=300&h=450&fit=crop',
+        subtext: 'Sci-Fi • 1999',
+      },
+    },
+  },
+  card_stat_hero: {
+    category: 'Card',
+    description: 'Minimalist hero metric with trend indicator',
+    node: {
+      id: 'mock-card-stat-hero',
+      type: 'item',
+      variant: 'card_stat_hero',
+      title: 'Total Revenue',
+      metadata: { 
+        value: 12450,
+        format: 'currency',
+        trend: 8.5,
+        color: '#06b6d4',
       },
     },
   },
@@ -317,6 +361,44 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
           { name: 'Endurance', value: 80 },
         ],
       },
+    },
+  },
+  
+  // === GALLERY & CAROUSEL LAYOUTS ===
+  view_gallery_grid: {
+    category: 'Layout',
+    description: 'Tight photo gallery grid (3-5 columns)',
+    node: {
+      id: 'mock-gallery-grid',
+      type: 'container',
+      variant: 'view_gallery_grid',
+      title: 'Photo Gallery',
+      metadata: { show_header: false },
+      children: [
+        { id: 'thumb-1', type: 'item', variant: 'card_media_thumbnail', title: 'Photo 1', metadata: { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop' } },
+        { id: 'thumb-2', type: 'item', variant: 'card_media_thumbnail', title: 'Photo 2', metadata: { url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=200&h=200&fit=crop' } },
+        { id: 'thumb-3', type: 'item', variant: 'card_media_thumbnail', title: 'Photo 3', metadata: { url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=200&h=200&fit=crop' } },
+        { id: 'thumb-4', type: 'item', variant: 'card_media_thumbnail', title: 'Photo 4', metadata: { url: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=200&h=200&fit=crop' } },
+        { id: 'thumb-5', type: 'item', variant: 'card_media_thumbnail', title: 'Photo 5', metadata: { url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=200&h=200&fit=crop' } },
+        { id: 'thumb-6', type: 'item', variant: 'card_media_thumbnail', title: 'Photo 6', metadata: { url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=200&h=200&fit=crop' } },
+      ],
+    },
+  },
+  view_carousel_snap: {
+    category: 'Layout',
+    description: 'Horizontal snap carousel (Touch Trap enabled)',
+    node: {
+      id: 'mock-carousel-snap',
+      type: 'container',
+      variant: 'view_carousel_snap',
+      title: 'Featured Movies',
+      metadata: { item_width: 'w-32' },
+      children: [
+        { id: 'movie-1', type: 'item', variant: 'card_media_cover', title: 'Inception', metadata: { url: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=200&h=300&fit=crop', subtext: 'Sci-Fi • 2010' } },
+        { id: 'movie-2', type: 'item', variant: 'card_media_cover', title: 'Interstellar', metadata: { url: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=200&h=300&fit=crop', subtext: 'Sci-Fi • 2014' } },
+        { id: 'movie-3', type: 'item', variant: 'card_media_cover', title: 'Blade Runner', metadata: { url: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=200&h=300&fit=crop', subtext: 'Sci-Fi • 1982' } },
+        { id: 'movie-4', type: 'item', variant: 'card_media_cover', title: 'Dune', metadata: { url: 'https://images.unsplash.com/photo-1547234935-80c7145ec969?w=200&h=300&fit=crop', subtext: 'Sci-Fi • 2021' } },
+      ],
     },
   },
 }

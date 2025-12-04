@@ -168,6 +168,9 @@ export { RowTransactionHistory } from './components/variants/rows/row_transactio
 
 // Cards (Grid Items)
 export { CardMediaTop } from './components/variants/cards/card_media_top'
+export { CardMediaThumbnail } from './components/variants/cards/card_media_thumbnail'
+export { CardMediaCover } from './components/variants/cards/card_media_cover'
+export { CardStatHero } from './components/variants/cards/card_stat_hero'
 
 // Progress Cards
 export { CardProgressSimple } from './components/variants/cards/card_progress_simple'
@@ -182,6 +185,10 @@ export { CardChartRadar } from './components/variants/cards/card_chart_radar'
 
 // Dashboard Layouts
 export { ViewDashboardMasonry, ViewDashboardResponsive } from './components/variants/layouts/view_dashboard_masonry'
+
+// Gallery & Carousel Layouts
+export { ViewGalleryGrid } from './components/variants/layouts/view_gallery_grid'
+export { ViewCarouselSnap } from './components/variants/layouts/view_carousel_snap'
 
 // =============================================================================
 // ENGINE INITIALIZATION
@@ -203,6 +210,9 @@ import { RowInputStepper } from './components/variants/rows/row_input_stepper'
 import { RowInputCurrency } from './components/variants/rows/row_input_currency'
 import { RowTransactionHistory } from './components/variants/rows/row_transaction_history'
 import { CardMediaTop } from './components/variants/cards/card_media_top'
+import { CardMediaThumbnail } from './components/variants/cards/card_media_thumbnail'
+import { CardMediaCover } from './components/variants/cards/card_media_cover'
+import { CardStatHero } from './components/variants/cards/card_stat_hero'
 
 // Progress Cards
 import { CardProgressSimple } from './components/variants/cards/card_progress_simple'
@@ -217,6 +227,10 @@ import { CardChartRadar } from './components/variants/cards/card_chart_radar'
 
 // Dashboard Layouts
 import { ViewDashboardMasonry, ViewDashboardResponsive } from './components/variants/layouts/view_dashboard_masonry'
+
+// Gallery & Carousel Layouts
+import { ViewGalleryGrid } from './components/variants/layouts/view_gallery_grid'
+import { ViewCarouselSnap } from './components/variants/layouts/view_carousel_snap'
 
 /**
  * Initialize the ViewEngine with default variants.
@@ -249,6 +263,9 @@ export function initializeEngine(): void {
 
     // Cards (Grid Items)
     card_media_top: CardMediaTop,
+    card_media_thumbnail: CardMediaThumbnail,
+    card_media_cover: CardMediaCover,
+    card_stat_hero: CardStatHero,
 
     // Progress Cards
     card_progress_simple: CardProgressSimple,
@@ -264,6 +281,10 @@ export function initializeEngine(): void {
     // Dashboard Layouts
     view_dashboard_masonry: ViewDashboardMasonry,
     view_dashboard_responsive: ViewDashboardResponsive,
+
+    // Gallery & Carousel Layouts
+    view_gallery_grid: ViewGalleryGrid,
+    view_carousel_snap: ViewCarouselSnap,
 
     // =========================================
     // LEGACY ALIASES (Backwards Compatibility)

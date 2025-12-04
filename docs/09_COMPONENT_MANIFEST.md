@@ -18,6 +18,11 @@
 | `row_input_stepper` | Row | Numeric +/- input |
 | `row_input_currency` | Row | Currency input field |
 | `card_media_top` | Card | Card with image header |
+| `card_media_thumbnail` | Card | Square image thumbnail |
+| `card_media_cover` | Card | Poster-style with overlay |
+| `card_stat_hero` | Card | Large metric with trend |
+| `view_gallery_grid` | Layout | Tight photo gallery grid |
+| `view_carousel_snap` | Layout | Horizontal snap carousel |
 | `card_progress_simple` | Progress | Single progress bar |
 | `card_progress_stacked` | Progress | Stacked segments bar |
 | `card_progress_multi` | Progress | Multiple progress bars |
@@ -296,6 +301,205 @@ Tablet/Desktop (≥ 768px):
 | `badge_1_icon` | 'clock' | - | Badge icon |
 | `badge_2` | string | - | Second badge text |
 | `badge_3` | string | - | Third badge text |
+
+---
+
+### `card_media_thumbnail`
+
+**Category:** Card  
+**Description:** Strict square image card (1:1 aspect ratio) optimized for photo galleries.  
+**When to Use:** Photo galleries, image grids, thumbnails.
+
+**Required Children:** No  
+**Node Type:** `item`
+
+**Metadata Configuration:**
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `url` | string (URL) | - | Image URL |
+| `alt` | string | node.title | Alt text for accessibility |
+
+**Fallback:** Shows centered ImageIcon placeholder when no URL provided.
+
+**Example:**
+```json
+{
+  "id": "...",
+  "type": "item",
+  "variant": "card_media_thumbnail",
+  "title": "Beach Photo",
+  "metadata": {
+    "url": "https://images.unsplash.com/photo-xxx?w=200&h=200&fit=crop"
+  }
+}
+```
+
+---
+
+### `card_media_cover`
+
+**Category:** Card  
+**Description:** Poster-style card with tall aspect ratio (2:3). Image fills 100% with gradient overlay and white text at bottom.  
+**When to Use:** Recipes, movies, albums, book covers, content cards with visual focus.
+
+**Required Children:** No  
+**Node Type:** `item`
+
+**Metadata Configuration:**
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `url` | string (URL) | - | Image URL |
+| `headline` | string | node.title | Title text (overlay) |
+| `subtext` | string | - | Subtitle (overlay) |
+
+**Features:**
+- Bottom gradient: `from-black/80 to-transparent`
+- Hover: subtle zoom on image (scale-105)
+- Fallback: ImageIcon placeholder
+
+**Example:**
+```json
+{
+  "id": "...",
+  "type": "item",
+  "variant": "card_media_cover",
+  "title": "The Matrix",
+  "metadata": {
+    "url": "https://images.unsplash.com/photo-xxx?w=300&h=450&fit=crop",
+    "subtext": "Sci-Fi • 1999"
+  }
+}
+```
+
+---
+
+### `card_stat_hero`
+
+**Category:** Card  
+**Description:** Minimalist hero metric card with large centered number, label, and optional trend indicator.  
+**When to Use:** KPIs, dashboard metrics, summary statistics.
+
+**Required Children:** Optional (can aggregate from children)  
+**Node Type:** `item`
+
+**Data Sources (priority order):**
+1. Direct `value` in metadata
+2. Aggregated from children via `aggregation` config
+
+**Metadata Configuration:**
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `value` | number | (aggregated) | The metric value |
+| `label` | string | node.title | Label below the value |
+| `format` | 'number' \| 'currency' \| 'percent' \| 'compact' | 'number' | Value format |
+| `trend` | number | - | Trend percentage (e.g., 8.5 for +8.5%) |
+| `trend_direction` | 'up' \| 'down' \| 'flat' | (auto) | Trend direction |
+| `color` | string (hex) | #06b6d4 | Accent color for value |
+| `aggregation` | AggregationConfig | - | Child aggregation config |
+
+**Layout:**
+```
+┌───────────────────────────┐
+│                      ↑ +5%│  ← Trend (top-right)
+│        $12,450            │  ← Large value (center)
+│      Total Revenue        │  ← Label (bottom)
+└───────────────────────────┘
+```
+
+**Example:**
+```json
+{
+  "id": "...",
+  "type": "item",
+  "variant": "card_stat_hero",
+  "title": "Total Revenue",
+  "metadata": {
+    "value": 12450,
+    "format": "currency",
+    "trend": 8.5,
+    "color": "#06b6d4"
+  }
+}
+```
+
+---
+
+### `view_gallery_grid`
+
+**Category:** Layout  
+**Description:** Tight CSS Grid optimized for displaying many thumbnail images. Uses gap-1 for compact spacing.  
+**When to Use:** Photo galleries, image libraries, media collections.
+
+**Required Children:** Yes (typically `card_media_thumbnail`)  
+**Node Type:** `container`
+
+**Responsive Behavior:**
+| Breakpoint | Columns |
+|------------|---------|
+| Mobile | 3 |
+| Tablet (md) | 4 |
+| Desktop (lg) | 5 |
+
+**Metadata Configuration:**
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `headline` | string | node.title | Section title |
+| `subtext` | string | - | Section subtitle |
+| `show_header` | boolean | true | Show header section |
+
+**Example:**
+```json
+{
+  "id": "...",
+  "type": "container",
+  "variant": "view_gallery_grid",
+  "title": "Photo Album",
+  "metadata": { "show_header": false },
+  "children": [
+    { "id": "1", "type": "item", "variant": "card_media_thumbnail", "metadata": { "url": "..." } },
+    { "id": "2", "type": "item", "variant": "card_media_thumbnail", "metadata": { "url": "..." } }
+  ]
+}
+```
+
+---
+
+### `view_carousel_snap`
+
+**Category:** Layout  
+**Description:** Horizontal scrolling container with snap scrolling. **IMPORTANT:** Implements Touch Trap to prevent horizontal swipes from bubbling to Global App Navigation.  
+**When to Use:** Featured content, horizontal card scrollers, media carousels.
+
+**Required Children:** Yes (typically `card_media_cover` or `card_media_thumbnail`)  
+**Node Type:** `container`
+
+**Features:**
+- Snap scrolling: `snap-x snap-mandatory`
+- Hidden scrollbar: `scrollbar-hide`
+- **Touch Trap:** `onTouchStart` + `onPointerDown` with `e.stopPropagation()`
+
+**Metadata Configuration:**
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `headline` | string | node.title | Section title |
+| `subtext` | string | - | Section subtitle |
+| `show_header` | boolean | true | Show header section |
+| `item_width` | string | 'w-40' | Tailwind width class for items |
+
+**Example:**
+```json
+{
+  "id": "...",
+  "type": "container",
+  "variant": "view_carousel_snap",
+  "title": "Featured Movies",
+  "metadata": { "item_width": "w-32" },
+  "children": [
+    { "id": "1", "type": "item", "variant": "card_media_cover", "title": "Inception", "metadata": { "url": "...", "subtext": "2010" } },
+    { "id": "2", "type": "item", "variant": "card_media_cover", "title": "Interstellar", "metadata": { "url": "...", "subtext": "2014" } }
+  ]
+}
+```
 
 ---
 

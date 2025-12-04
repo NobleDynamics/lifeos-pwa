@@ -104,10 +104,16 @@ interface Node {
 5. Test in Sandbox with matching JSON
 
 ### Context Hooks (use inside variants)
-* `useNode()` - Get current node, depth, rootId, parentId
+* `useNode()` - Get current node, depth, rootId, rootNode, parentId, findNodeById()
 * `useNodeMeta<T>(key, default?)` - Type-safe metadata access
 * `useChildCount()`, `useHasChildren()`, `useIsRoot()`
-* `renderChildren(node, depth, rootId)` - Render child nodes
+* `renderChildren(node, depth, rootId, rootNode)` - Render child nodes
+
+### Data Aggregation Hooks (for Smart Components)
+* `useChildAggregation(node, config)` - Aggregate data from node's own children
+* `useDataAggregation(node, config)` - Source-agnostic (supports `source_id` for sibling lookups)
+* `useSlotBasedAggregation(node, config)` - Reads `source_id` from slot config automatically
+* **source_id Pattern:** Charts/Progress cards can aggregate from sibling nodes by setting `"source_id": "<uuid>"` in metadata
 
 ---
 

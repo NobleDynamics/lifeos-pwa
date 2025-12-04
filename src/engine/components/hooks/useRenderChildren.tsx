@@ -29,9 +29,9 @@ import { renderChildren } from '../ViewEngine'
  * }
  */
 export function useRenderChildren() {
-  const { node, depth, rootId } = useNode()
+  const { node, depth, rootId, rootNode } = useNode()
   
   return useCallback(() => {
-    return renderChildren(node, depth, rootId)
-  }, [node, depth, rootId])
+    return renderChildren(node, depth, rootId, rootNode)
+  }, [node, depth, rootId, rootNode])
 }

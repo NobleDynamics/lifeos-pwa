@@ -426,13 +426,17 @@ INSERT INTO resources (
     '{
         "variant": "card_progress_multi",
         "icon": "PiggyBank",
-        "max_value": 2000,
-        "source_container_id": "00000000-0000-0000-0000-000000000203",
+        "col_span": "full",
+        "default_max": 500,
+        "source_id": "00000000-0000-0000-0000-000000000203",
         "__config": {
-            "mode": "aggregate_children",
-            "target_key": "amount",
-            "group_by": "category"
-        }
+            "slot_source_id": "source_id",
+            "slot_target_key": "target_key",
+            "slot_group_by": "group_by",
+            "slot_default_max": "default_max"
+        },
+        "target_key": "amount",
+        "group_by": "category"
     }'::jsonb,
     false,
     '11111111-1111-1111-1111-111111111111'::uuid
@@ -465,12 +469,15 @@ INSERT INTO resources (
     '{
         "variant": "card_chart_pie",
         "icon": "PieChart",
-        "source_container_id": "00000000-0000-0000-0000-000000000203",
+        "col_span": "full",
+        "source_id": "00000000-0000-0000-0000-000000000203",
         "__config": {
-            "mode": "aggregate_children",
-            "target_key": "amount",
-            "group_by": "category"
-        }
+            "slot_source_id": "source_id",
+            "slot_target_key": "target_key",
+            "slot_group_by": "group_by"
+        },
+        "target_key": "amount",
+        "group_by": "category"
     }'::jsonb,
     false,
     '11111111-1111-1111-1111-111111111111'::uuid
@@ -521,18 +528,19 @@ INSERT INTO resources (
     '00000000-0000-0000-0000-000000000203'::uuid,
     'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000106.00000000_0000_0000_0000_000000000203.00000000_0000_0000_0000_000000000204'::ltree,
     'task'::resource_type,
-    'Groceries',
-    'Weekly shopping at Whole Foods',
+    'Whole Foods',
+    'Weekly shopping',
     'active'::resource_status,
     '{
-        "variant": "row_input_currency",
+        "variant": "row_transaction_history",
         "amount": 125.50,
         "category": "Food",
         "date": "2024-12-01",
         "__config": {
             "slot_headline": "title",
-            "slot_value": "amount",
-            "slot_subtext": "category"
+            "slot_amount": "amount",
+            "slot_category": "category",
+            "slot_date": "date"
         }
     }'::jsonb,
     false,
@@ -549,18 +557,19 @@ INSERT INTO resources (
     '00000000-0000-0000-0000-000000000203'::uuid,
     'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000106.00000000_0000_0000_0000_000000000203.00000000_0000_0000_0000_000000000205'::ltree,
     'task'::resource_type,
-    'Coffee Shop',
-    'Morning latte at Starbucks',
+    'Starbucks',
+    'Morning latte',
     'active'::resource_status,
     '{
-        "variant": "row_input_currency",
+        "variant": "row_transaction_history",
         "amount": 6.75,
-        "category": "Food",
+        "category": "Coffee",
         "date": "2024-12-02",
         "__config": {
             "slot_headline": "title",
-            "slot_value": "amount",
-            "slot_subtext": "category"
+            "slot_amount": "amount",
+            "slot_category": "category",
+            "slot_date": "date"
         }
     }'::jsonb,
     false,
@@ -577,18 +586,19 @@ INSERT INTO resources (
     '00000000-0000-0000-0000-000000000203'::uuid,
     'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000106.00000000_0000_0000_0000_000000000203.00000000_0000_0000_0000_000000000206'::ltree,
     'task'::resource_type,
-    'Gas Station',
-    'Shell fuel up',
+    'Shell',
+    'Fuel up',
     'active'::resource_status,
     '{
-        "variant": "row_input_currency",
+        "variant": "row_transaction_history",
         "amount": 58.00,
         "category": "Transport",
         "date": "2024-12-01",
         "__config": {
             "slot_headline": "title",
-            "slot_value": "amount",
-            "slot_subtext": "category"
+            "slot_amount": "amount",
+            "slot_category": "category",
+            "slot_date": "date"
         }
     }'::jsonb,
     false,
@@ -605,18 +615,19 @@ INSERT INTO resources (
     '00000000-0000-0000-0000-000000000203'::uuid,
     'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000106.00000000_0000_0000_0000_000000000203.00000000_0000_0000_0000_000000000207'::ltree,
     'task'::resource_type,
-    'Electric Bill',
+    'Power Company',
     'December power bill',
     'active'::resource_status,
     '{
-        "variant": "row_input_currency",
+        "variant": "row_transaction_history",
         "amount": 145.00,
         "category": "Utilities",
         "date": "2024-12-03",
         "__config": {
             "slot_headline": "title",
-            "slot_value": "amount",
-            "slot_subtext": "category"
+            "slot_amount": "amount",
+            "slot_category": "category",
+            "slot_date": "date"
         }
     }'::jsonb,
     false,
@@ -637,14 +648,15 @@ INSERT INTO resources (
     'Monthly subscription',
     'active'::resource_status,
     '{
-        "variant": "row_input_currency",
+        "variant": "row_transaction_history",
         "amount": 15.99,
         "category": "Entertainment",
         "date": "2024-12-01",
         "__config": {
             "slot_headline": "title",
-            "slot_value": "amount",
-            "slot_subtext": "category"
+            "slot_amount": "amount",
+            "slot_category": "category",
+            "slot_date": "date"
         }
     }'::jsonb,
     false,
@@ -661,18 +673,19 @@ INSERT INTO resources (
     '00000000-0000-0000-0000-000000000203'::uuid,
     'root.00000000_0000_0000_0000_000000000100.00000000_0000_0000_0000_000000000106.00000000_0000_0000_0000_000000000203.00000000_0000_0000_0000_000000000209'::ltree,
     'task'::resource_type,
-    'Restaurant Dinner',
-    'Birthday dinner at Italian place',
+    'Olive Garden',
+    'Birthday dinner',
     'active'::resource_status,
     '{
-        "variant": "row_input_currency",
+        "variant": "row_transaction_history",
         "amount": 85.00,
-        "category": "Food",
+        "category": "Dining",
         "date": "2024-12-02",
         "__config": {
             "slot_headline": "title",
-            "slot_value": "amount",
-            "slot_subtext": "category"
+            "slot_amount": "amount",
+            "slot_category": "category",
+            "slot_date": "date"
         }
     }'::jsonb,
     false,

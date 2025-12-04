@@ -13,7 +13,7 @@ import { PieChart as PieChartIcon } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
 import { useSlot } from '../../../hooks/useSlot'
-import { useChildAggregation } from '../../../hooks/useChildAggregation'
+import { useSlotBasedAggregation } from '../../../hooks/useDataAggregation'
 import { cn } from '@/lib/utils'
 
 /**
@@ -97,8 +97,8 @@ export function CardChartPie({ node }: VariantComponentProps) {
   const currencySymbol = useSlot<string>('currency_symbol', '$')
   const showLabels = useSlot<boolean>('show_labels', false)
   
-  // Aggregate from children if no direct data
-  const aggregated = useChildAggregation(node, {
+  // Aggregate from source (supports source_id for sibling lookups)
+  const aggregated = useSlotBasedAggregation(node, {
     target_key: targetKey,
     group_by: groupBy,
     operation: 'sum',

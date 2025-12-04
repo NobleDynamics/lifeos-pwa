@@ -42,7 +42,7 @@ import { cn } from '@/lib/utils'
  * - show_title: Whether to show section header (default: true if title exists)
  */
 export function ViewDashboardMasonry({ node }: VariantComponentProps) {
-  const { depth, rootId } = useNode()
+  const { depth, rootId, rootNode } = useNode()
   
   // Slot-based configuration
   const title = useSlot<string>('title') ?? (depth === 0 ? node.title : undefined)
@@ -102,6 +102,7 @@ export function ViewDashboardMasonry({ node }: VariantComponentProps) {
                   node={child}
                   depth={depth + 1}
                   rootId={rootId}
+                  rootNode={rootNode}
                   parentId={node.id}
                 >
                   <ChildComponent node={child} />
@@ -125,7 +126,7 @@ export function ViewDashboardMasonry({ node }: VariantComponentProps) {
  * Use this for truly responsive dashboards
  */
 export function ViewDashboardResponsive({ node }: VariantComponentProps) {
-  const { depth, rootId } = useNode()
+  const { depth, rootId, rootNode } = useNode()
   
   const title = useSlot<string>('title') ?? (depth === 0 ? node.title : undefined)
   const subtitle = useSlot<string>('subtitle')
@@ -182,6 +183,7 @@ export function ViewDashboardResponsive({ node }: VariantComponentProps) {
                   node={child}
                   depth={depth + 1}
                   rootId={rootId}
+                  rootNode={rootNode}
                   parentId={node.id}
                 >
                   <ChildComponent node={child} />

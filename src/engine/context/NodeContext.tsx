@@ -8,8 +8,28 @@
  * @module engine/context/NodeContext
  */
 
-import { createContext, useContext, ReactNode, useMemo } from 'react'
+import { createContext, useContext, ReactNode, useMemo, useCallback } from 'react'
 import type { Node } from '../types/node'
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Recursively find a node by ID in the tree
+ */
+function findNodeByIdInTree(node: Node, targetId: string): Node | null {
+  if (node.id === targetId) return node
+  
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findNodeByIdInTree(child, targetId)
+      if (found) return found
+    }
+  }
+  
+  return null
+}
 
 // =============================================================================
 // CONTEXT DEFINITION
@@ -30,6 +50,12 @@ export interface NodeContextValue {
   
   /** ID of the root node in this tree */
   rootId: string
+  
+  /** The complete root node tree (for sibling lookups) */
+  rootNode: Node
+  
+  /** Find any node in the tree by ID */
+  findNodeById: (id: string) => Node | null
 }
 
 const NodeContext = createContext<NodeContextValue | null>(null)
@@ -51,6 +77,9 @@ export interface NodeProviderProps {
   /** Root node ID of the tree */
   rootId: string
   
+  /** The complete root node tree (for sibling lookups) */
+  rootNode: Node
+  
   /** Child components */
   children: ReactNode
 }
@@ -64,8 +93,15 @@ export function NodeProvider({
   depth = 0,
   parentId = null,
   rootId,
+  rootNode,
   children,
 }: NodeProviderProps) {
+  // Memoized function to find any node in the tree by ID
+  const findNodeById = useCallback(
+    (id: string): Node | null => findNodeByIdInTree(rootNode, id),
+    [rootNode]
+  )
+  
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo<NodeContextValue>(
     () => ({
@@ -73,8 +109,10 @@ export function NodeProvider({
       depth,
       parentId,
       rootId,
+      rootNode,
+      findNodeById,
     }),
-    [node, depth, parentId, rootId]
+    [node, depth, parentId, rootId, rootNode, findNodeById]
   )
 
   return <NodeContext.Provider value={value}>{children}</NodeContext.Provider>

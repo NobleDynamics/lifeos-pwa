@@ -127,6 +127,13 @@ export type {
   AggregatedData 
 } from './hooks/useChildAggregation'
 
+// Source-Agnostic Aggregation (supports source_id lookups)
+export {
+  useDataAggregation,
+  useSlotBasedAggregation,
+} from './hooks/useDataAggregation'
+export type { DataAggregationConfig } from './hooks/useDataAggregation'
+
 // =============================================================================
 // UTILITY EXPORTS
 // =============================================================================
@@ -157,6 +164,7 @@ export { RowNeonGroup } from './components/variants/rows/row_neon_group'
 export { RowSimple } from './components/variants/rows/row_simple'
 export { RowInputStepper } from './components/variants/rows/row_input_stepper'
 export { RowInputCurrency } from './components/variants/rows/row_input_currency'
+export { RowTransactionHistory } from './components/variants/rows/row_transaction_history'
 
 // Cards (Grid Items)
 export { CardMediaTop } from './components/variants/cards/card_media_top'
@@ -193,6 +201,7 @@ import { RowNeonGroup } from './components/variants/rows/row_neon_group'
 import { RowSimple } from './components/variants/rows/row_simple'
 import { RowInputStepper } from './components/variants/rows/row_input_stepper'
 import { RowInputCurrency } from './components/variants/rows/row_input_currency'
+import { RowTransactionHistory } from './components/variants/rows/row_transaction_history'
 import { CardMediaTop } from './components/variants/cards/card_media_top'
 
 // Progress Cards
@@ -236,6 +245,7 @@ export function initializeEngine(): void {
     row_simple: RowSimple,
     row_input_stepper: RowInputStepper,
     row_input_currency: RowInputCurrency,
+    row_transaction_history: RowTransactionHistory,
 
     // Cards (Grid Items)
     card_media_top: CardMediaTop,

@@ -11,7 +11,7 @@ import * as Progress from '@radix-ui/react-progress'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
 import { useSlot } from '../../../hooks/useSlot'
-import { useChildAggregation, type AggregatedItem } from '../../../hooks/useChildAggregation'
+import { useSlotBasedAggregation } from '../../../hooks/useDataAggregation'
 import { cn } from '@/lib/utils'
 
 /**
@@ -84,6 +84,13 @@ export function CardProgressMulti({ node }: VariantComponentProps) {
     percentage: number
   }> = []
   
+  // Use source-agnostic aggregation (supports source_id for sibling lookups)
+  const aggregated = useSlotBasedAggregation(node, {
+    target_key: targetKey,
+    group_by: groupBy,
+    operation: 'sum',
+  })
+  
   if (directItems && directItems.length > 0) {
     // Use direct items from metadata
     items = directItems.map((item, idx) => {
@@ -96,8 +103,17 @@ export function CardProgressMulti({ node }: VariantComponentProps) {
         percentage: itemMax > 0 ? Math.min((item.value / itemMax) * 100, 100) : 0,
       }
     })
+  } else if (aggregated.items.length > 0) {
+    // Use aggregated data (from own children or source_id sibling)
+    items = aggregated.items.map((item, idx) => ({
+      label: item.label,
+      value: item.value,
+      max: defaultMax,
+      color: item.color || getDefaultColor(idx),
+      percentage: defaultMax > 0 ? Math.min((item.value / defaultMax) * 100, 100) : 0,
+    }))
   } else if (node.children && node.children.length > 0) {
-    // Check if children have individual max values
+    // Fall back: check if children have individual max values for direct use
     const childrenWithMax = node.children.filter(
       c => c.metadata[maxKey] !== undefined
     )
@@ -115,21 +131,6 @@ export function CardProgressMulti({ node }: VariantComponentProps) {
           percentage: max > 0 ? Math.min((value / max) * 100, 100) : 0,
         }
       })
-    } else {
-      // Aggregate children by group_by key
-      const aggregated = useChildAggregation(node, {
-        target_key: targetKey,
-        group_by: groupBy,
-        operation: 'sum',
-      })
-      
-      items = aggregated.items.map((item, idx) => ({
-        label: item.label,
-        value: item.value,
-        max: defaultMax,
-        color: item.color || getDefaultColor(idx),
-        percentage: defaultMax > 0 ? Math.min((item.value / defaultMax) * 100, 100) : 0,
-      }))
     }
   }
   

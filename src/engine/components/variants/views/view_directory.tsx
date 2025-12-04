@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils'
  * - action_label: Label for action button (default: "New")
  */
 export function ViewDirectory({ node }: VariantComponentProps) {
-  const { depth, rootId } = useNode()
+  const { depth, rootId, rootNode } = useNode()
   const childCount = useChildCount()
   const { setActionConfig, clearActionConfig } = useShellAction()
 
@@ -145,7 +145,7 @@ export function ViewDirectory({ node }: VariantComponentProps) {
       {/* List Area */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
         {hasChildren && hasFilteredResults && (
-          renderChildren(nodeWithFilteredChildren, depth, rootId)
+          renderChildren(nodeWithFilteredChildren, depth, rootId, rootNode)
         )}
 
         {/* Empty State - No children */}

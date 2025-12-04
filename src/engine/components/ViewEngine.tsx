@@ -38,7 +38,7 @@ export interface ViewEngineProps {
 export function ViewEngine({ root, className }: ViewEngineProps) {
   return (
     <div className={className} data-engine-root={root.id}>
-      <NodeRenderer node={root} depth={0} rootId={root.id} />
+      <NodeRenderer node={root} depth={0} rootId={root.id} rootNode={root} />
     </div>
   )
 }
@@ -51,6 +51,7 @@ interface NodeRendererProps {
   node: Node
   depth: number
   rootId: string
+  rootNode: Node
   parentId?: string
 }
 
@@ -62,6 +63,7 @@ const NodeRenderer = memo(function NodeRenderer({
   node,
   depth,
   rootId,
+  rootNode,
   parentId,
 }: NodeRendererProps) {
   // Resolve the variant component from the registry
@@ -73,6 +75,7 @@ const NodeRenderer = memo(function NodeRenderer({
       depth={depth}
       parentId={parentId ?? null}
       rootId={rootId}
+      rootNode={rootNode}
     >
       <Component node={node} />
     </NodeProvider>
@@ -90,16 +93,17 @@ const NodeRenderer = memo(function NodeRenderer({
  * @param node - The current node (typically from useNode() or props)
  * @param depth - Current depth level
  * @param rootId - Root node ID of the tree
+ * @param rootNode - The complete root node tree (for sibling lookups)
  * @returns Array of rendered child nodes, or null if no children
  * 
  * @example
  * function ContainerStack({ node }: VariantComponentProps) {
- *   const { depth, rootId } = useNode()
+ *   const { depth, rootId, rootNode } = useNode()
  *   return (
  *     <div className="container">
  *       <h3>{node.title}</h3>
  *       <div className="children">
- *         {renderChildren(node, depth, rootId)}
+ *         {renderChildren(node, depth, rootId, rootNode)}
  *       </div>
  *     </div>
  *   )
@@ -108,7 +112,8 @@ const NodeRenderer = memo(function NodeRenderer({
 export function renderChildren(
   node: Node,
   depth: number,
-  rootId: string
+  rootId: string,
+  rootNode: Node
 ): React.ReactNode {
   if (!node.children || node.children.length === 0) {
     return null
@@ -120,6 +125,7 @@ export function renderChildren(
       node={child}
       depth={depth + 1}
       rootId={rootId}
+      rootNode={rootNode}
       parentId={node.id}
     />
   ))

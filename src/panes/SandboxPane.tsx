@@ -138,6 +138,21 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
       metadata: { value: 250.00, currency: 'USD' },
     },
   },
+  row_transaction_history: {
+    category: 'Row',
+    description: 'Read-only transaction row with category icon and amount',
+    node: {
+      id: 'mock-row-transaction',
+      type: 'item',
+      variant: 'row_transaction_history',
+      title: 'Whole Foods',
+      metadata: { 
+        amount: 125.50, 
+        category: 'Food', 
+        date: '2024-12-01' 
+      },
+    },
+  },
   
   // === CARDS ===
   card_media_top: {
@@ -337,6 +352,7 @@ function GalleryItem({ variantName, mock }: GalleryItemProps) {
           node={mock.node}
           depth={0}
           rootId={mock.node.id}
+          rootNode={mock.node}
           parentId={null}
         >
           <Component node={mock.node} />

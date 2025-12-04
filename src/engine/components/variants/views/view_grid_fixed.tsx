@@ -14,7 +14,7 @@ import { useSlot } from '../../../hooks/useSlot'
 import { cn } from '@/lib/utils'
 
 export function ViewGridFixed({ node }: VariantComponentProps) {
-    const { depth, rootId } = useNode()
+    const { depth, rootId, rootNode } = useNode()
 
     // Slots
     const headline = useSlot<string>('headline') ?? node.title
@@ -44,7 +44,7 @@ export function ViewGridFixed({ node }: VariantComponentProps) {
             {/* Grid Container */}
             {hasChildren ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {renderChildren(node, depth, rootId)}
+                    {renderChildren(node, depth, rootId, rootNode)}
                 </div>
             ) : (
                 <div className="text-center py-8 text-dark-400 text-sm italic border border-dashed border-dark-300 rounded-lg">

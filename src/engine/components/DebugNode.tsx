@@ -24,7 +24,7 @@ import { renderChildren } from './ViewEngine'
  * - Cyberpunk-styled diagnostic card
  */
 export function DebugNode({ node }: VariantComponentProps) {
-  const { depth, rootId, parentId } = useNode()
+  const { depth, rootId, rootNode, parentId } = useNode()
   const [isExpanded, setIsExpanded] = useState(true)
   const [showMeta, setShowMeta] = useState(false)
   
@@ -104,7 +104,7 @@ export function DebugNode({ node }: VariantComponentProps) {
       {/* Children */}
       {hasChildren && isExpanded && (
         <div className="border-t border-yellow-500/20 px-2 py-2">
-          {renderChildren(node, depth, rootId)}
+          {renderChildren(node, depth, rootId, rootNode)}
         </div>
       )}
     </div>

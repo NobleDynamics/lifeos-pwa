@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils'
  * - icon_start: Icon name (default: 'folder')
  */
 export function ViewListStack({ node }: VariantComponentProps) {
-  const { depth, rootId } = useNode()
+  const { depth, rootId, rootNode } = useNode()
   const childCount = useChildCount()
   const isRoot = useIsRoot()
 
@@ -150,7 +150,7 @@ export function ViewListStack({ node }: VariantComponentProps) {
           className="pl-2 pt-1 pb-1 border-l-2 ml-4"
           style={{ borderColor: `${accentColor}33` }}
         >
-          {renderChildren(nodeWithFilteredChildren, depth, rootId)}
+          {renderChildren(nodeWithFilteredChildren, depth, rootId, rootNode)}
         </div>
       )}
 

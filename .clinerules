@@ -22,6 +22,7 @@
     1. `docs/01_Frontend_PWA.md` - Frontend architecture & components
     2. `docs/02_Backend_Schema.md` - Database schema & Supabase
     3. `docs/03_ViewEngine_Sandbox.md` - ViewEngine development (if working on variants)
+    4. `docs/10_DESIGN_SYSTEM.md` - **CRITICAL for UI work** - Color palette, typography, component patterns
 * **End of Task:** Before finishing, verify that the documentation matches the code you just wrote. This ensures the next agent doesn't hallucinate missing features.
 * **ViewEngine Tasks:** If creating/modifying variants, update variant docs in `docs/03_ViewEngine_Sandbox.md`.
 

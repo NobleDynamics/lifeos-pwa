@@ -17,7 +17,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react'
-import { ChevronLeft, LayoutGrid, Plus, Folder, CheckSquare } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Plus, Folder, CheckSquare, Home } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNodeMeta } from '../../../context/NodeContext'
@@ -26,13 +26,14 @@ import { useShellNavigation, findContainingChild, findNodeInTree } from '../../.
 import { ShellActionProvider, useShellAction, type CreateOption } from '../../../context/ShellActionContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
 import { cn } from '@/lib/utils'
+import { DRAWER_HANDLE_HEIGHT } from '@/components/Layout'
 
 function LayoutAppShellContent({ node }: VariantComponentProps) {
     const { title } = node
     const defaultTabId = useNodeMeta<string>('default_tab_id')
 
     // Get navigation context
-    const { targetNodeId, navigateBack, canNavigateBack, targetPath, navigateToNode } = useShellNavigation()
+    const { targetNodeId, navigateBack, canNavigateBack, targetPath, navigateToNode, navigateToLevel, rootNode } = useShellNavigation()
     
     // Get action context for header button
     const { actionConfig } = useShellAction()
@@ -167,36 +168,122 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     }
 
     // =========================================================================
+    // BREADCRUMB GENERATION
+    // =========================================================================
+
+    // Build breadcrumb items from targetPath - skip first item (root) as we show it with Home icon
+    const breadcrumbItems = useMemo(() => {
+        if (!rootNode || targetPath.length <= 1) return []
+        
+        // Skip the first item (root/app shell) - we show that as Home
+        // Start from index 1 (first tab level)
+        return targetPath.slice(1).map((nodeId, index) => {
+            const foundNode = findNodeInTree(rootNode, nodeId)
+            return {
+                id: nodeId,
+                title: foundNode?.title || 'Unknown',
+                pathIndex: index + 1, // +1 because we sliced from index 1
+            }
+        })
+    }, [rootNode, targetPath])
+
+    // Show breadcrumbs only when we're deeper than Tab level (more than 2 items in path)
+    const showBreadcrumbs = targetPath.length > 2
+
+    // =========================================================================
     // RENDER
     // =========================================================================
 
-    return (
-        <div className="flex flex-col h-[100dvh] bg-dark-950 text-white overflow-hidden relative">
-            {/* Header Section - FIXED at top, z-50 ensures dropdowns float above tab content */}
-            <div className="flex-none border-b border-dark-800 bg-dark-900/50 backdrop-blur-sm z-50">
-                {/* Title Bar */}
-                <div className="flex items-center gap-3 px-4 py-3">
-                    {/* Back Button (when deep) */}
-                    {canNavigateBack && (
-                        <button
-                            onClick={navigateBack}
-                            className="flex items-center justify-center w-8 h-8 -ml-2 rounded-full hover:bg-dark-800 transition-colors"
-                            aria-label="Go back"
-                        >
-                            <ChevronLeft size={20} className="text-cyan-400" />
-                        </button>
-                    )}
+    // Get app icon from root metadata
+    const appIconName = (node.metadata?.icon as string) || 'LayoutGrid'
+    // @ts-ignore - Dynamic icon lookup
+    const AppIcon = LucideIcons[appIconName] || LayoutGrid
 
-                    <h1 className={cn(
-                        "text-lg font-bold tracking-tight text-white flex-1",
-                        canNavigateBack && "text-base" // Slightly smaller when back button is showing
-                    )}>
-                        {displayTitle}
-                    </h1>
+    return (
+        <div className="flex flex-col h-[100dvh] bg-dark text-white overflow-hidden relative">
+            {/* Header Section - Matches legacy ViewShell styling */}
+            <div className="px-4 pt-4 pb-2 safe-top flex-shrink-0 z-50">
+                {/* Breadcrumbs - Above title, shown when deep in hierarchy */}
+                {showBreadcrumbs && (
+                    <nav 
+                        className="flex items-center space-x-1 text-sm overflow-x-auto scrollbar-hide py-1 mb-2"
+                        aria-label="Breadcrumb"
+                    >
+                        {/* Home/Root button */}
+                        <button
+                            onClick={() => navigateToLevel(0)}
+                            className={cn(
+                                "flex items-center space-x-1 px-2 py-1 rounded-md",
+                                "text-dark-400 hover:text-white hover:bg-dark-200/50",
+                                "transition-colors whitespace-nowrap flex-shrink-0"
+                            )}
+                            aria-label={`Go to ${title}`}
+                        >
+                            <Home className="w-3.5 h-3.5" />
+                            <span>{title}</span>
+                        </button>
+
+                        {/* Path items - all except the last one (current) */}
+                        {breadcrumbItems.slice(0, -1).map((item, index) => (
+                            <span key={item.id} className="flex items-center">
+                                <ChevronRight className="w-4 h-4 text-dark-500 flex-shrink-0" />
+                                <button
+                                    onClick={() => navigateToLevel(item.pathIndex)}
+                                    className={cn(
+                                        "px-2 py-1 rounded-md transition-colors whitespace-nowrap",
+                                        "max-w-[150px] truncate",
+                                        "text-dark-400 hover:text-white hover:bg-dark-200/50"
+                                    )}
+                                    title={item.title}
+                                >
+                                    {item.title}
+                                </button>
+                            </span>
+                        ))}
+
+                        {/* Current item (last in breadcrumbs) - not clickable, cyan color */}
+                        {breadcrumbItems.length > 0 && (
+                            <span className="flex items-center">
+                                <ChevronRight className="w-4 h-4 text-dark-500 flex-shrink-0" />
+                                <span
+                                    className={cn(
+                                        "px-2 py-1 rounded-md whitespace-nowrap",
+                                        "max-w-[150px] truncate",
+                                        "text-primary font-medium cursor-default"
+                                    )}
+                                    title={breadcrumbItems[breadcrumbItems.length - 1]?.title}
+                                >
+                                    {breadcrumbItems[breadcrumbItems.length - 1]?.title}
+                                </span>
+                            </span>
+                        )}
+                    </nav>
+                )}
+
+                {/* Title Row */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {/* Back Button (when deep) */}
+                        {canNavigateBack && (
+                            <button
+                                onClick={navigateBack}
+                                className="p-1 -ml-1 rounded-lg hover:bg-dark-200 transition-colors"
+                                aria-label="Go back"
+                            >
+                                <ChevronLeft size={24} className="text-dark-400" />
+                            </button>
+                        )}
+
+                        {/* App Icon */}
+                        <AppIcon size={24} className="text-primary flex-shrink-0" />
+
+                        {/* Title */}
+                        <h1 className="text-xl font-bold truncate">{displayTitle}</h1>
+                    </div>
 
                     {/* Dynamic Action Button - controlled by child views */}
                     {actionConfig && (
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                             <button
                                 onClick={handleActionClick}
                                 className={cn(
@@ -256,12 +343,13 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                         </div>
                     )}
                 </div>
-
-                {/* Removed: Search Zone - now handled per-directory */}
             </div>
 
-            {/* Viewport (Content) - SCROLLABLE area with bottom padding for floating tab bar */}
-            <div className="flex-1 min-h-0 overflow-y-auto pb-[140px]">
+            {/* Viewport (Content) - SCROLLABLE area with bottom padding for tab bar + drawer handle */}
+            <div 
+                className="flex-1 min-h-0 overflow-y-auto"
+                style={{ paddingBottom: `${DRAWER_HANDLE_HEIGHT + 70}px` }}
+            >
                 {viewportContent ? (
                     <ViewEngine root={viewportContent} className="h-full w-full" />
                 ) : (
@@ -271,45 +359,45 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                 )}
             </div>
 
-            {/* Tab Bar - FLOATING above drawer handle with glassmorphism */}
+            {/* Tab Bar - Matches legacy CategoryPane styling */}
             {node.children && node.children.length > 0 && (
                 <div 
-                    className={cn(
-                        "absolute left-0 right-0",
-                        "bottom-[90px]",  // Clear the drawer handle area
-                        "mx-3 rounded-xl",  // Pill shape with inset margins
-                        "backdrop-blur-xl bg-dark-900/80",
-                        "border border-white/10",
-                        "flex items-center justify-around py-2",
-                        "z-20",
-                        "shadow-lg shadow-black/20"
-                    )}
+                    className="absolute left-0 right-0 bottom-0 px-3 pb-2 z-20"
+                    style={{ paddingBottom: `${DRAWER_HANDLE_HEIGHT + 8}px` }}
                 >
-                    {node.children.map(child => {
-                        // A tab is active if:
-                        // 1. It's the selected tab AND we're not in deep view
-                        // 2. OR the deep view target is within this tab's subtree
-                        const isActive = child.id === activeTabId
-                        const iconName = (child.metadata?.icon as string) || 'LayoutGrid'
-                        // @ts-ignore - Dynamic icon lookup
-                        const IconComponent = LucideIcons[iconName] || LayoutGrid
+                    <div className="flex p-1 bg-dark-100/80 backdrop-blur rounded-xl">
+                        {node.children.map(child => {
+                            // A tab is active if:
+                            // 1. It's the selected tab AND we're not in deep view
+                            // 2. OR the deep view target is within this tab's subtree
+                            const isActive = child.id === activeTabId
+                            const iconName = (child.metadata?.icon as string) || 'LayoutGrid'
+                            // @ts-ignore - Dynamic icon lookup
+                            const IconComponent = LucideIcons[iconName] || LayoutGrid
 
-                        return (
-                            <button
-                                key={child.id}
-                                onClick={() => handleTabClick(child.id)}
-                                className={cn(
-                                    "flex flex-col items-center justify-center flex-1 py-2 gap-1 transition-colors",
-                                    isActive 
-                                        ? "text-[var(--color-primary,theme(colors.cyan.400))]" 
-                                        : "text-dark-400 hover:text-dark-200"
-                                )}
-                            >
-                                <IconComponent size={20} strokeWidth={isActive ? 2.5 : 2} />
-                                <span className="text-[10px] font-medium">{child.title}</span>
-                            </button>
-                        )
-                    })}
+                            return (
+                                <button
+                                    key={child.id}
+                                    onClick={() => handleTabClick(child.id)}
+                                    className={cn(
+                                        // Base styles - horizontal layout with icon + label inline
+                                        "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg",
+                                        "text-xs font-medium transition-all duration-200",
+                                        // Conditional styles matching legacy CategoryPane
+                                        isActive 
+                                            ? "bg-primary/20 text-primary shadow-sm"
+                                            : "text-dark-500 hover:text-white hover:bg-dark-200/50"
+                                    )}
+                                >
+                                    <IconComponent size={16} />
+                                    {/* Label hidden on inactive tabs (mobile), always shown when active */}
+                                    <span className={isActive ? "" : "hidden sm:inline"}>
+                                        {child.title}
+                                    </span>
+                                </button>
+                            )
+                        })}
+                    </div>
                 </div>
             )}
         </div>

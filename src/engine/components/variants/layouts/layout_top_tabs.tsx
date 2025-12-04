@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, LayoutGrid } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNodeMeta } from '../../../context/NodeContext'
 import { ViewEngine } from '../../ViewEngine'
@@ -59,24 +60,32 @@ export function LayoutTopTabs({ node }: VariantComponentProps) {
 
     return (
         <div className="flex flex-col h-full bg-dark-950">
-            {/* Segmented Control Bar (Pill Toggle Style) */}
+            {/* Segmented Control Bar - Matches legacy Health > Brain styling */}
             <div className="px-4 py-3 bg-dark-950 z-10">
-                <div className="flex p-1 bg-dark-800/50 rounded-lg mb-4">
+                <div className="flex gap-1 p-1 bg-dark-100 rounded-xl">
                     {/* Visible Tabs */}
                     {visibleTabs.map(child => {
                         const isActive = child.id === activeTabId
+                        const iconName = (child.metadata?.icon as string) || null
+                        // @ts-ignore - Dynamic icon lookup
+                        const IconComponent = iconName ? (LucideIcons[iconName] || LayoutGrid) : null
+
                         return (
                             <button
                                 key={child.id}
                                 onClick={() => setActiveTabId(child.id)}
                                 className={cn(
-                                    "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
+                                    // Base styles - horizontal layout with icon + label
+                                    "flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-lg",
+                                    "text-xs font-medium transition-all",
+                                    // Conditional styles matching legacy CategoryPane
                                     isActive
-                                        ? "bg-[var(--color-primary,theme(colors.cyan.500))] text-white shadow-sm"
-                                        : "text-dark-400 hover:text-white"
+                                        ? "bg-primary/20 text-primary"
+                                        : "text-dark-500 hover:text-white"
                                 )}
                             >
-                                {child.title}
+                                {IconComponent && <IconComponent size={12} />}
+                                <span>{child.title}</span>
                             </button>
                         )
                     })}
@@ -87,14 +96,15 @@ export function LayoutTopTabs({ node }: VariantComponentProps) {
                             <button
                                 onClick={() => setShowMoreDropdown(!showMoreDropdown)}
                                 className={cn(
-                                    "flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
+                                    "flex items-center justify-center gap-1 py-2 px-2 rounded-lg",
+                                    "text-xs font-medium transition-all",
                                     activeInOverflow
-                                        ? "bg-[var(--color-primary,theme(colors.cyan.500))] text-white shadow-sm"
-                                        : "text-dark-400 hover:text-white"
+                                        ? "bg-primary/20 text-primary"
+                                        : "text-dark-500 hover:text-white"
                                 )}
                             >
                                 More
-                                <ChevronDown size={14} className={cn(
+                                <ChevronDown size={12} className={cn(
                                     "transition-transform",
                                     showMoreDropdown && "rotate-180"
                                 )} />
@@ -112,11 +122,15 @@ export function LayoutTopTabs({ node }: VariantComponentProps) {
                                     {/* Menu */}
                                     <div className={cn(
                                         "absolute right-0 top-full mt-2 z-50",
-                                        "min-w-[140px] py-1 rounded-lg shadow-lg",
+                                        "min-w-[140px] py-1 rounded-xl shadow-lg",
                                         "bg-dark-100 border border-dark-300"
                                     )}>
                                         {overflowTabs.map(child => {
                                             const isActive = child.id === activeTabId
+                                            const iconName = (child.metadata?.icon as string) || null
+                                            // @ts-ignore - Dynamic icon lookup
+                                            const IconComponent = iconName ? (LucideIcons[iconName] || LayoutGrid) : null
+
                                             return (
                                                 <button
                                                     key={child.id}
@@ -125,14 +139,16 @@ export function LayoutTopTabs({ node }: VariantComponentProps) {
                                                         setShowMoreDropdown(false)
                                                     }}
                                                     className={cn(
-                                                        "w-full px-4 py-2 text-left text-sm",
+                                                        "w-full px-4 py-2 text-left text-xs",
+                                                        "flex items-center gap-2",
                                                         "transition-colors",
                                                         isActive
-                                                            ? "bg-[var(--color-primary,theme(colors.cyan.500))]/20 text-white"
-                                                            : "text-dark-400 hover:bg-dark-200 hover:text-white"
+                                                            ? "bg-primary/20 text-primary"
+                                                            : "text-dark-500 hover:bg-dark-200 hover:text-white"
                                                     )}
                                                 >
-                                                    {child.title}
+                                                    {IconComponent && <IconComponent size={12} />}
+                                                    <span>{child.title}</span>
                                                 </button>
                                             )
                                         })}

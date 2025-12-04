@@ -427,7 +427,7 @@ Tablet/Desktop (≥ 768px):
 ### `view_gallery_grid`
 
 **Category:** Layout  
-**Description:** Tight CSS Grid optimized for displaying many thumbnail images. Uses gap-1 for compact spacing.  
+**Description:** Tight CSS Grid optimized for displaying many thumbnail images. Uses gap-1 for compact spacing. Supports dynamic header actions via `create_options` metadata.  
 **When to Use:** Photo galleries, image libraries, media collections.
 
 **Required Children:** Yes (typically `card_media_thumbnail`)  
@@ -446,6 +446,25 @@ Tablet/Desktop (≥ 768px):
 | `headline` | string | node.title | Section title |
 | `subtext` | string | - | Section subtitle |
 | `show_header` | boolean | true | Show header section |
+| `action_label` | string | "Add" | Label for header action button |
+| `create_options` | CreateOption[] | - | Options for header action dropdown |
+
+**Dynamic Header Action (Generic Engine Pattern):**
+If `create_options` is provided in metadata, the component registers a header action button via `ShellActionContext`. This follows the "Generic Engine" philosophy - behavior is driven by metadata, not hardcoded.
+
+```json
+{
+  "metadata": {
+    "action_label": "Upload",
+    "create_options": [
+      { "label": "Camera", "type": "task", "icon": "Camera" },
+      { "label": "Upload Photo", "type": "task", "icon": "Upload" }
+    ]
+  }
+}
+```
+
+If `create_options` is missing or empty, no action button appears.
 
 **Example:**
 ```json

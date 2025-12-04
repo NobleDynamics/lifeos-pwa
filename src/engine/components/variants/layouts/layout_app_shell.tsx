@@ -171,7 +171,7 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     // =========================================================================
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-dark-950 text-white overflow-hidden">
+        <div className="flex flex-col h-[100dvh] bg-dark-950 text-white overflow-hidden relative">
             {/* Header Section - FIXED at top, z-50 ensures dropdowns float above tab content */}
             <div className="flex-none border-b border-dark-800 bg-dark-900/50 backdrop-blur-sm z-50">
                 {/* Title Bar */}
@@ -260,8 +260,8 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                 {/* Removed: Search Zone - now handled per-directory */}
             </div>
 
-            {/* Viewport (Content) - SCROLLABLE area */}
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            {/* Viewport (Content) - SCROLLABLE area with bottom padding for floating tab bar */}
+            <div className="flex-1 min-h-0 overflow-y-auto pb-[140px]">
                 {viewportContent ? (
                     <ViewEngine root={viewportContent} className="h-full w-full" />
                 ) : (
@@ -271,9 +271,20 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                 )}
             </div>
 
-            {/* Tab Bar - FIXED at bottom, pb-24 clears the global App Drawer handle */}
+            {/* Tab Bar - FLOATING above drawer handle with glassmorphism */}
             {node.children && node.children.length > 0 && (
-                <div className="flex-none flex items-center justify-around border-t border-dark-800 bg-dark-900/90 backdrop-blur-md pb-24 z-10">
+                <div 
+                    className={cn(
+                        "absolute left-0 right-0",
+                        "bottom-[90px]",  // Clear the drawer handle area
+                        "mx-3 rounded-xl",  // Pill shape with inset margins
+                        "backdrop-blur-xl bg-dark-900/80",
+                        "border border-white/10",
+                        "flex items-center justify-around py-2",
+                        "z-20",
+                        "shadow-lg shadow-black/20"
+                    )}
+                >
                     {node.children.map(child => {
                         // A tab is active if:
                         // 1. It's the selected tab AND we're not in deep view
@@ -288,8 +299,10 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                                 key={child.id}
                                 onClick={() => handleTabClick(child.id)}
                                 className={cn(
-                                    "flex flex-col items-center justify-center flex-1 py-3 gap-1 transition-colors",
-                                    isActive ? "text-cyan-400" : "text-dark-400 hover:text-dark-200"
+                                    "flex flex-col items-center justify-center flex-1 py-2 gap-1 transition-colors",
+                                    isActive 
+                                        ? "text-[var(--color-primary,theme(colors.cyan.400))]" 
+                                        : "text-dark-400 hover:text-dark-200"
                                 )}
                             >
                                 <IconComponent size={20} strokeWidth={isActive ? 2.5 : 2} />

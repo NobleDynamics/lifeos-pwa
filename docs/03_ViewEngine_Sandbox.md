@@ -305,7 +305,7 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 ## Layouts (App Shells)
 
 ### `layout_app_shell`
-**Structure:** Persistent Header + Viewport + Bottom Tab Bar
+**Structure:** Persistent Header + Viewport + Floating Bottom Tab Bar
 **Use for:** Top-level App Containers (e.g., "Household", "Health")
 
 **Persistent Shell Architecture:** This component implements the "persistent shell" pattern. The shell chrome (header, tabs) is always visible while the viewport content changes based on navigation.
@@ -317,15 +317,26 @@ const badge = useSlot<string>('badge', undefined, { type: 'date' })  // Auto-for
 │                                                │
 │  Viewport Content                              │  ← Changes based on targetNodeId
 │  (Active Tab OR drilled-in folder)             │
+│  pb-[140px] for scroll clearance               │
 │                                                │
-├────────────────────────────────────────────────┤  z-10 (Tab Bar)
-│  [Tab 1]   [Tab 2]   [Tab 3]   [Tab 4]         │  ← Always visible, pb-24 clears drawer
+│                                                │
+│  ╔════════════════════════════════════════╗    │  ← Floating (absolute)
+│  ║ [Tab 1]  [Tab 2]  [Tab 3]  [Tab 4]    ║    │  ← Glassmorphism
+│  ╚════════════════════════════════════════╝    │  ← bottom-[90px]
+│                                                │
+│        (Drawer Handle Area - Transparent)      │
 └────────────────────────────────────────────────┘
 ```
 
-**CSS Notes:**
+**CSS Architecture:**
 - **Header:** `z-50` ensures dropdown menus float above all viewport content including `layout_top_tabs`.
-- **Tab Bar:** `pb-24` (96px) padding clears the global App Drawer handle on mobile.
+- **Viewport:** `pb-[140px]` padding ensures content can scroll past the floating tab bar.
+- **Tab Bar (Floating):** Uses absolute positioning with `bottom-[90px]` to float above the global drawer handle.
+  - `mx-3 rounded-xl` - Pill shape with inset margins
+  - `backdrop-blur-xl bg-dark-900/80` - Glassmorphism effect
+  - `border border-white/10` - Subtle glass edge
+  - `shadow-lg shadow-black/20` - Depth shadow
+- **Drawer Handle Area:** Fully transparent and interactive below the floating tab bar.
 
 **Slots:**
 | Slot | Type | Description |
@@ -405,7 +416,9 @@ Uses `ShellNavigationContext` to receive `targetNodeId` from `ViewEnginePane`. W
 
 ```
 ┌────────────────────────────────────────────────┐
-│  [ Pill 1 ] [ Pill 2 ] [ Pill 3 ]              │
+│  ┌─────────────────────────────────────────┐   │
+│  │ [Tab 1] [Tab 2] [Tab 3] [More ▼]       │   │  ← Pill Toggle (inset)
+│  └─────────────────────────────────────────┘   │
 ├────────────────────────────────────────────────┤
 │                                                │
 │  Active Tab Content                            │
@@ -413,13 +426,21 @@ Uses `ShellNavigationContext` to receive `targetNodeId` from `ViewEnginePane`. W
 └────────────────────────────────────────────────┘
 ```
 
+**CSS Architecture:**
+- **Container:** `bg-dark-800/50 p-1 rounded-lg mb-4` - Inset pill container
+- **Active Tab:** `bg-[var(--color-primary)] text-white shadow-sm rounded-md` - Cyan pill
+- **Inactive Tab:** `text-dark-400 hover:text-white` - Subtle text
+- **Overflow (>3 tabs):** Renders "More ▼" dropdown with remaining tabs
+
 **Slots:**
 | Slot | Type | Description |
 |------|------|-------------|
 | `default_tab_id` | string | UUID of child to show first (optional) |
 
 **Behavior:**
-- **Segmented Control:** Renders children as a horizontal scrollable list of pills.
+- **Segmented Control:** Renders children as horizontal pills with max 3 visible.
+- **Overflow Dropdown:** If more than 3 children, shows "More ▼" trigger with dropdown menu.
+- **Theme-Aware:** Active state uses `var(--color-primary)` CSS variable.
 - **Nested:** Designed to sit inside `layout_app_shell` or other containers.
 
 **Example:**
@@ -429,7 +450,9 @@ Uses `ShellNavigationContext` to receive `targetNodeId` from `ViewEnginePane`. W
   "title": "Shopping",
   "children": [
     { "title": "Lists", "variant": "view_list_stack", ... },
-    { "title": "Items", "variant": "view_directory", ... }
+    { "title": "Items", "variant": "view_directory", ... },
+    { "title": "History", "variant": "view_list_stack", ... },
+    { "title": "Settings", "variant": "view_directory", ... }
   ]
 }
 ```

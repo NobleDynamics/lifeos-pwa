@@ -3,12 +3,13 @@
  * 
  * A bar chart card using Recharts.
  * Supports both direct data and aggregated data from children.
+ * Supports stacked bars for multi-series data.
  * 
  * @module engine/components/variants/cards/card_chart_bar
  */
 
 import { useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts'
 import { BarChart3 } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
@@ -17,12 +18,29 @@ import { useChildAggregation } from '../../../hooks/useChildAggregation'
 import { cn } from '@/lib/utils'
 
 /**
- * Data point interface
+ * Data point interface for single series
  */
 interface DataPoint {
   name: string
   value: number
   color?: string
+}
+
+/**
+ * Data point interface for stacked series
+ */
+interface StackedDataPoint {
+  name: string
+  [key: string]: string | number
+}
+
+/**
+ * Series configuration for stacked bars
+ */
+interface SeriesConfig {
+  key: string
+  color?: string
+  name?: string
 }
 
 /**
@@ -61,7 +79,9 @@ const DEFAULT_COLORS = [
  * Slots:
  * - title: Card title (default: node.title)
  * - subtitle: Optional subtitle
- * - data: Direct data array [{name, value, color?}]
+ * - data: Direct data array [{name, value, color?}] or stacked [{name, series1, series2, ...}]
+ * - series: Series config for stacked bars [{key, color, name}]
+ * - stacked: Enable stacked bar mode (default: false)
  * - target_key: Metadata key to sum (default: 'amount')
  * - group_by: Metadata key to group by (default: 'category')
  * - height: Chart height in pixels (default: 200)
@@ -70,6 +90,7 @@ const DEFAULT_COLORS = [
  * - horizontal: Whether to render horizontally (default: false)
  * - format: Value format - 'currency' | 'number' | 'percent' (default: 'number')
  * - currency_symbol: For 'currency' format (default: '$')
+ * - show_legend: Show legend for stacked bars (default: true when stacked)
  */
 export function CardChartBar({ node }: VariantComponentProps) {
   const { depth } = useNode()
@@ -77,7 +98,9 @@ export function CardChartBar({ node }: VariantComponentProps) {
   // Slot-based configuration
   const title = useSlot<string>('title') ?? node.title
   const subtitle = useSlot<string>('subtitle')
-  const directData = useSlot<DataPoint[]>('data')
+  const directData = useSlot<DataPoint[] | StackedDataPoint[]>('data')
+  const seriesConfig = useSlot<SeriesConfig[]>('series')
+  const stacked = useSlot<boolean>('stacked', false)
   const targetKey = useSlot<string>('target_key', 'amount')
   const groupBy = useSlot<string>('group_by', 'category')
   const height = useSlot<number>('height', 200)
@@ -86,6 +109,7 @@ export function CardChartBar({ node }: VariantComponentProps) {
   const horizontal = useSlot<boolean>('horizontal', false)
   const format = useSlot<'percent' | 'currency' | 'number'>('format', 'number')
   const currencySymbol = useSlot<string>('currency_symbol', '$')
+  const showLegend = useSlot<boolean>('show_legend', stacked)
   
   // Aggregate from children if no direct data
   const aggregated = useChildAggregation(node, {
@@ -94,13 +118,30 @@ export function CardChartBar({ node }: VariantComponentProps) {
     operation: 'sum',
   })
   
+  // Determine series to render (for stacked mode)
+  const series: SeriesConfig[] = useMemo(() => {
+    if (stacked && seriesConfig && seriesConfig.length > 0) {
+      return seriesConfig.map((s, idx) => ({
+        key: s.key,
+        color: s.color || DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
+        name: s.name || s.key,
+      }))
+    }
+    return [{ key: 'value', color: singleColor, name: 'Value' }]
+  }, [stacked, seriesConfig, singleColor])
+
   // Build chart data
   const chartData = useMemo(() => {
     if (directData && directData.length > 0) {
+      // For stacked mode, return data as-is (it should have multiple series keys)
+      if (stacked) {
+        return directData
+      }
+      // For single series mode
       return directData.map((d, idx) => ({
         name: d.name,
-        value: d.value,
-        color: d.color || DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
+        value: (d as DataPoint).value,
+        color: (d as DataPoint).color || DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
       }))
     }
     
@@ -109,7 +150,7 @@ export function CardChartBar({ node }: VariantComponentProps) {
       value: item.value,
       color: item.color || DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
     }))
-  }, [directData, aggregated.items])
+  }, [directData, aggregated.items, stacked])
   
   // Format value for tooltip
   const formatValue = (val: number): string => {
@@ -230,23 +271,74 @@ export function CardChartBar({ node }: VariantComponentProps) {
             
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(6, 182, 212, 0.1)' }} />
             
-            <Bar 
-              dataKey="value" 
-              radius={[4, 4, 0, 0]}
-              maxBarSize={50}
-            >
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={entry.color || singleColor}
+            {/* Render stacked bars or single bar */}
+            {stacked && series.length > 1 ? (
+              // Stacked bars - render multiple Bar components
+              series.map((s, idx) => (
+                <Bar
+                  key={s.key}
+                  dataKey={s.key}
+                  stackId="stack"
+                  fill={s.color}
+                  stroke="none"
+                  radius={idx === series.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                  maxBarSize={50}
                   style={{
-                    filter: `drop-shadow(0 0 6px ${entry.color || singleColor}44)`,
+                    filter: `drop-shadow(0 0 4px ${s.color}44)`,
+                    outline: 'none',
                   }}
                 />
-              ))}
-            </Bar>
+              ))
+            ) : (
+              // Single bar with cells
+              <Bar 
+                dataKey="value" 
+                radius={[4, 4, 0, 0]}
+                maxBarSize={50}
+              >
+                {chartData.map((entry: any, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.color || singleColor}
+                    stroke="none"
+                    style={{
+                      filter: `drop-shadow(0 0 6px ${entry.color || singleColor}44)`,
+                      outline: 'none',
+                    }}
+                  />
+                ))}
+              </Bar>
+            )}
+            
+            {/* Legend for stacked bars */}
+            {showLegend && stacked && series.length > 1 && (
+              <Legend 
+                wrapperStyle={{ fontSize: 10 }}
+                formatter={(value: string) => {
+                  const s = series.find(ser => ser.key === value)
+                  return <span style={{ color: '#a1a1aa' }}>{s?.name || value}</span>
+                }}
+              />
+            )}
           </BarChart>
         </ResponsiveContainer>
+      )}
+      
+      {/* Custom Legend (outside chart for better styling) */}
+      {showLegend && stacked && series.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 justify-center">
+          {series.map((s) => (
+            <div key={s.key} className="flex items-center gap-1.5">
+              <div 
+                className="w-2 h-2 rounded-sm"
+                style={{ backgroundColor: s.color }}
+              />
+              <span className="text-xs text-dark-400">
+                {s.name}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

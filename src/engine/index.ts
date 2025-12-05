@@ -165,12 +165,20 @@ export { RowSimple } from './components/variants/rows/row_simple'
 export { RowInputStepper } from './components/variants/rows/row_input_stepper'
 export { RowInputCurrency } from './components/variants/rows/row_input_currency'
 export { RowTransactionHistory } from './components/variants/rows/row_transaction_history'
+export { RowMediaLeft } from './components/variants/rows/row_media_left'
+export { RowSimpleDescription } from './components/variants/rows/row_simple_description'
 
 // Cards (Grid Items)
 export { CardMediaTop } from './components/variants/cards/card_media_top'
 export { CardMediaThumbnail } from './components/variants/cards/card_media_thumbnail'
 export { CardMediaCover } from './components/variants/cards/card_media_cover'
 export { CardStatHero } from './components/variants/cards/card_stat_hero'
+export { CardFolder } from './components/variants/cards/card_folder'
+
+// Compact Cards (for side-by-side layouts)
+export { CardMediaTopCompact } from './components/variants/cards/card_media_top_compact'
+export { CardMediaThumbnailCompact } from './components/variants/cards/card_media_thumbnail_compact'
+export { CardMediaCoverCompact } from './components/variants/cards/card_media_cover_compact'
 
 // Progress Cards
 export { CardProgressSimple } from './components/variants/cards/card_progress_simple'
@@ -213,6 +221,16 @@ import { CardMediaTop } from './components/variants/cards/card_media_top'
 import { CardMediaThumbnail } from './components/variants/cards/card_media_thumbnail'
 import { CardMediaCover } from './components/variants/cards/card_media_cover'
 import { CardStatHero } from './components/variants/cards/card_stat_hero'
+import { CardFolder } from './components/variants/cards/card_folder'
+
+// Compact Cards
+import { CardMediaTopCompact } from './components/variants/cards/card_media_top_compact'
+import { CardMediaThumbnailCompact } from './components/variants/cards/card_media_thumbnail_compact'
+import { CardMediaCoverCompact } from './components/variants/cards/card_media_cover_compact'
+
+// New Row Components
+import { RowMediaLeft } from './components/variants/rows/row_media_left'
+import { RowSimpleDescription } from './components/variants/rows/row_simple_description'
 
 // Progress Cards
 import { CardProgressSimple } from './components/variants/cards/card_progress_simple'
@@ -260,12 +278,20 @@ export function initializeEngine(): void {
     row_input_stepper: RowInputStepper,
     row_input_currency: RowInputCurrency,
     row_transaction_history: RowTransactionHistory,
+    row_media_left: RowMediaLeft,
+    row_simple_description: RowSimpleDescription,
 
     // Cards (Grid Items)
     card_media_top: CardMediaTop,
     card_media_thumbnail: CardMediaThumbnail,
     card_media_cover: CardMediaCover,
     card_stat_hero: CardStatHero,
+    card_folder: CardFolder,
+
+    // Compact Cards (for side-by-side layouts in 6-col grid)
+    card_media_top_compact: CardMediaTopCompact,
+    card_media_thumbnail_compact: CardMediaThumbnailCompact,
+    card_media_cover_compact: CardMediaCoverCompact,
 
     // Progress Cards
     card_progress_simple: CardProgressSimple,

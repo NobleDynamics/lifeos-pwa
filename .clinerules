@@ -116,6 +116,71 @@ interface Node {
 * `useSlotBasedAggregation(node, config)` - Reads `source_id` from slot config automatically
 * **source_id Pattern:** Charts/Progress cards can aggregate from sibling nodes by setting `"source_id": "<uuid>"` in metadata
 
+### Standard Component Slots (Common Options)
+Most components support these common slots:
+* `headline` - Primary text (fallback: node.title)
+* `subtext` - Secondary description text
+* `border_color` - Colored border (hex color)
+* `neon_glow` - Enable neon glow effect (boolean)
+* `accent_color` - Color for glow/icon (default: #06b6d4)
+* `target_id` - Node ID to navigate to on click (enables navigation)
+* `show_chevron` - Show navigation arrow (auto-enabled if target_id set)
+
+### 6-Column Grid System (`view_grid_fixed`)
+Use `col_span` in metadata to control card width in grid layouts:
+* `col_span: 2` = 3 cards per row (default)
+* `col_span: 3` = 2 cards per row (compact variants)
+* `col_span: 6` = full width
+
+### Variant Reference (Quick Lookup)
+
+#### Row Variants (List Items)
+| Variant | Slots | Description |
+|---------|-------|-------------|
+| `row_simple` | headline, icon_start, icon_color, badge, badge_date, border_color, target_id | Minimal row with optional icon |
+| `row_simple_description` | headline, subtext, border_color, neon_glow, target_id | Title + multiline description |
+| `row_media_left` | headline, subtext, media, media_shape (round/square), media_size, border_color, target_id | Image thumbnail on left |
+| `row_detail_check` | headline, subtext, status, badge, badge_date, border_color, target_id | Row with checkbox + details |
+| `row_neon_group` | headline, icon_start, accent_color, count_badge, neon_glow, target_id | Folder row with neon glow |
+| `row_transaction_history` | headline, subtext, icon_start, amount, currency, amount_color | Transaction row with amount |
+
+#### Card Variants (Grid Items)
+| Variant | Slots | Description |
+|---------|-------|-------------|
+| `card_media_top` | headline, subtext, media, accent_color, border_color, badge_1, badge_2, target_id | Full-width card with media |
+| `card_media_top_compact` | Same as above | Compact version (col_span: 3 for 2-per-row) |
+| `card_media_thumbnail` | url, alt, headline, border_color, neon_glow, target_id | Square thumbnail |
+| `card_media_thumbnail_compact` | Same as above | Compact square thumbnail |
+| `card_media_cover` | url, headline, subtext, border_color, neon_glow, target_id | Poster-style (16:9) |
+| `card_media_cover_compact` | Same as above | Compact poster (3:4 aspect) |
+| `card_folder` | headline, icon_start, accent_color, neon_glow, count_badge, target_id | Grid folder with icon |
+| `card_stat_hero` | headline, value, trend, trend_direction, accent_color | Big stat display |
+
+#### Chart Variants
+| Variant | Slots | Description |
+|---------|-------|-------------|
+| `card_chart_bar` | title, subtitle, data, stacked, series, format, height | Bar chart (supports stacked) |
+| `card_chart_line` | title, subtitle, data, series, format, height | Line chart (supports multi-line) |
+| `card_chart_pie` | title, data, donut, inner_radius, format, show_legend | Pie/Donut chart |
+| `card_chart_radar` | title, data, series, format, show_legend | Radar chart |
+
+#### Progress Variants
+| Variant | Slots | Description |
+|---------|-------|-------------|
+| `card_progress_simple` | title, value, max, format, accent_color | Single progress bar |
+| `card_progress_stacked` | title, segments, format | Stacked multi-color bar |
+| `card_progress_multi` | title, items | Multiple progress bars |
+
+#### View/Layout Variants
+| Variant | Slots | Description |
+|---------|-------|-------------|
+| `view_list_stack` | headline, subtext, show_header | Vertical list container |
+| `view_grid_fixed` | headline, subtext, gap, show_header | 6-column responsive grid |
+| `view_directory` | headline, show_header | File browser layout |
+| `view_dashboard_masonry` | - | Auto-sizing dashboard |
+| `view_gallery_grid` | - | Image gallery |
+| `view_carousel_snap` | - | Horizontal carousel |
+
 ---
 
 ## 8. Supabase & RLS Development Mode

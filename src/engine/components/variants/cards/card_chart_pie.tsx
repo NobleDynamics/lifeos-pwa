@@ -239,8 +239,10 @@ export function CardChartPie({ node }: VariantComponentProps) {
                   <Cell 
                     key={`cell-${index}`} 
                     fill={entry.color}
+                    stroke="none"
                     style={{
                       filter: `drop-shadow(0 0 4px ${entry.color}44)`,
+                      outline: 'none',
                     }}
                   />
                 ))}

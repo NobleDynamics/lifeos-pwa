@@ -521,21 +521,55 @@ Uses `ShellNavigationContext` to receive `targetNodeId` from `ViewEnginePane`. W
 ---
 
 ### `view_grid_fixed`
-**Structure:** Responsive grid container
-**Use for:** Pantries, wardrobes, galleries
+**Structure:** 6-Column Responsive Grid Container
+**Use for:** Pantries, wardrobes, galleries, any card-based layout
+
+The grid uses a **6-column base system** on mobile that scales to 12 columns on desktop. This enables flexible layouts where cards can span different widths.
 
 ```
-┌────────────────────────────────────────────────┐
-│ [ Card 1 ]  [ Card 2 ]                         │
-│ [ Card 3 ]  [ Card 4 ]                         │
+┌───────┬───────┬───────┬───────┬───────┬───────┐  ← 6 columns on mobile
+│ col 1 │ col 2 │ col 3 │ col 4 │ col 5 │ col 6 │
+├───────┴───────┼───────┴───────┼───────┴───────┤
+│  col_span: 2  │  col_span: 2  │  col_span: 2  │  ← 3 cards per row (default)
+├───────────────┴───────────────┼───────────────┤
+│       col_span: 4             │  col_span: 2  │  ← Mixed widths
+├───────────────────────────────┴───────────────┤
+│              col_span: 6 (full width)          │  ← Full width
 └────────────────────────────────────────────────┘
 ```
+
+**Column Span Reference:**
+| col_span | Mobile (6-col) | Desktop (12-col) | Use Case |
+|----------|----------------|------------------|----------|
+| `2` | 3 per row | 4 per row | Thumbnails, small cards (DEFAULT) |
+| `3` | 2 per row | 3 per row | Compact cards (`*_compact` variants) |
+| `4` | ~1.5 per row | 3 per row | Medium cards |
+| `6` | Full width | Half width | Wide cards, charts |
 
 **Slots:**
 | Slot | Type | Description |
 |------|------|-------------|
 | `headline` | string | Optional section title |
 | `subtext` | string | Optional description |
+| `gap` | number | Gap in Tailwind units (2, 3, 4, 6) default: 4 |
+| `show_header` | boolean | Show headline/subtext (default: true) |
+
+**Child Metadata:**
+| Key | Type | Description |
+|-----|------|-------------|
+| `col_span` | number | Column span (2, 3, 4, 5, or 6) - default: 2 |
+
+**Example - Mixed Width Grid:**
+```json
+{
+  "variant": "view_grid_fixed",
+  "children": [
+    { "variant": "card_media_thumbnail_compact", "metadata": { "col_span": 3 } },
+    { "variant": "card_media_thumbnail_compact", "metadata": { "col_span": 3 } },
+    { "variant": "card_chart_bar", "metadata": { "col_span": 6 } }
+  ]
+}
+```
 
 ---
 
@@ -764,6 +798,78 @@ The `icon_start` slot accepts any Lucide icon name. The icon is rendered dynamic
 
 ---
 
+### `row_media_left`
+**Structure:** Image thumbnail on left, content on right
+**Use for:** Contact lists, media items with descriptions
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ [○ or ▢]  Title                                           [→] │
+│  image    Description                                         │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `subtext` | string | Secondary description text |
+| `media` | string | Image URL |
+| `media_shape` | 'round' \| 'square' | Image shape (default: 'round') |
+| `media_size` | number | Image size in pixels (default: 48) |
+| `border_color` | string | Optional colored border |
+| `neon_glow` | boolean | Enable neon glow effect (default: false) |
+| `target_id` | string | Navigate to this node on click |
+
+**Example:**
+```json
+{
+  "variant": "row_media_left",
+  "title": "John Smith",
+  "metadata": {
+    "media": "https://example.com/avatar.jpg",
+    "media_shape": "round",
+    "description": "Product Manager"
+  }
+}
+```
+
+---
+
+### `row_simple_description`
+**Structure:** Simple row with title and multiline description
+**Use for:** Notes, descriptions, content without icons
+
+```
+┌─[border_color]───────────────────────────────────────────────────┐
+│ Title                                                        [→] │
+│ Description text here...                                         │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `subtext` | string | Secondary text / description |
+| `border_color` | string | Optional colored border |
+| `neon_glow` | boolean | Enable neon glow effect (default: false) |
+| `target_id` | string | Navigate to this node on click |
+
+**Example:**
+```json
+{
+  "variant": "row_simple_description",
+  "title": "Meeting Notes",
+  "metadata": {
+    "description": "Discussed Q4 roadmap and resource allocation...",
+    "border_color": "#8b5cf6"
+  }
+}
+```
+
+---
+
 ## Dashboards (Dec 2024)
 
 ### `view_dashboard_masonry`
@@ -920,6 +1026,48 @@ All chart cards use **Recharts** and support:
 
 ## Cards (Grid Items)
 
+### `card_folder`
+**Structure:** Grid-style folder card with icon, title, and count
+**Use for:** Folder navigation in grids (like `row_neon_group` but for grid layouts)
+
+```
+┌═════════════════════════╗
+║        [Icon]           ║
+║        Title            ║
+║      [3 items]          ║
+╚═════════════════════════╝
+  ^ Optional neon glow border
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `icon_start` | string | Lucide icon name (default: 'Folder') |
+| `accent_color` | string | Icon color and neon glow (default: #06b6d4) |
+| `border_color` | string | Optional border color (overrides accent_color) |
+| `neon_glow` | boolean | Enable neon glow effect (default: false) |
+| `count_badge` | string/number | Badge text (default: child count) |
+| `show_count` | boolean | Show item count (default: true) |
+| `target_id` | string | Navigate to this node on click |
+
+**Example:**
+```json
+{
+  "variant": "card_folder",
+  "title": "Photos",
+  "metadata": {
+    "icon": "Camera",
+    "color": "#ec4899",
+    "neon_glow": true,
+    "col_span": 2
+  },
+  "children": [...]
+}
+```
+
+---
+
 ### `card_media_top`
 **Structure:** Image Top + Content Bottom
 **Use for:** Recipes, gallery items, rich content
@@ -958,6 +1106,81 @@ All chart cards use **Recharts** and support:
     "badge_1": "35m",
     "badge_1_icon": "clock",
     "badge_2": "4 servings"
+  }
+}
+```
+
+---
+
+## Compact Card Variants (Dec 2024)
+
+These variants are designed for the **6-column grid system** with `col_span: 3` (2 cards per row).
+
+### `card_media_top_compact`
+**Structure:** Smaller card with 4:3 aspect ratio image
+**Use for:** Side-by-side gallery items, compact recipe cards
+
+Same slots as `card_media_top` but with:
+- 4:3 aspect ratio image (instead of 16:9)
+- Smaller text sizes
+- Reduced padding
+- `rounded-lg` instead of `rounded-xl`
+
+**Example:**
+```json
+{
+  "variant": "card_media_top_compact",
+  "title": "Quick Recipe",
+  "metadata": {
+    "imageUrl": "https://example.com/food.jpg",
+    "col_span": 3
+  }
+}
+```
+
+---
+
+### `card_media_thumbnail_compact`
+**Structure:** Compact square thumbnail
+**Use for:** Profile pics, album covers, icons in grid
+
+Same slots as `card_media_thumbnail` but with:
+- Smaller overall size
+- Reduced padding
+- Designed for `col_span: 3`
+
+**Example:**
+```json
+{
+  "variant": "card_media_thumbnail_compact",
+  "title": "Album Cover",
+  "metadata": {
+    "url": "https://example.com/album.jpg",
+    "col_span": 3
+  }
+}
+```
+
+---
+
+### `card_media_cover_compact`
+**Structure:** Compact poster-style with 3:4 aspect ratio
+**Use for:** Movie posters, book covers, portrait images
+
+Same slots as `card_media_cover` but with:
+- 3:4 aspect ratio (portrait, instead of 16:9 landscape)
+- Smaller text overlay
+- Designed for `col_span: 3`
+
+**Example:**
+```json
+{
+  "variant": "card_media_cover_compact",
+  "title": "The Matrix",
+  "metadata": {
+    "url": "https://example.com/poster.jpg",
+    "description": "1999 Sci-Fi",
+    "col_span": 3
   }
 }
 ```

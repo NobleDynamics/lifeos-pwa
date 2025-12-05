@@ -19,7 +19,7 @@
  * @module engine/components/shared/DynamicFormSheet
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import {
   Check,
   X,
@@ -547,7 +547,7 @@ export function DynamicFormSheet({
   const [error, setError] = useState<string | null>(null)
   
   // Reset form when initialValues or schema changes
-  useMemo(() => {
+  useEffect(() => {
     const defaults: FormResult = {}
     schema.forEach(field => {
       if (initialValues[field.key] !== undefined) {

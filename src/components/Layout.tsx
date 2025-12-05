@@ -1,6 +1,6 @@
 import { ReactNode, useRef, useState, useCallback, useEffect } from 'react'
 import { useAppStore, type PaneType } from '@/store/useAppStore'
-import { useBackButton } from '@/hooks/useBackButton'
+import { useBackButton, initBackNavigation } from '@/hooks/useBackButton'
 import { useAppLauncher } from '@/hooks/useAppLauncher'
 import {
   Home,
@@ -595,8 +595,22 @@ function DrawerWithSwipe() {
 export const DRAWER_HANDLE_HEIGHT = 60
 
 export default function Layout({ children }: LayoutProps) {
-  // Initialize back button handler for Android hardware back button
-  useBackButton()
+  // Initialize back navigation system once on mount
+  // This sets up the sentinel history entry and global popstate listener
+  useEffect(() => {
+    initBackNavigation()
+  }, [])
+
+  // Register app-level back handler (lowest priority - catches everything else)
+  // This handles:
+  // 1. Closing the drawer if open
+  // 2. Navigating to dashboard if not there
+  // 3. Trapping at dashboard to prevent app exit
+  useBackButton({
+    id: 'layout:app-level',
+    priority: 0, // Lowest priority - runs after node (20) and tab (15) handlers
+    handler: () => useAppStore.getState().backFromPane()
+  })
 
   return (
     <div className="h-screen w-screen bg-dark text-white overflow-hidden">

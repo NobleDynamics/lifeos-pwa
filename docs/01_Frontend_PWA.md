@@ -286,26 +286,42 @@ Concept: A global sheet/modal that provides access to all installed apps/widgets
 Interaction: Vertical swipe gesture from the bottom of any Pane.
 Contents: A scrollable grid layout showing all System and User Apps.
 
-D. Back Button Handling (Android/Browser)
+D. Back Button Handling (State-First, History-Shimmed)
 
-The back button uses **Browser History** for "go back to where I was" navigation, combined with a **Chain of Command** pattern for fallback handling.
+The back button uses a **State-First, History-Shimmed** architecture that solves async race conditions and history exhaustion problems.
 
-**Key Behavior:** Back button navigates through browser history (like a web browser), NOT hierarchically up the folder tree.
+**Architecture Principles:**
+1. **Zustand = Single Source of Truth**: All navigation state lives in global store with synchronous updates
+2. **Single Sentinel History Entry**: Uses `replaceState` not `pushState`; `popstate` is just a trigger
+3. **Handler Chain Reads Store**: Handlers call Zustand actions that return boolean synchronously
+4. **Capacitor-Ready**: Abstracted `handleBackPress()` for future native wrapping
 
 | Priority | Handler | Location | Action |
 |----------|---------|----------|--------|
 | 30+ | Modals/Sheets | Various | Close open modal/sheet |
-| 20 | `ViewEnginePane` | Pane | **Sync React state with URL history** |
-| 15 | `layout_app_shell` | Shell | Tab switching (non-default → default tab) |
-| 0 | App-level | `Layout.tsx` | Close drawer → Dashboard → Trap |
+| 20 | `ViewEnginePane` | Pane | `backFromNode(paneId)` - Pop node stack |
+| 15 | `layout_app_shell` | Shell | `backFromTab(paneId)` - Switch to default tab |
+| 0 | App-level | `Layout.tsx` | `backFromPane()` - Close drawer → Dashboard → Trap |
 
-**Browser History Navigation Flow:**
+**State-First Navigation Flow:**
 ```
-Click: Shopping Tab → Grocery List → (history: [Shopping, GroceryList])
-Back: GroceryList → Shopping Tab (returns to previous URL)
-Back: Shopping Tab → Default Tab (shell handles tab switching)
-Back: Default Tab → Dashboard (app-level)
-Back: Dashboard → (Trapped - prevent app exit)
+State: { activeNodeByPane: { "user.my_home": "grocery-list-id" } }
+Back Press → handleBackPress() called
+  → Priority 20: backFromNode("user.my_home") 
+  → Pops stack, returns true → Done
+  
+State: { activeNodeByPane: { "user.my_home": "shopping-tab-id" } }
+Back Press → handleBackPress() called
+  → Priority 20: backFromNode → returns false (at tab root)
+  → Priority 15: backFromTab → switches to default, returns true → Done
+  
+Back Press at Default Tab Root:
+  → Priority 20: returns false
+  → Priority 15: returns false (already at default)
+  → Priority 0: backFromPane → goes to Dashboard, returns true
+  
+Back Press at Dashboard:
+  → All return true (traps to prevent app exit)
 ```
 
 **Implementation Details:**

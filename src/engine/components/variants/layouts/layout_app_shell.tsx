@@ -30,6 +30,7 @@ import { useShellNavigation, findContainingChild, findNodeInTree } from '../../.
 import { ShellActionProvider, useShellAction, type CreateOption } from '../../../context/ShellActionContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
 import { useBackButton } from '@/hooks/useBackButton'
+import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { DRAWER_HANDLE_HEIGHT } from '@/components/Layout'
 
@@ -179,7 +180,7 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     const showBackButton = !isAtTabRoot && canNavigateBack
 
     // =========================================================================
-    // BACK BUTTON HANDLING (Priority 15 - Tab switching only)
+    // BACK BUTTON HANDLING (Priority 15 - Tab switching via Zustand)
     // =========================================================================
     
     // Determine the effective default tab ID
@@ -188,43 +189,56 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
         return node.children?.[0]?.id || null
     }, [defaultTabId, node.children])
     
-    // Check if we're at the default tab root (not deep, and on default tab)
-    const isAtDefaultTabRoot = useMemo(() => {
-        // Not deep AND active tab is the default tab
-        return isAtTabRoot && activeTabId === effectiveDefaultTabId
-    }, [isAtTabRoot, activeTabId, effectiveDefaultTabId])
+    // Get paneId from root node metadata (set by ViewEnginePane)
+    // This allows the shell to register its default tab with the global store
+    const paneId = (rootNode?.metadata?.context as string) || node.id
+    
+    // Register default tab with Zustand store on mount
+    // This enables the store's backFromTab action to work correctly
+    useEffect(() => {
+        if (effectiveDefaultTabId) {
+            useAppStore.getState().setDefaultTab(paneId, effectiveDefaultTabId)
+        }
+    }, [paneId, effectiveDefaultTabId])
+    
+    // Sync active tab to store when it changes
+    useEffect(() => {
+        if (activeTabId) {
+            useAppStore.getState().setActiveTab(paneId, activeTabId)
+        }
+    }, [paneId, activeTabId])
     
     /**
      * Back button handler for the App Shell
      * 
      * Priority: 15 (called AFTER ViewEnginePane at 20, BEFORE app-level at 0)
      * 
-     * BROWSER HISTORY STRATEGY:
-     * ViewEnginePane (priority 20) handles syncing with URL history.
-     * The shell only handles tab switching when there's no more URL history.
+     * STATE-FIRST STRATEGY:
+     * - Uses Zustand store's backFromTab action for tab switching
+     * - Store knows the default tab and current tab per pane
+     * - Returns true if switched tabs, false if already at default
      * 
      * Handles:
-     * 1. At non-default tab root → go to default tab
+     * 1. At non-default tab root → go to default tab (via store)
      * 2. At default tab root → return false (let app-level handle exit)
      */
-    const handleShellBack = useCallback(() => {
-        // Only handle tab-level navigation when at tab root (no deep folder)
-        // ViewEnginePane handles folder navigation via URL history
-        
-        // Case 1: At non-default tab root → go to default tab
-        if (isAtTabRoot && !isAtDefaultTabRoot && effectiveDefaultTabId) {
-            navigateToNode(effectiveDefaultTabId)
-            return true
-        }
-        
-        // Case 2: At default tab root → let app-level handler take over
-        return false
-    }, [isAtTabRoot, isAtDefaultTabRoot, effectiveDefaultTabId, navigateToNode])
     
-    // Register back button handler at priority 15
+    // Register back button handler at priority 15 using store action
     useBackButton({
-        onCloseModal: handleShellBack,
+        id: `shell:${paneId}`,
         priority: 15,
+        handler: () => {
+            // Use store's backFromTab which handles tab switching logic
+            const switched = useAppStore.getState().backFromTab(paneId)
+            if (switched) {
+                // Also update local navigation context to sync UI
+                const defaultTab = useAppStore.getState().defaultTabByPane[paneId]
+                if (defaultTab) {
+                    navigateToNode(defaultTab)
+                }
+            }
+            return switched
+        }
     })
 
     // Handle tab click - navigate to the tab AND clear deep navigation

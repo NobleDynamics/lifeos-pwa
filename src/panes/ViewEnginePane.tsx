@@ -14,6 +14,11 @@
  * - The Shell renders its chrome (header, tabs) permanently
  * - Only the viewport content changes based on targetNodeId
  * 
+ * STATE-FIRST BACK NAVIGATION:
+ * - Navigation state lives in Zustand (useAppStore)
+ * - Back handlers read from store synchronously (no stale state)
+ * - URL hash is for display/deep-linking only, not navigation source
+ * 
  * @module panes/ViewEnginePane
  */
 
@@ -47,6 +52,7 @@ import { ResourceContextMenu } from '@/components/ResourceContextMenu'
 import { Resource } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { useBackButton } from '@/hooks/useBackButton'
+import { useAppStore } from '@/store/useAppStore'
 
 // =============================================================================
 // TYPES
@@ -143,15 +149,25 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   } = useResourceTree(rootPath)
 
   // ==========================================================================
-  // NAVIGATION STATE (Persistent Shell Architecture)
+  // NAVIGATION STATE (State-First Back Navigation)
   // ==========================================================================
   
-  // targetNodeId: The node the user has drilled into (null = at root)
-  const [targetNodeId, setTargetNodeId] = useState<string | null>(() => {
-    // Initialize from URL hash if present
-    return getNodeIdFromUrl()
-  })
-
+  // The paneId is the context string - used for per-pane state in Zustand
+  const paneId = context
+  
+  // Read navigation state from Zustand store (single source of truth)
+  const targetNodeId = useAppStore(s => s.activeNodeByPane[paneId] ?? null)
+  const navigateToNode = useAppStore(s => s.navigateToNode)
+  
+  // Initialize from URL hash on mount (deep linking support)
+  useEffect(() => {
+    const urlNodeId = getNodeIdFromUrl()
+    if (urlNodeId && urlNodeId !== targetNodeId) {
+      // Initialize store with URL state
+      navigateToNode(paneId, urlNodeId)
+    }
+  }, []) // Only on mount
+  
   // Form store
   const { openCreateForm } = useResourceForm()
 
@@ -177,50 +193,25 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [rootId, resources])
 
   // ==========================================================================
-  // BROWSER HISTORY-BASED BACK NAVIGATION
+  // STATE-FIRST BACK NAVIGATION
   // ==========================================================================
   
   /**
-   * Back button handler - syncs with browser history (URL hash)
+   * Back button handler - reads from Zustand store synchronously
    * 
-   * BROWSER HISTORY STRATEGY:
-   * - Forward navigation pushes history entries with nodeId in URL hash
-   * - Back button reads the CURRENT URL hash (which browser has already navigated to)
-   * - We sync React state with the URL, giving "go back to where I was" behavior
+   * STATE-FIRST STRATEGY:
+   * - Navigation state lives in Zustand (activeNodeByPane, nodeStackByPane)
+   * - Back handler calls store action which returns boolean synchronously
+   * - No stale state issues since we read from store.getState()
    * 
    * Priority: 20 (called before shell at 15 and app-level at 0)
-   * 
-   * IMPORTANT: When URL is empty, we sync state to null but return FALSE
-   * This lets the shell handler run next to handle tab-level navigation
    */
-  const handleHistoryBack = useCallback(() => {
-    // Read the nodeId from the CURRENT URL (after browser back)
-    const urlNodeId = getNodeIdFromUrl()
-    
-    // If URL has a SPECIFIC nodeId different from our current state, sync to it
-    if (urlNodeId !== null && urlNodeId !== targetNodeId) {
-      setTargetNodeId(urlNodeId)
-      return true // We handled the navigation - synced to a specific node
-    }
-    
-    // If URL is empty but we have a targetNodeId, clear it
-    // BUT return false so shell can handle tab-level navigation
-    if (targetNodeId !== null && urlNodeId === null) {
-      setTargetNodeId(null)
-      // Don't return true! Let the shell handler decide what to do
-      // (e.g., switch from non-default tab to default tab, then to dashboard)
-      return false
-    }
-    
-    // URL matches our state - nothing to do at this level
-    // Let lower priority handlers (shell/app-level) deal with it
-    return false
-  }, [targetNodeId])
   
-  // Register back button handler at PRIORITY 20 (highest for navigation)
+  // Register back button handler at PRIORITY 20 (folder navigation)
   useBackButton({
-    onCloseModal: handleHistoryBack,
+    id: `viewengine:${paneId}`,
     priority: 20,
+    handler: () => useAppStore.getState().backFromNode(paneId)
   })
 
   // ==========================================================================
@@ -232,17 +223,17 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
    * (Called when user clicks on a folder or tab)
    */
   const handleNavigate = useCallback((nodeId: string | null, _path: string[]) => {
-    // Update React state
-    if (nodeId === rootId) {
-      setTargetNodeId(null)
-    } else {
-      setTargetNodeId(nodeId)
-    }
+    // Determine if this is a tab-level navigation
+    const isTab = nodeId === null || nodeId === rootId || 
+      (fullNodeTree?.children?.some(c => c.id === nodeId) ?? false)
     
-    // FORWARD navigation: Push new history entry
-    // This allows back button to return to previous location
-    pushNodeToHistory(nodeId === rootId ? null : nodeId)
-  }, [rootId])
+    // Update store state (source of truth)
+    const targetId = nodeId === rootId ? null : nodeId
+    navigateToNode(paneId, targetId, isTab)
+    
+    // Update URL for deep linking (display only, not navigation source)
+    pushNodeToHistory(targetId)
+  }, [rootId, fullNodeTree, navigateToNode, paneId])
 
   /**
    * Handle opening the create form
@@ -256,12 +247,12 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
    * Handle navigating into a folder (FORWARD navigation)
    */
   const handleNavigateInto = useCallback((nodeId: string, _nodeTitle: string, _nodePath: string) => {
-    // Update React state
-    setTargetNodeId(nodeId)
+    // Update store state (source of truth)
+    navigateToNode(paneId, nodeId, false)
     
-    // FORWARD navigation: Push new history entry
+    // Update URL for deep linking (display only)
     pushNodeToHistory(nodeId)
-  }, [])
+  }, [navigateToNode, paneId])
 
   /**
    * Handle opening context menu

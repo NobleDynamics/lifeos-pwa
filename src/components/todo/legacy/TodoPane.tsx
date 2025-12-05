@@ -34,8 +34,11 @@ export function TodoPane({ accentColor = '#00EAFF', chartColors = ['#00EAFF', '#
     return navigateBack()
   }, [navigateBack])
 
+  // Register back handler for legacy todo navigation
   useBackButton({
-    onCloseModal: handleBackButton
+    id: 'legacy-todo-pane',
+    priority: 20, // Same as ViewEnginePane node navigation
+    handler: handleBackButton
   })
 
   if (!user) {

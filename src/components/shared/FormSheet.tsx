@@ -53,8 +53,11 @@ export function FormSheet({
     onClose()
   }, [onClose])
 
+  // Register back handler at high priority (modal level)
   useBackButton({
-    onCloseModal: () => {
+    id: 'form-sheet',
+    priority: 30, // Modal priority - highest
+    handler: () => {
       handleClose()
       return true
     }

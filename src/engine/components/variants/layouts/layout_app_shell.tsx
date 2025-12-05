@@ -10,9 +10,13 @@
  * 2. Determine which bottom tab should be active (even when deep in subtree)
  * 3. Render the appropriate content in the viewport
  * 
+ * HEADER LAYOUT (Fixed Order):
+ * Row 1: Back Button (conditional) + App Icon + Title + Action Button
+ * Row 2: Breadcrumbs (always visible: "My Home > Shopping > ...")
+ * Row 3: Search/Content (rendered by child views like view_directory)
+ * 
  * Config (node.metadata):
  * - title: App Title (Header)
- * - action_label: Label for the top-right button (removed - now per-directory)
  * - default_tab_id: UUID of the child to show first
  */
 
@@ -132,18 +136,46 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
         return node.children?.find(c => c.id === selectedTabId) || null
     }, [node, targetNodeId, selectedTabId])
 
-    // Determine if we're showing a deep view (not at tab level)
+    // =========================================================================
+    // NAVIGATION STATE HELPERS
+    // =========================================================================
+
+    // Determine if we're showing a deep view (deeper than tab level)
+    // Deep view = target is NOT null, NOT the shell itself, and NOT a direct child (tab)
     const isDeepView = targetNodeId && 
         targetNodeId !== node.id && 
         !node.children?.find(c => c.id === targetNodeId)
 
-    // Get the title to display (current location or app title)
+    // Determine if we're at Tab Root (viewing a direct child/tab of the shell)
+    // At Tab Root = targetNodeId is null OR targetNodeId is a direct child of the shell
+    const isAtTabRoot = !targetNodeId || 
+        targetNodeId === node.id || 
+        node.children?.some(c => c.id === targetNodeId)
+
+    // Get the active tab node (for title and breadcrumb purposes)
+    const activeTabNode = useMemo(() => {
+        const activeTabChild = node.children?.find(c => c.id === activeTabId)
+        return activeTabChild || null
+    }, [node.children, activeTabId])
+
+    // Get the title to display
+    // Priority: Deep view folder title > Active tab title > App title
     const displayTitle = useMemo(() => {
+        // If we're in a deep view, show the current folder's title
         if (isDeepView && viewportContent) {
             return viewportContent.title
         }
+        // If we're at tab root and have an active tab, show the tab's title
+        if (activeTabNode) {
+            return activeTabNode.title
+        }
+        // Fallback to app title
         return title
-    }, [isDeepView, viewportContent, title])
+    }, [isDeepView, viewportContent, activeTabNode, title])
+
+    // Determine if we should show the back button
+    // Show back button ONLY when we're deeper than tab level (not at tab root)
+    const showBackButton = !isAtTabRoot && canNavigateBack
 
     // Handle tab click - navigate to the tab AND clear deep navigation
     const handleTabClick = (tabId: string) => {
@@ -171,24 +203,46 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     // BREADCRUMB GENERATION
     // =========================================================================
 
-    // Build breadcrumb items from targetPath - skip first item (root) as we show it with Home icon
+    // Build breadcrumb items - always include from Tab level
+    // Format: "My Home > Shopping > Lists > ..."
     const breadcrumbItems = useMemo(() => {
-        if (!rootNode || targetPath.length <= 1) return []
+        // Start with the root (App title)
+        const items: Array<{ id: string; title: string; pathIndex: number; isRoot?: boolean }> = []
         
-        // Skip the first item (root/app shell) - we show that as Home
-        // Start from index 1 (first tab level)
-        return targetPath.slice(1).map((nodeId, index) => {
-            const foundNode = findNodeInTree(rootNode, nodeId)
-            return {
-                id: nodeId,
-                title: foundNode?.title || 'Unknown',
-                pathIndex: index + 1, // +1 because we sliced from index 1
-            }
+        // Add root (App Shell) as first item - always present
+        items.push({
+            id: node.id,
+            title: title, // App title (e.g., "My Home")
+            pathIndex: 0,
+            isRoot: true,
         })
-    }, [rootNode, targetPath])
 
-    // Show breadcrumbs only when we're deeper than Tab level (more than 2 items in path)
-    const showBreadcrumbs = targetPath.length > 2
+        // If we have a targetPath with items beyond root, add them
+        if (rootNode && targetPath.length > 1) {
+            // Add all items from the path (starting at index 1, skipping root)
+            targetPath.slice(1).forEach((nodeId, index) => {
+                const foundNode = findNodeInTree(rootNode, nodeId)
+                items.push({
+                    id: nodeId,
+                    title: foundNode?.title || 'Unknown',
+                    pathIndex: index + 1,
+                })
+            })
+        } else if (activeTabNode) {
+            // If no targetPath but we have an active tab, add it
+            // This handles the initial load case where targetNodeId is null
+            items.push({
+                id: activeTabNode.id,
+                title: activeTabNode.title,
+                pathIndex: 1,
+            })
+        }
+
+        return items
+    }, [node.id, title, rootNode, targetPath, activeTabNode])
+
+    // Always show breadcrumbs (at minimum: "My Home > [Tab Name]")
+    const showBreadcrumbs = breadcrumbItems.length >= 2
 
     // =========================================================================
     // RENDER
@@ -201,70 +255,13 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
 
     return (
         <div className="flex flex-col h-[100dvh] bg-dark text-white overflow-hidden relative">
-            {/* Header Section - Matches legacy ViewShell styling */}
+            {/* Header Section - Fixed Order: Title Row → Breadcrumbs */}
             <div className="px-4 pt-4 pb-2 safe-top flex-shrink-0 z-50">
-                {/* Breadcrumbs - Above title, shown when deep in hierarchy */}
-                {showBreadcrumbs && (
-                    <nav 
-                        className="flex items-center space-x-1 text-sm overflow-x-auto scrollbar-hide py-1 mb-2"
-                        aria-label="Breadcrumb"
-                    >
-                        {/* Home/Root button */}
-                        <button
-                            onClick={() => navigateToLevel(0)}
-                            className={cn(
-                                "flex items-center space-x-1 px-2 py-1 rounded-md",
-                                "text-dark-400 hover:text-white hover:bg-dark-200/50",
-                                "transition-colors whitespace-nowrap flex-shrink-0"
-                            )}
-                            aria-label={`Go to ${title}`}
-                        >
-                            <Home className="w-3.5 h-3.5" />
-                            <span>{title}</span>
-                        </button>
-
-                        {/* Path items - all except the last one (current) */}
-                        {breadcrumbItems.slice(0, -1).map((item, index) => (
-                            <span key={item.id} className="flex items-center">
-                                <ChevronRight className="w-4 h-4 text-dark-500 flex-shrink-0" />
-                                <button
-                                    onClick={() => navigateToLevel(item.pathIndex)}
-                                    className={cn(
-                                        "px-2 py-1 rounded-md transition-colors whitespace-nowrap",
-                                        "max-w-[150px] truncate",
-                                        "text-dark-400 hover:text-white hover:bg-dark-200/50"
-                                    )}
-                                    title={item.title}
-                                >
-                                    {item.title}
-                                </button>
-                            </span>
-                        ))}
-
-                        {/* Current item (last in breadcrumbs) - not clickable, cyan color */}
-                        {breadcrumbItems.length > 0 && (
-                            <span className="flex items-center">
-                                <ChevronRight className="w-4 h-4 text-dark-500 flex-shrink-0" />
-                                <span
-                                    className={cn(
-                                        "px-2 py-1 rounded-md whitespace-nowrap",
-                                        "max-w-[150px] truncate",
-                                        "text-primary font-medium cursor-default"
-                                    )}
-                                    title={breadcrumbItems[breadcrumbItems.length - 1]?.title}
-                                >
-                                    {breadcrumbItems[breadcrumbItems.length - 1]?.title}
-                                </span>
-                            </span>
-                        )}
-                    </nav>
-                )}
-
-                {/* Title Row */}
-                <div className="flex items-center justify-between gap-3">
+                {/* Row 1: Title Row */}
+                <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {/* Back Button (when deep) */}
-                        {canNavigateBack && (
+                        {/* Back Button - Only show when deeper than tab level */}
+                        {showBackButton && (
                             <button
                                 onClick={navigateBack}
                                 className="p-1 -ml-1 rounded-lg hover:bg-dark-200 transition-colors"
@@ -277,7 +274,7 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                         {/* App Icon */}
                         <AppIcon size={24} className="text-primary flex-shrink-0" />
 
-                        {/* Title */}
+                        {/* Title - Shows tab title at root, folder title when deep */}
                         <h1 className="text-xl font-bold truncate">{displayTitle}</h1>
                     </div>
 
@@ -343,6 +340,55 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                         </div>
                     )}
                 </div>
+
+                {/* Row 2: Breadcrumbs - Always visible (e.g., "My Home > Shopping") */}
+                {showBreadcrumbs && (
+                    <nav 
+                        className="flex items-center space-x-1 text-sm overflow-x-auto scrollbar-hide py-1"
+                        aria-label="Breadcrumb"
+                    >
+                        {/* Render all breadcrumb items except the last (current) */}
+                        {breadcrumbItems.slice(0, -1).map((item, index) => (
+                            <span key={item.id} className="flex items-center">
+                                {/* Show separator before all items except the first */}
+                                {index > 0 && (
+                                    <ChevronRight className="w-4 h-4 text-dark-500 flex-shrink-0" />
+                                )}
+                                <button
+                                    onClick={() => navigateToLevel(item.pathIndex)}
+                                    className={cn(
+                                        "flex items-center space-x-1 px-2 py-1 rounded-md",
+                                        "text-dark-400 hover:text-white hover:bg-dark-200/50",
+                                        "transition-colors whitespace-nowrap flex-shrink-0",
+                                        "max-w-[150px] truncate"
+                                    )}
+                                    title={item.title}
+                                    aria-label={item.isRoot ? `Go to ${item.title}` : item.title}
+                                >
+                                    {item.isRoot && <Home className="w-3.5 h-3.5 mr-1" />}
+                                    <span>{item.title}</span>
+                                </button>
+                            </span>
+                        ))}
+
+                        {/* Current item (last in breadcrumbs) - not clickable, cyan highlight */}
+                        {breadcrumbItems.length > 0 && (
+                            <span className="flex items-center">
+                                <ChevronRight className="w-4 h-4 text-dark-500 flex-shrink-0" />
+                                <span
+                                    className={cn(
+                                        "px-2 py-1 rounded-md whitespace-nowrap",
+                                        "max-w-[150px] truncate",
+                                        "text-primary font-medium cursor-default"
+                                    )}
+                                    title={breadcrumbItems[breadcrumbItems.length - 1]?.title}
+                                >
+                                    {breadcrumbItems[breadcrumbItems.length - 1]?.title}
+                                </span>
+                            </span>
+                        )}
+                    </nav>
+                )}
             </div>
 
             {/* Viewport (Content) - SCROLLABLE area with bottom padding for tab bar + drawer handle */}

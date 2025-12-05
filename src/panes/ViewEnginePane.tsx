@@ -25,6 +25,7 @@ import {
   createEmptyRootNode,
   EngineActionsProvider,
   ShellNavigationProvider,
+  findPathToNode,
   type BehaviorConfig,
   type Node,
 } from '@/engine'
@@ -111,14 +112,25 @@ function getNodeIdFromUrl(): string | null {
  * 
  * NAVIGATION RULES:
  * - Forward (clicking folder): Use pushState (creates new history entry)
- * - Back (pressing back): React to popstate (do NOT push/replace)
- * - The global useBackButton system handles back button interception
+ * - Back (pressing back): React to popstate, read new URL, sync React state
+ * - The global useBackButton system handles popstate interception
  */
 function pushNodeToHistory(nodeId: string | null) {
   const newHash = nodeId ? `#node=${nodeId}` : ''
   const url = new URL(window.location.href)
   url.hash = newHash
   window.history.pushState({ nodeId }, '', url.toString())
+}
+
+/**
+ * Replace URL hash without creating a new history entry
+ * Used for syncing URL to state without affecting back button
+ */
+function replaceNodeInHistory(nodeId: string | null) {
+  const newHash = nodeId ? `#node=${nodeId}` : ''
+  const url = new URL(window.location.href)
+  url.hash = newHash
+  window.history.replaceState({ nodeId }, '', url.toString())
 }
 
 // =============================================================================
@@ -337,45 +349,64 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [resources, updateResourceMutation, cycleStatusMutation, moveResourceMutation, createResourceMutation])
 
   // ==========================================================================
-  // BACK BUTTON HANDLING (PASSIVE LISTENING STRATEGY)
+  // BACK BUTTON HANDLING (SIMPLIFIED STRATEGY)
   // ==========================================================================
   
   // Determine if we can navigate back within the ViewEngine
+  // We can go back if we're deeper than the root (not at tab level)
   const canNavigateBack = targetNodeId !== null && targetNodeId !== rootId
   
   /**
    * Back button handler - called by the global useBackButton system
    * 
-   * PASSIVE LISTENING STRATEGY:
-   * - When popstate fires, the URL has ALREADY changed to the previous entry
-   * - We just need to update React state to match the new URL
-   * - We do NOT call history.back() or history.push() here
-   * - The global system handles history management
+   * STRATEGY:
+   * - If we're in a deep view (not at root), go back one level
+   * - If we're at root, return false to allow app-level back handling
    * 
-   * Returns true if we handled the back (was in a deep view OR at root)
-   * At root: We "trap" the user to prevent accidental app exit (Android back closes app)
-   * User must use global navigation (drawer/swipe) to leave the app view.
+   * The handler should:
+   * 1. Check if we can navigate back internally
+   * 2. If yes, update React state and URL, return true
+   * 3. If no (at root), return false to let app-level handler take over
    */
   const handleBack = useCallback(() => {
-    // If we're at root, consume the back event but don't navigate
-    // This prevents Android app from exiting - user must use drawer to leave
-    if (!targetNodeId || targetNodeId === rootId) {
-      // Return true to indicate we "handled" the back (by consuming it)
-      // This traps the user at the root - standard behavior for root views
+    // If we're at root/tab level, don't handle - let app-level take over
+    if (!canNavigateBack) {
+      return false
+    }
+    
+    // We're in a deep view - navigate back one level
+    // Read the current URL to determine where we are
+    const currentNodeId = getNodeIdFromUrl()
+    
+    if (!currentNodeId || !fullNodeTree) {
+      // Can't determine current location, let app-level handle
+      return false
+    }
+    
+    // Find the path to the current node
+    const path = findPathToNode(fullNodeTree, currentNodeId)
+    
+    if (!path || path.length <= 1) {
+      // At root or can't find path, let app-level handle
+      setTargetNodeId(null)
+      replaceNodeInHistory(null)
       return true
     }
     
-    // We're in a deep view - the browser already popped to the previous URL
-    // Read the new nodeId from the URL (which has already changed)
-    const newNodeId = getNodeIdFromUrl()
+    // Go to parent (second-to-last in path)
+    const parentId = path[path.length - 2]
     
-    // Update React state to match the browser's URL
-    // This is "passive listening" - we react to the URL change, not cause it
-    setTargetNodeId(newNodeId)
+    // If parent is the root, clear targetNodeId
+    if (parentId === rootId) {
+      setTargetNodeId(null)
+      replaceNodeInHistory(null)
+    } else {
+      setTargetNodeId(parentId)
+      replaceNodeInHistory(parentId)
+    }
     
-    // Return true to indicate we handled the back action
     return true
-  }, [targetNodeId, rootId])
+  }, [canNavigateBack, fullNodeTree, rootId])
   
   // Register with the global back button system at PRIORITY 20
   // This is higher than modals (10) and app-level (0)

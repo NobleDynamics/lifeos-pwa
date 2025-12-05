@@ -25,7 +25,7 @@ The ViewEngine is a data-driven rendering system that renders recursive Node tre
 | Variant | Component | Use Case |
 |---------|-----------|----------|
 | **Layouts** | | |
-| `layout_app_shell` | `LayoutAppShell` | App container with tabs and search |
+| `layout_app_shell` | `LayoutAppShell` | App container with header, breadcrumbs, tabs |
 | `layout_top_tabs` | `LayoutTopTabs` | Segmented control sub-navigation |
 | `view_directory` | `ViewDirectory` | Searchable list with action button |
 | `view_list_stack` | `ViewListStack` | Collapsible folders with neon glow |
@@ -74,8 +74,9 @@ interface Node {
 | `useHasChildren()` | Check if node has children |
 | `useChildCount()` | Get number of direct children |
 | `useRenderChildren()` | Render children from within variants |
-| `useShellNavigation()` | Navigation context: targetNodeId, navigateToNode, navigateBack |
+| `useShellNavigation()` | Navigation context: targetNodeId, navigateToNode, navigateBack, targetPath |
 | `useShellAction()` | Dynamic header actions: setActionConfig, clearActionConfig |
+| `findPathToNode()` | Utility: Find path from root to a target node |
 | `useChildAggregation()` | Smart aggregation from child nodes (sum/count/avg) |
 | `useSlot()` | Slot-based data access from metadata |
 

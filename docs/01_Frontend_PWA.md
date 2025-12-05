@@ -118,18 +118,23 @@ These reusable components enforce DRY principles across the app:
 
 A fullscreen lightbox modal for viewing and editing markdown notes using `@uiw/react-md-editor`.
 
-**View/Edit Mode Transitions:**
-- **View Mode:** Full-width rendered markdown
-- **Enter Edit:** Tap content OR swipe left gesture
-- **Edit Layout:** 80/20 split (editor / preview sidebar)
-- **Exit Edit:** Swipe right OR tap "Done" button
-- **100% Edit:** Swipe left again to hide preview
+**Two-Pane Swipeable Layout (like homescreen panes):**
+- **Pane 0 (Left):** Edit mode with MDEditor
+- **Pane 1 (Right):** Preview mode with rendered markdown
+- **Default start:** Preview pane (right)
 
 **Swipe Gesture Flow:**
 ```
-View Mode → [swipe left] → Edit (80/20) → [swipe left] → Edit (100%)
-Edit (100%) → [swipe right] → Edit (80/20) → [swipe right] → View Mode
+[Edit Pane] ←swipe left/right→ [Preview Pane]
+     ↑                              ↑
+   (index 0)                    (index 1)
 ```
+
+**Navigation:**
+- Swipe right from Preview → reveals Edit pane
+- Swipe left from Edit → returns to Preview
+- Can partially swipe to "peek" at other pane (like homescreen)
+- Header has Edit/Preview toggle buttons for quick switching
 
 **Autosave & Version History:**
 - Content autosaves every 2 seconds after typing stops

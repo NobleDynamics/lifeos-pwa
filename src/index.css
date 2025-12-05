@@ -268,21 +268,27 @@
 }
 
 /* =============================================================================
-   Mobile-Optimized Toolbar - 44px Touch Targets
+   Mobile-Optimized Toolbar - 44px Touch Targets, Single Horizontal Row
    ============================================================================= */
 
 .w-md-editor-toolbar {
   background-color: #1f1f23 !important; /* dark-100 */
   border-bottom: 1px solid #27272a !important; /* dark-200 */
-  padding: 6px 8px !important;
-  gap: 4px !important;
-  flex-wrap: wrap !important;
-  min-height: 52px !important;
+  padding: 4px 8px !important;
+  gap: 0 !important;
+  flex-wrap: nowrap !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
 }
 
 .w-md-editor-toolbar ul {
-  gap: 2px !important;
-  flex-wrap: wrap !important;
+  gap: 0 !important;
+  flex-wrap: nowrap !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
 }
 
 .w-md-editor-toolbar li {
@@ -291,25 +297,26 @@
   justify-content: center !important;
 }
 
-/* Mobile touch-friendly button sizing */
+/* Mobile touch-friendly button sizing - compact horizontal layout */
 .w-md-editor-toolbar li > button {
-  min-width: 44px !important;
-  min-height: 44px !important;
-  width: 44px !important;
-  height: 44px !important;
-  padding: 10px !important;
-  border-radius: 8px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 8px !important;
+  border-radius: 6px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   color: #9ca3af !important; /* dark-400 */
   transition: all 0.15s ease !important;
+  flex-shrink: 0 !important;
 }
 
-/* Button icons - larger for visibility */
+/* Button icons */
 .w-md-editor-toolbar li > button svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 16px !important;
+  height: 16px !important;
 }
 
 /* Hover state with neon glow */
@@ -342,10 +349,12 @@
 
 /* Divider styling */
 .w-md-editor-toolbar li.w-md-editor-toolbar-divider {
-  height: 28px !important;
+  height: 24px !important;
   width: 1px !important;
+  min-width: 1px !important;
   background-color: #27272a !important; /* dark-200 */
-  margin: 8px 4px !important;
+  margin: 0 4px !important;
+  flex-shrink: 0 !important;
 }
 
 /* Dropdown menu styling */
@@ -363,43 +372,58 @@
 }
 
 /* =============================================================================
-   Preview Sidebar Compact Styles
+   Note Editor Full Height Fix - Cursor Alignment
    ============================================================================= */
 
-.wmde-markdown-preview-compact {
-  font-size: 11px !important;
-  line-height: 1.4 !important;
+/* Container should fill available space */
+.note-editor-fullheight {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.wmde-markdown-preview-compact h1,
-.wmde-markdown-preview-compact h2,
-.wmde-markdown-preview-compact h3 {
-  font-size: 12px !important;
-  margin-top: 0.5em !important;
-  margin-bottom: 0.25em !important;
+.note-editor-fullheight .w-md-editor {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.wmde-markdown-preview-compact p {
-  margin-bottom: 0.5em !important;
+.note-editor-fullheight .w-md-editor-content {
+  flex: 1 !important;
+  min-height: 0 !important;
 }
 
-.wmde-markdown-preview-compact code {
-  font-size: 10px !important;
-  padding: 1px 3px !important;
+.note-editor-fullheight .w-md-editor-area {
+  height: 100% !important;
 }
 
-.wmde-markdown-preview-compact pre {
-  font-size: 10px !important;
-  padding: 8px !important;
+.note-editor-fullheight .w-md-editor-text {
+  min-height: 100% !important;
 }
 
-.wmde-markdown-preview-compact ul,
-.wmde-markdown-preview-compact ol {
-  padding-left: 1em !important;
+/* Fix textarea cursor alignment by ensuring consistent line height */
+.w-md-editor-text-pre,
+.w-md-editor-text-input {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
-.wmde-markdown-preview-compact li {
-  margin: 0.15em 0 !important;
+/* Ensure the hidden pre and visible textarea have identical styling */
+.w-md-editor-text-pre > code {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+/* Remove any transforms that could offset cursor */
+.w-md-editor-text,
+.w-md-editor-text-pre,
+.w-md-editor-text-input {
+  transform: none !important;
 }
 
 @layer utilities {

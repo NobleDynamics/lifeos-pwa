@@ -197,8 +197,10 @@ export function CardNoteLarge({ node }: VariantComponentProps) {
       setMenuPosition({ x: e.clientX, y: e.clientY })
     },
     onClick: () => {
-      // Regular click - could open viewer modal in the future
-      // For now, do nothing in sandbox mode
+      // Open note viewer/editor modal
+      if (actions) {
+        actions.onOpenNote(node)
+      }
     },
     disabled: false,
   })

@@ -252,6 +252,7 @@ Use these inside variant components:
 | `useRenderChildren()` | `() => ReactNode` | Render children helper |
 | `useShellNavigation()` | `{ targetNodeId, navigateToNode, navigateBack, canNavigateBack }` | Shell navigation |
 | `useShellAction()` | `{ actionConfig, setActionConfig, clearActionConfig }` | Dynamic header actions |
+| `useEngineActions()` | `{ onOpenNote, onOpenCreateForm, ... }` | Action callbacks (modals, navigation) |
 | `useChildAggregation()` | `{ total, items, max, min, isEmpty }` | Aggregate from own children |
 | `useSlotBasedAggregation()` | `{ total, items, ... }` | Aggregate from source_id sibling (for charts) |
 | `useSlot<T>()` | `T \| undefined` | Slot-based metadata access |
@@ -1263,6 +1264,10 @@ interface NoteViewerModalProps {
 | `accent_color` | string | Left border indicator (default: #8b5cf6) |
 | `history` | array | Version history `[{content, savedAt}]` |
 
+**Behavior:**
+- **Click:** Opens fullscreen NoteViewerModal for viewing/editing (via `actions.onOpenNote(node)`)
+- **Long-press/Right-click:** Opens version history context menu with restore options
+
 **Context Menu:**
 Long-press or right-click opens version history menu with restore options.
 
@@ -1308,6 +1313,10 @@ Long-press or right-click opens version history menu with restore options.
 | `accent_color` | string | Top bar + glow color (default: #8b5cf6) |
 | `neon_glow` | boolean | Enable neon glow effect (default: false) |
 | `history` | array | Version history for context menu |
+
+**Behavior:**
+- **Click:** Opens fullscreen NoteViewerModal for viewing/editing (via `actions.onOpenNote(node)`)
+- **Long-press/Right-click:** Opens version history context menu
 
 **Markdown Stripping:**
 Content is automatically converted to plain text for preview:
@@ -1403,6 +1412,13 @@ Long-press or right-click shows version history with timestamps and previews.
   }
 }
 ```
+
+### Note Interaction Flow
+1. **Click note** → `onClick` fires → calls `actions.onOpenNote(node)`
+2. **ViewEnginePane** receives callback → sets `selectedNoteNode` state
+3. **NoteViewerModal** renders with the selected note
+4. **User edits** → autosave triggers → `handleSaveNote` updates database via `useUpdateResource`
+5. **Close modal** → `setSelectedNoteNode(null)` clears state
 
 ### Version History System
 - **Autosave:** Saves 2 seconds after typing stops

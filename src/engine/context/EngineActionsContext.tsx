@@ -44,6 +44,9 @@ export interface EngineActionsValue {
    */
   onTriggerBehavior: (node: Node, config: BehaviorConfig) => void
 
+  /** Open the note viewer/editor modal for a note node */
+  onOpenNote: (node: Node) => void
+
   /** Convert a Node to a minimal Resource for mutation hooks */
   nodeToResource: (node: Node) => Resource
 }
@@ -87,6 +90,9 @@ export interface EngineActionsProviderProps {
 
   /** Callback for generic behaviors */
   onTriggerBehavior: (node: Node, config: BehaviorConfig) => void
+
+  /** Callback when opening a note viewer/editor */
+  onOpenNote: (node: Node) => void
 
   /** Child components */
   children: ReactNode
@@ -136,6 +142,7 @@ export function EngineActionsProvider({
   onOpenContextMenu,
   onCycleStatus,
   onTriggerBehavior,
+  onOpenNote,
   children,
 }: EngineActionsProviderProps) {
   const nodeToResource = useMemo(
@@ -152,9 +159,10 @@ export function EngineActionsProvider({
       onOpenContextMenu,
       onCycleStatus,
       onTriggerBehavior,
+      onOpenNote,
       nodeToResource,
     }),
-    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, onTriggerBehavior, nodeToResource]
+    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, onTriggerBehavior, onOpenNote, nodeToResource]
   )
 
   return (
@@ -232,6 +240,7 @@ export function useEngineActionsWithFallback() {
     onOpenContextMenu: noOpContextMenu,
     onCycleStatus: noOpCycleStatus,
     onTriggerBehavior: useCallback((_n: Node, _c: BehaviorConfig) => { }, []),
+    onOpenNote: useCallback((_n: Node) => { }, []),
     nodeToResource: defaultNodeToResource,
     isInteractive: false,
   }

@@ -28,6 +28,7 @@ import {
   type BehaviorConfig,
   type Node,
 } from '@/engine'
+import { NoteViewerModal, type VersionEntry } from '@/engine/components/shared/NoteViewerModal'
 import { useContextRoot } from '@/hooks/useContextRoot'
 import {
   useResourceTree,
@@ -163,6 +164,9 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   const moveResourceMutation = useMoveResource()
   const createResourceMutation = useCreateResource()
 
+  // Note modal state
+  const [selectedNoteNode, setSelectedNoteNode] = useState<Node | null>(null)
+
   // Step 3: Transform resources to Node tree (memoized for performance)
   // ALWAYS transform from the root - never swap the root node
   const fullNodeTree = useMemo(() => {
@@ -286,6 +290,44 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   const handleCycleStatus = useCallback((resource: Resource) => {
     cycleStatusMutation.mutate({ resource })
   }, [cycleStatusMutation])
+
+  /**
+   * Handle opening a note in the viewer/editor modal
+   */
+  const handleOpenNote = useCallback((node: Node) => {
+    setSelectedNoteNode(node)
+  }, [])
+
+  /**
+   * Handle saving note content from the modal
+   */
+  const handleSaveNote = useCallback((content: string, history: VersionEntry[]) => {
+    if (!selectedNoteNode) return
+
+    // Find the original resource to get the FULL meta_data from DB
+    const resource = resources?.find(r => r.id === selectedNoteNode.id)
+    if (!resource) {
+      console.warn('[ViewEnginePane] Resource not found for note:', selectedNoteNode.id)
+      return
+    }
+
+    // Merge new content and history into the ORIGINAL metadata from the database
+    const currentMeta = (resource.meta_data || {}) as Record<string, unknown>
+    const updates = {
+      meta_data: {
+        ...currentMeta,
+        content,
+        history,
+        updated_at: new Date().toISOString(),
+      }
+    }
+
+    console.log('[ViewEnginePane] Saving note:', selectedNoteNode.id, 'content length:', content.length)
+    updateResourceMutation.mutate({
+      id: selectedNoteNode.id,
+      updates
+    })
+  }, [selectedNoteNode, resources, updateResourceMutation])
 
   /**
    * Handle generic behavior triggers
@@ -417,6 +459,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
             onOpenContextMenu={handleOpenContextMenu}
             onCycleStatus={handleCycleStatus}
             onTriggerBehavior={handleTriggerBehavior}
+            onOpenNote={handleOpenNote}
           >
             {/* Shell controls its own scroll - no overflow here */}
             <ViewEngine root={emptyRoot} className="flex-1 min-h-0" />
@@ -467,6 +510,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           onOpenContextMenu={handleOpenContextMenu}
           onCycleStatus={handleCycleStatus}
           onTriggerBehavior={handleTriggerBehavior}
+          onOpenNote={handleOpenNote}
         >
           {/* 
             PERSISTENT SHELL ARCHITECTURE:
@@ -482,6 +526,16 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
       {/* Form & Context Menu */}
       <ResourceForm />
       <ResourceContextMenu />
+
+      {/* Note Viewer/Editor Modal */}
+      {selectedNoteNode && (
+        <NoteViewerModal
+          isOpen={!!selectedNoteNode}
+          onClose={() => setSelectedNoteNode(null)}
+          node={selectedNoteNode}
+          onSave={handleSaveNote}
+        />
+      )}
     </div>
   )
 }

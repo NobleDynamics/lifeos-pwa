@@ -308,6 +308,9 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     // Always show breadcrumbs (at minimum: "My Home > [Tab Name]")
     const showBreadcrumbs = breadcrumbItems.length >= 2
 
+    // Check if this shell has bottom tabs (used for dynamic spacer height)
+    const hasBottomTabs = node.children && node.children.length > 0
+
     // =========================================================================
     // RENDER
     // =========================================================================
@@ -455,15 +458,23 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                 )}
             </div>
 
-            {/* Viewport (Content) - SCROLLABLE area with bottom padding for tab bar + drawer handle */}
-            <div className="flex-1 min-h-0 overflow-y-auto pb-[140px]">
+            {/* Viewport (Content) - SCROLLABLE area */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
                 {viewportContent ? (
-                    <ViewEngine root={viewportContent} className="h-full w-full" />
+                    <ViewEngine root={viewportContent} className="w-full" />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-dark-500">
+                    <div className="flex items-center justify-center h-64 text-dark-500">
                         No content available
                     </div>
                 )}
+                {/* Bottom buffer spacer - ensures content scrolls above floating tab bar + drawer handle */}
+                <div 
+                    className={cn(
+                        "flex-shrink-0",
+                        hasBottomTabs ? "h-[140px]" : `h-[${DRAWER_HANDLE_HEIGHT}px]`
+                    )} 
+                    aria-hidden="true" 
+                />
             </div>
 
             {/* Tab Bar - Matches legacy CategoryPane styling */}

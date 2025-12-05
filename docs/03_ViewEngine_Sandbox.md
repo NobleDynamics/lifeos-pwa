@@ -40,32 +40,52 @@ The Gallery displays all 17+ registered variants with live mock data previews, o
 
 ---
 
-## ⚠️ Viewport Buffer Requirement
+## ⚠️ Viewport Buffer Architecture
 
-**All scrollable view containers MUST include `pb-[140px]` bottom padding** to ensure content is not hidden behind the floating tab bar and drawer handle.
+**The App Shell automatically handles bottom padding** so content scrolls above the floating tab bar and drawer handle.
 
-### Why 140px?
-- **Tab Bar Height:** ~50px (floating above drawer)
-- **Drawer Handle:** 60px (always visible)
-- **Safe Buffer:** ~30px additional clearance
-
-### Where to Apply
-Components with their own `overflow-y-auto` (nested scroll areas) must add this padding:
+### How It Works
+`layout_app_shell.tsx` includes a **spacer div** after all viewport content:
 
 ```tsx
-// ✅ CORRECT - view_directory.tsx
-<div className="flex-1 overflow-y-auto px-3 py-2 pb-[140px] space-y-2">
-
-// ❌ WRONG - content gets cut off by floating UI
-<div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+{/* Viewport (Content) - SCROLLABLE area */}
+<div className="flex-1 min-h-0 overflow-y-auto">
+    <ViewEngine root={viewportContent} className="w-full" />
+    
+    {/* Bottom buffer spacer - dynamic height based on tabs */}
+    <div className={cn(
+        "flex-shrink-0",
+        hasBottomTabs ? "h-[140px]" : "h-[60px]"
+    )} aria-hidden="true" />
+</div>
 ```
 
-### Automatic Coverage
-- `layout_app_shell` viewport: Has `pb-[140px]` ✅
-- `view_directory` list area: Has `pb-[140px]` ✅
-- Non-scrolling containers (e.g., `view_grid_fixed`, `view_list_stack`): Not needed, they rely on parent's scroll
+### Buffer Heights
+| Scenario | Height | Components |
+|----------|--------|------------|
+| With bottom tabs | 140px | Tab bar (~50px) + Drawer handle (60px) + buffer |
+| Without bottom tabs | 60px | Drawer handle only |
 
-**Rule:** If your view variant has `overflow-y-auto`, add `pb-[140px]`.
+### View Variant Guidelines
+View variants should **NOT** add their own scroll handling:
+
+```tsx
+// ✅ CORRECT - let shell handle scrolling
+<div className="flex flex-col">
+  <div className="px-3 pt-2 space-y-2">
+    {children}
+  </div>
+</div>
+
+// ❌ WRONG - nested scroll creates issues
+<div className="flex flex-col h-full">
+  <div className="flex-1 overflow-y-auto pb-[140px]">
+    {children}
+  </div>
+</div>
+```
+
+**Rule:** Views should flow naturally. The shell's viewport handles scrolling and buffer.
 
 ---
 

@@ -114,7 +114,7 @@ export function ViewDirectory({ node }: VariantComponentProps) {
 
   return (
     <div
-      className="flex flex-col h-full"
+      className="flex flex-col"
       data-variant="view_directory"
       data-node-id={node.id}
     >
@@ -142,8 +142,8 @@ export function ViewDirectory({ node }: VariantComponentProps) {
         </div>
       </div>
 
-      {/* List Area - pb-[140px] ensures content scrolls above floating tab bar + drawer handle */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 pb-[140px] space-y-2">
+      {/* List Area - shell viewport handles scrolling and bottom buffer */}
+      <div className="px-3 pt-2 space-y-2">
         {hasChildren && hasFilteredResults && (
           renderChildren(nodeWithFilteredChildren, depth, rootId, rootNode)
         )}

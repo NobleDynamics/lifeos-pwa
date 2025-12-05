@@ -456,10 +456,7 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
             </div>
 
             {/* Viewport (Content) - SCROLLABLE area with bottom padding for tab bar + drawer handle */}
-            <div 
-                className="flex-1 min-h-0 overflow-y-auto"
-                style={{ paddingBottom: `${DRAWER_HANDLE_HEIGHT + 70}px` }}
-            >
+            <div className="flex-1 min-h-0 overflow-y-auto pb-[140px]">
                 {viewportContent ? (
                     <ViewEngine root={viewportContent} className="h-full w-full" />
                 ) : (

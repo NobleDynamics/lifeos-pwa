@@ -40,6 +40,35 @@ The Gallery displays all 17+ registered variants with live mock data previews, o
 
 ---
 
+## ⚠️ Viewport Buffer Requirement
+
+**All scrollable view containers MUST include `pb-[140px]` bottom padding** to ensure content is not hidden behind the floating tab bar and drawer handle.
+
+### Why 140px?
+- **Tab Bar Height:** ~50px (floating above drawer)
+- **Drawer Handle:** 60px (always visible)
+- **Safe Buffer:** ~30px additional clearance
+
+### Where to Apply
+Components with their own `overflow-y-auto` (nested scroll areas) must add this padding:
+
+```tsx
+// ✅ CORRECT - view_directory.tsx
+<div className="flex-1 overflow-y-auto px-3 py-2 pb-[140px] space-y-2">
+
+// ❌ WRONG - content gets cut off by floating UI
+<div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+```
+
+### Automatic Coverage
+- `layout_app_shell` viewport: Has `pb-[140px]` ✅
+- `view_directory` list area: Has `pb-[140px]` ✅
+- Non-scrolling containers (e.g., `view_grid_fixed`, `view_list_stack`): Not needed, they rely on parent's scroll
+
+**Rule:** If your view variant has `overflow-y-auto`, add `pb-[140px]`.
+
+---
+
 ## Architecture
 
 ### File Structure

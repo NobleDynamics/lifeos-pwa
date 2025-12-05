@@ -142,8 +142,8 @@ export function ViewDirectory({ node }: VariantComponentProps) {
         </div>
       </div>
 
-      {/* List Area */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+      {/* List Area - pb-[140px] ensures content scrolls above floating tab bar + drawer handle */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 pb-[140px] space-y-2">
         {hasChildren && hasFilteredResults && (
           renderChildren(nodeWithFilteredChildren, depth, rootId, rootNode)
         )}

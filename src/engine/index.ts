@@ -167,6 +167,7 @@ export { RowInputCurrency } from './components/variants/rows/row_input_currency'
 export { RowTransactionHistory } from './components/variants/rows/row_transaction_history'
 export { RowMediaLeft } from './components/variants/rows/row_media_left'
 export { RowSimpleDescription } from './components/variants/rows/row_simple_description'
+export { RowNote } from './components/variants/rows/row_note'
 
 // Cards (Grid Items)
 export { CardMediaTop } from './components/variants/cards/card_media_top'
@@ -174,6 +175,10 @@ export { CardMediaThumbnail } from './components/variants/cards/card_media_thumb
 export { CardMediaCover } from './components/variants/cards/card_media_cover'
 export { CardStatHero } from './components/variants/cards/card_stat_hero'
 export { CardFolder } from './components/variants/cards/card_folder'
+
+// Note Cards
+export { CardNote } from './components/variants/cards/card_note'
+export { CardNoteLarge } from './components/variants/cards/card_note_large'
 
 // Compact Cards (for side-by-side layouts)
 export { CardMediaTopCompact } from './components/variants/cards/card_media_top_compact'
@@ -231,6 +236,11 @@ import { CardMediaCoverCompact } from './components/variants/cards/card_media_co
 // New Row Components
 import { RowMediaLeft } from './components/variants/rows/row_media_left'
 import { RowSimpleDescription } from './components/variants/rows/row_simple_description'
+import { RowNote } from './components/variants/rows/row_note'
+
+// Note Cards
+import { CardNote } from './components/variants/cards/card_note'
+import { CardNoteLarge } from './components/variants/cards/card_note_large'
 
 // Progress Cards
 import { CardProgressSimple } from './components/variants/cards/card_progress_simple'
@@ -280,6 +290,7 @@ export function initializeEngine(): void {
     row_transaction_history: RowTransactionHistory,
     row_media_left: RowMediaLeft,
     row_simple_description: RowSimpleDescription,
+    row_note: RowNote,
 
     // Cards (Grid Items)
     card_media_top: CardMediaTop,
@@ -287,6 +298,10 @@ export function initializeEngine(): void {
     card_media_cover: CardMediaCover,
     card_stat_hero: CardStatHero,
     card_folder: CardFolder,
+
+    // Note Cards
+    card_note: CardNote,
+    card_note_large: CardNoteLarge,
 
     // Compact Cards (for side-by-side layouts in 6-col grid)
     card_media_top_compact: CardMediaTopCompact,

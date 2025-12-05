@@ -1187,6 +1187,249 @@ Same slots as `card_media_cover` but with:
 
 ---
 
+## Note Components (Dec 2024)
+
+### Overview
+The Note component system provides markdown note display and editing with:
+- **Card variants** for grid layouts with plain text previews
+- **Row variant** for list views
+- **Fullscreen modal** for viewing/editing with markdown rendering
+- **Version history** with autosave
+
+### Dependencies
+```bash
+npm install @uiw/react-md-editor
+```
+
+### Shared Components
+
+#### `NoteViewerModal`
+**Location:** `src/engine/components/shared/NoteViewerModal.tsx`
+
+A fullscreen lightbox for viewing and editing markdown notes.
+
+**Structure:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [←] Note Title                          [History] [Edit/✓] │  ← Header
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  VIEW MODE: Rendered Markdown                               │
+│  ───────────────────────────────                            │
+│  EDIT MODE: @uiw/react-md-editor                            │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│ Last saved: 2 minutes ago                    [Saving...]    │  ← Footer
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- View mode with rendered markdown (MDEditor.Markdown)
+- Edit mode with full MDEditor toolbar
+- Autosave with 2-second debounce
+- Version history panel (last 10 versions)
+- Restore previous versions
+- Escape key to close
+
+**Props:**
+```typescript
+interface NoteViewerModalProps {
+  isOpen: boolean
+  onClose: () => void
+  node: Node
+  onSave?: (content: string, history: VersionEntry[]) => void
+  initialMode?: 'view' | 'edit'
+}
+```
+
+---
+
+### `row_note`
+**Structure:** Note icon | Title | Version count + Timestamp
+**Use for:** Notes in list views, simple note listings
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ 📄  Note Title                              [2] Updated 2h │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `content` | string | Markdown content (for version history) |
+| `updated_at` | string | ISO timestamp of last edit |
+| `accent_color` | string | Left border indicator (default: #8b5cf6) |
+| `history` | array | Version history `[{content, savedAt}]` |
+
+**Context Menu:**
+Long-press or right-click opens version history menu with restore options.
+
+**Example:**
+```json
+{
+  "variant": "row_note",
+  "title": "Project Ideas",
+  "metadata": {
+    "content": "# Ideas\n\n- Build a note app\n- Create a tracker",
+    "updated_at": "2024-12-04T15:30:00Z",
+    "accent_color": "#8b5cf6",
+    "history": [
+      { "content": "Initial draft...", "savedAt": "2024-12-04T14:00:00Z" }
+    ]
+  }
+}
+```
+
+---
+
+### `card_note`
+**Structure:** Compact card with title and plain text preview
+**Use for:** Note grids, dashboard note widgets (col_span: 3)
+
+```
+┌─────────────────────┐
+│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ ← Accent bar
+│ 📝 Note Title       │
+│ Plain text preview  │
+│ truncated to fit... │
+│ ──────────────────  │
+│ Updated 2h ago [2]  │
+└─────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `content` | string | Markdown content (stripped for preview) |
+| `updated_at` | string | ISO timestamp |
+| `accent_color` | string | Top bar + glow color (default: #8b5cf6) |
+| `neon_glow` | boolean | Enable neon glow effect (default: false) |
+| `history` | array | Version history for context menu |
+
+**Markdown Stripping:**
+Content is automatically converted to plain text for preview:
+- Headers, bold, italic formatting removed
+- Links show text only
+- Code blocks removed
+- Whitespace normalized
+
+**Context Menu:**
+Long-press or right-click shows version history with timestamps and previews.
+
+**Example:**
+```json
+{
+  "variant": "card_note",
+  "title": "Meeting Notes",
+  "metadata": {
+    "col_span": 3,
+    "content": "# Q4 Planning\n\n## Attendees\n- Sarah\n- Mike",
+    "updated_at": "2024-12-04T17:30:00Z",
+    "accent_color": "#8b5cf6",
+    "history": [
+      { "content": "Initial draft...", "savedAt": "2024-12-04T16:00:00Z" }
+    ]
+  }
+}
+```
+
+---
+
+### `card_note_large`
+**Structure:** Full-width card with extended preview
+**Use for:** Featured notes, documentation cards (col_span: 6)
+
+```
+┌────────────────────────────────────────────────────────┐
+│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ ← Accent bar
+│ [📝] Note Title                                        │
+│      Last edited 2h ago                                │
+│                                                        │
+│ Plain text preview with more lines visible for the     │
+│ larger card format. This allows users to see more      │
+│ content at a glance without opening the full editor... │
+│ ────────────────────────────────────────────────────── │
+│ 245 characters                           3 versions    │
+└────────────────────────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Primary text (default: node.title) |
+| `content` | string | Markdown content (5-line preview) |
+| `updated_at` | string | ISO timestamp (shown in header) |
+| `accent_color` | string | Bar + icon background (default: #8b5cf6) |
+| `neon_glow` | boolean | Enable neon glow effect (default: false) |
+| `history` | array | Version history |
+
+**Example:**
+```json
+{
+  "variant": "card_note_large",
+  "title": "Project Documentation",
+  "metadata": {
+    "col_span": 6,
+    "content": "# Project Documentation\n\n## Overview\n\nThis document...",
+    "updated_at": "2024-12-04T18:00:00Z",
+    "accent_color": "#06b6d4",
+    "neon_glow": true,
+    "history": [
+      { "content": "Initial draft...", "savedAt": "2024-12-04T17:00:00Z" }
+    ]
+  }
+}
+```
+
+---
+
+### Note Data Structure
+```json
+{
+  "id": "uuid",
+  "type": "item",
+  "variant": "card_note",
+  "title": "My Note Title",
+  "metadata": {
+    "content": "# Heading\n\nMarkdown content here...",
+    "updated_at": "2024-12-04T19:00:00Z",
+    "history": [
+      { "content": "Previous version...", "savedAt": "2024-12-04T18:55:00Z" },
+      { "content": "Earlier version...", "savedAt": "2024-12-04T18:30:00Z" }
+    ]
+  }
+}
+```
+
+### Version History System
+- **Autosave:** Saves 2 seconds after typing stops
+- **History Limit:** Keeps last 10 versions
+- **Restore:** Click any version in context menu to restore
+- **Timestamps:** Relative time display ("2m ago", "1h ago")
+
+### Supporting Hook: `useLongPress`
+**Location:** `src/hooks/useLongPress.ts`
+
+Provides long-press (touch) and right-click (mouse) detection for context menus.
+
+```typescript
+const handlers = useLongPress({
+  onLongPress: (e) => {
+    setMenuPosition({ x: e.clientX, y: e.clientY })
+  },
+  onClick: () => { /* regular click */ },
+  delay: 500,
+  disabled: false
+})
+
+return <div {...handlers}>Content</div>
+```
+
+---
+
 ## Legacy Aliases (Backwards Compatibility)
 
 These old variant names still work but map to the new structural components:

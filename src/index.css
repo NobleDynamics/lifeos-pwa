@@ -128,6 +128,169 @@
   }
 }
 
+/* =============================================================================
+   @uiw/react-md-editor Cyberpunk Dark Theme
+   ============================================================================= */
+
+.w-md-editor {
+  --color-canvas-default: #0a0a0f !important;
+  --color-canvas-subtle: #111118 !important;
+  --color-border-default: #1a1a24 !important;
+  --color-border-muted: #1a1a24 !important;
+  --color-fg-default: #e5e5e5 !important;
+  --color-fg-muted: #6b7280 !important;
+  --color-accent-fg: #06b6d4 !important;
+  background-color: #0a0a0f !important;
+  border-color: #1a1a24 !important;
+  font-family: inherit !important;
+}
+
+.w-md-editor-toolbar {
+  background-color: #111118 !important;
+  border-bottom-color: #1a1a24 !important;
+  padding: 8px !important;
+}
+
+.w-md-editor-toolbar li > button {
+  color: #9ca3af !important;
+}
+
+.w-md-editor-toolbar li > button:hover {
+  color: #06b6d4 !important;
+  background-color: #1a1a24 !important;
+}
+
+.w-md-editor-toolbar li > button[disabled] {
+  color: #4b5563 !important;
+}
+
+.w-md-editor-toolbar li.active > button {
+  color: #06b6d4 !important;
+  background-color: rgba(6, 182, 212, 0.1) !important;
+}
+
+.w-md-editor-text-pre > code,
+.w-md-editor-text-input {
+  color: #e5e5e5 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+.w-md-editor-text-pre {
+  padding: 16px !important;
+}
+
+.w-md-editor-preview {
+  background-color: #0a0a0f !important;
+  padding: 16px !important;
+}
+
+.w-md-editor-content {
+  background-color: #0a0a0f !important;
+}
+
+/* Markdown Preview Styles */
+.wmde-markdown {
+  background-color: transparent !important;
+  color: #e5e5e5 !important;
+  font-family: inherit !important;
+  font-size: 15px !important;
+  line-height: 1.7 !important;
+}
+
+.wmde-markdown h1, 
+.wmde-markdown h2, 
+.wmde-markdown h3,
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6 {
+  color: #06b6d4 !important;
+  border-bottom-color: #1a1a24 !important;
+  margin-top: 1.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.wmde-markdown h1 { font-size: 1.75em !important; }
+.wmde-markdown h2 { font-size: 1.5em !important; }
+.wmde-markdown h3 { font-size: 1.25em !important; }
+
+.wmde-markdown code {
+  background-color: #1a1a24 !important;
+  color: #06b6d4 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+  font-size: 0.9em !important;
+}
+
+.wmde-markdown pre {
+  background-color: #111118 !important;
+  border: 1px solid #1a1a24 !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+}
+
+.wmde-markdown pre code {
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+.wmde-markdown blockquote {
+  border-left: 4px solid #06b6d4 !important;
+  color: #9ca3af !important;
+  padding-left: 16px !important;
+  margin-left: 0 !important;
+  font-style: italic !important;
+}
+
+.wmde-markdown a {
+  color: #06b6d4 !important;
+  text-decoration: none !important;
+}
+
+.wmde-markdown a:hover {
+  text-decoration: underline !important;
+}
+
+.wmde-markdown ul,
+.wmde-markdown ol {
+  padding-left: 1.5em !important;
+}
+
+.wmde-markdown li {
+  margin: 0.25em 0 !important;
+}
+
+.wmde-markdown hr {
+  border-color: #1a1a24 !important;
+}
+
+.wmde-markdown table {
+  border-collapse: collapse !important;
+}
+
+.wmde-markdown table th,
+.wmde-markdown table td {
+  border: 1px solid #1a1a24 !important;
+  padding: 8px 12px !important;
+}
+
+.wmde-markdown table th {
+  background-color: #111118 !important;
+  color: #06b6d4 !important;
+}
+
+.wmde-markdown table tr:nth-child(even) {
+  background-color: rgba(26, 26, 36, 0.5) !important;
+}
+
+/* Hide scrollbar in editor while keeping functionality */
+.w-md-editor-text-input::-webkit-scrollbar,
+.w-md-editor-preview::-webkit-scrollbar {
+  display: none;
+}
+
 @layer utilities {
   /* Safe area padding for PWA */
   .safe-top {

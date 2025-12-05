@@ -182,6 +182,24 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
       },
     },
   },
+  row_note: {
+    category: 'Row',
+    description: 'Note row with icon, title, and timestamp',
+    node: {
+      id: 'mock-row-note',
+      type: 'item',
+      variant: 'row_note',
+      title: 'Project Ideas',
+      metadata: { 
+        content: '# Project Ideas\n\n- Build a note-taking app\n- Create a habit tracker',
+        updated_at: '2024-12-04T15:30:00Z',
+        accent_color: '#8b5cf6',
+        history: [
+          { content: 'Initial draft...', savedAt: '2024-12-04T14:00:00Z' },
+        ],
+      },
+    },
+  },
   
   // === CARDS ===
   card_media_top: {
@@ -305,6 +323,49 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
       metadata: { 
         url: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=200&h=267&fit=crop',
         description: 'Sci-Fi • 1982',
+      },
+    },
+  },
+  
+  // === NOTE CARDS ===
+  card_note: {
+    category: 'Note',
+    description: 'Compact markdown note card (col_span: 3)',
+    node: {
+      id: 'mock-card-note',
+      type: 'item',
+      variant: 'card_note',
+      title: 'Meeting Notes',
+      metadata: {
+        col_span: 3,
+        content: '# Q4 Planning\n\n## Attendees\n- Sarah (PM)\n- Mike (Dev)\n- Lisa (Design)\n\n## Action Items\n- [ ] Review roadmap\n- [ ] Estimate sprint capacity\n- [ ] Schedule follow-up',
+        updated_at: '2024-12-04T17:30:00Z',
+        accent_color: '#8b5cf6',
+        neon_glow: false,
+        history: [
+          { content: '# Q4 Planning\n\nInitial draft...', savedAt: '2024-12-04T16:00:00Z' },
+          { content: '# Planning\n\nEarlier version', savedAt: '2024-12-04T15:00:00Z' },
+        ],
+      },
+    },
+  },
+  card_note_large: {
+    category: 'Note',
+    description: 'Full-width markdown note card (col_span: 6)',
+    node: {
+      id: 'mock-card-note-large',
+      type: 'item',
+      variant: 'card_note_large',
+      title: 'Project Documentation',
+      metadata: {
+        col_span: 6,
+        content: '# Project Documentation\n\n## Overview\n\nThis document outlines the architecture and implementation details for the LifeOS ViewEngine system.\n\n## Key Features\n\n- **Recursive Node Rendering** - Components render children automatically\n- **Slot-Based Data Access** - Flexible metadata mapping\n- **Behavior System** - Data-driven interactions\n\n## Getting Started\n\n```typescript\nimport { ViewEngine, initializeEngine } from \'@/engine\'\n\ninitializeEngine()\n```\n\n> Note: Make sure to call `initializeEngine()` before rendering any ViewEngine components.',
+        updated_at: '2024-12-04T18:00:00Z',
+        accent_color: '#06b6d4',
+        neon_glow: true,
+        history: [
+          { content: '# Project Documentation\n\n## Overview\n\nInitial draft of documentation...', savedAt: '2024-12-04T17:00:00Z' },
+        ],
       },
     },
   },

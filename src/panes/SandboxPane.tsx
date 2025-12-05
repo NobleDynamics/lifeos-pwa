@@ -456,6 +456,95 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
     },
   },
   
+  // === GRID LAYOUT DEMOS (showing col_span in action) ===
+  view_grid_fixed_compact_cards: {
+    category: 'Grid Demo',
+    description: '2-per-row compact cards (col_span: 3)',
+    node: {
+      id: 'mock-grid-compact',
+      type: 'container',
+      variant: 'view_grid_fixed',
+      title: 'Compact Cards Demo',
+      metadata: { show_header: false },
+      children: [
+        { id: 'compact-1', type: 'item', variant: 'card_media_top_compact', title: 'Recipe 1', metadata: { col_span: 3, media: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=150&fit=crop', badge_1: '15m' } },
+        { id: 'compact-2', type: 'item', variant: 'card_media_top_compact', title: 'Recipe 2', metadata: { col_span: 3, media: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&h=150&fit=crop', badge_1: '20m' } },
+        { id: 'compact-3', type: 'item', variant: 'card_media_top_compact', title: 'Recipe 3', metadata: { col_span: 3, media: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=200&h=150&fit=crop', badge_1: '25m' } },
+        { id: 'compact-4', type: 'item', variant: 'card_media_top_compact', title: 'Recipe 4', metadata: { col_span: 3, media: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=200&h=150&fit=crop', badge_1: '30m' } },
+      ],
+    },
+  },
+  view_grid_fixed_folders: {
+    category: 'Grid Demo',
+    description: 'Grid of folder cards (col_span: 3)',
+    node: {
+      id: 'mock-grid-folders',
+      type: 'container',
+      variant: 'view_grid_fixed',
+      title: 'Folder Grid Demo',
+      metadata: { show_header: false },
+      children: [
+        { id: 'folder-1', type: 'container', variant: 'card_folder', title: 'Photos', metadata: { col_span: 3, icon: 'Camera', color: '#ec4899', neon_glow: true }, children: [{id:'f1', type:'item', variant:'row_simple', title:'x', metadata:{}}] },
+        { id: 'folder-2', type: 'container', variant: 'card_folder', title: 'Documents', metadata: { col_span: 3, icon: 'FileText', color: '#06b6d4' }, children: [{id:'f2', type:'item', variant:'row_simple', title:'x', metadata:{}},{id:'f3', type:'item', variant:'row_simple', title:'x', metadata:{}}] },
+        { id: 'folder-3', type: 'container', variant: 'card_folder', title: 'Music', metadata: { col_span: 3, icon: 'Music', color: '#a855f7', neon_glow: true }, children: [] },
+        { id: 'folder-4', type: 'container', variant: 'card_folder', title: 'Downloads', metadata: { col_span: 3, icon: 'Download', color: '#22c55e' }, children: [{id:'f4', type:'item', variant:'row_simple', title:'x', metadata:{}},{id:'f5', type:'item', variant:'row_simple', title:'x', metadata:{}},{id:'f6', type:'item', variant:'row_simple', title:'x', metadata:{}}] },
+      ],
+    },
+  },
+  view_grid_fixed_thumbnails: {
+    category: 'Grid Demo',
+    description: 'Compact thumbnails (col_span: 3)',
+    node: {
+      id: 'mock-grid-thumbs',
+      type: 'container',
+      variant: 'view_grid_fixed',
+      title: 'Thumbnail Grid Demo',
+      metadata: { show_header: false },
+      children: [
+        { id: 'thumb-1', type: 'item', variant: 'card_media_thumbnail_compact', title: 'Photo 1', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop' } },
+        { id: 'thumb-2', type: 'item', variant: 'card_media_thumbnail_compact', title: 'Photo 2', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=150&h=150&fit=crop' } },
+        { id: 'thumb-3', type: 'item', variant: 'card_media_thumbnail_compact', title: 'Photo 3', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=150&h=150&fit=crop' } },
+        { id: 'thumb-4', type: 'item', variant: 'card_media_thumbnail_compact', title: 'Photo 4', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=150&h=150&fit=crop' } },
+      ],
+    },
+  },
+  view_grid_fixed_posters: {
+    category: 'Grid Demo',
+    description: 'Compact poster cards (col_span: 3)',
+    node: {
+      id: 'mock-grid-posters',
+      type: 'container',
+      variant: 'view_grid_fixed',
+      title: 'Poster Grid Demo',
+      metadata: { show_header: false },
+      children: [
+        { id: 'poster-1', type: 'item', variant: 'card_media_cover_compact', title: 'Blade Runner', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=200&h=267&fit=crop', description: 'Sci-Fi • 1982' } },
+        { id: 'poster-2', type: 'item', variant: 'card_media_cover_compact', title: 'The Matrix', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=200&h=267&fit=crop', description: 'Sci-Fi • 1999' } },
+        { id: 'poster-3', type: 'item', variant: 'card_media_cover_compact', title: 'Inception', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=200&h=267&fit=crop', description: 'Sci-Fi • 2010' } },
+        { id: 'poster-4', type: 'item', variant: 'card_media_cover_compact', title: 'Interstellar', metadata: { col_span: 3, url: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=200&h=267&fit=crop', description: 'Sci-Fi • 2014' } },
+      ],
+    },
+  },
+  view_grid_fixed_mixed: {
+    category: 'Grid Demo',
+    description: 'Mixed width cards (col_span: 2, 3, 6)',
+    node: {
+      id: 'mock-grid-mixed',
+      type: 'container',
+      variant: 'view_grid_fixed',
+      title: 'Mixed Width Demo',
+      metadata: { show_header: false },
+      children: [
+        { id: 'mix-1', type: 'item', variant: 'card_media_top_compact', title: 'Half Width', metadata: { col_span: 3, media: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=150&fit=crop' } },
+        { id: 'mix-2', type: 'item', variant: 'card_media_top_compact', title: 'Half Width', metadata: { col_span: 3, media: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&h=150&fit=crop' } },
+        { id: 'mix-3', type: 'item', variant: 'card_media_top', title: 'Full Width Card', metadata: { col_span: 6, media: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=200&fit=crop', subtext: 'This card spans all 6 columns' } },
+        { id: 'mix-4', type: 'item', variant: 'card_media_thumbnail_compact', title: 'Third', metadata: { col_span: 2, url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop' } },
+        { id: 'mix-5', type: 'item', variant: 'card_media_thumbnail_compact', title: 'Third', metadata: { col_span: 2, url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=100&h=100&fit=crop' } },
+        { id: 'mix-6', type: 'item', variant: 'card_media_thumbnail_compact', title: 'Third', metadata: { col_span: 2, url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=100&h=100&fit=crop' } },
+      ],
+    },
+  },
+  
   // === GALLERY & CAROUSEL LAYOUTS ===
   view_gallery_grid: {
     category: 'Layout',

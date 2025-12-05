@@ -49,6 +49,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         // Precache all built assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Increase max file size to 4MB for larger bundles (default is 2MB)
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Network-first for API calls, cache-first for static assets
         runtimeCaching: [
           {

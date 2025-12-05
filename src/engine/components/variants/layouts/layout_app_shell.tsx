@@ -20,7 +20,7 @@
  * - default_tab_id: UUID of the child to show first
  */
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, LayoutGrid, Plus, Folder, CheckSquare, Home } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
@@ -29,6 +29,7 @@ import { ViewEngine } from '../../ViewEngine'
 import { useShellNavigation, findContainingChild, findNodeInTree } from '../../../context/ShellNavigationContext'
 import { ShellActionProvider, useShellAction, type CreateOption } from '../../../context/ShellActionContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
+import { useBackButton } from '@/hooks/useBackButton'
 import { cn } from '@/lib/utils'
 import { DRAWER_HANDLE_HEIGHT } from '@/components/Layout'
 
@@ -176,6 +177,55 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     // Determine if we should show the back button
     // Show back button ONLY when we're deeper than tab level (not at tab root)
     const showBackButton = !isAtTabRoot && canNavigateBack
+
+    // =========================================================================
+    // BACK BUTTON HANDLING (Priority 15 - between ViewEngine and App-level)
+    // =========================================================================
+    
+    // Determine the effective default tab ID
+    const effectiveDefaultTabId = useMemo(() => {
+        if (defaultTabId) return defaultTabId
+        return node.children?.[0]?.id || null
+    }, [defaultTabId, node.children])
+    
+    // Check if we're at the default tab root (not deep, and on default tab)
+    const isAtDefaultTabRoot = useMemo(() => {
+        // Not deep AND active tab is the default tab
+        return isAtTabRoot && activeTabId === effectiveDefaultTabId
+    }, [isAtTabRoot, activeTabId, effectiveDefaultTabId])
+    
+    /**
+     * Back button handler for the App Shell
+     * 
+     * Priority: 15 (called before app-level at 0)
+     * 
+     * Handles:
+     * 1. Deep folder navigation → go up one level
+     * 2. Non-default tab root → go to default tab
+     * 3. Default tab root → return false (let app-level handle exit)
+     */
+    const handleShellBack = useCallback(() => {
+        // Case 1: Deep in folder hierarchy → navigate up one level
+        if (isDeepView && canNavigateBack) {
+            navigateBack()
+            return true
+        }
+        
+        // Case 2: At non-default tab root → go to default tab
+        if (isAtTabRoot && !isAtDefaultTabRoot && effectiveDefaultTabId) {
+            navigateToNode(effectiveDefaultTabId)
+            return true
+        }
+        
+        // Case 3: At default tab root → let app-level handler take over
+        return false
+    }, [isDeepView, canNavigateBack, navigateBack, isAtTabRoot, isAtDefaultTabRoot, effectiveDefaultTabId, navigateToNode])
+    
+    // Register back button handler at priority 15
+    useBackButton({
+        onCloseModal: handleShellBack,
+        priority: 15,
+    })
 
     // Handle tab click - navigate to the tab AND clear deep navigation
     const handleTabClick = (tabId: string) => {

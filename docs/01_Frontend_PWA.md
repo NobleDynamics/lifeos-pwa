@@ -290,12 +290,26 @@ D. Back Button Handling (Android/Browser)
 
 The back button follows a **Chain of Command** pattern with priority-based handlers:
 
-| Priority | Handler | Action |
-|----------|---------|--------|
-| 30+ | Modals/Sheets | Close open modal/sheet |
-| 20 | `ViewEnginePane` | Navigate up folder hierarchy (if deep) |
-| 10 | Custom handlers | Component-specific back actions |
-| 0 | App-level | Close drawer → Pane history → Dashboard |
+| Priority | Handler | Location | Action |
+|----------|---------|----------|--------|
+| 30+ | Modals/Sheets | Various | Close open modal/sheet |
+| 15 | `layout_app_shell` | Shell | Navigate folder hierarchy OR switch tabs |
+| 10 | Custom handlers | Various | Component-specific back actions |
+| 0 | App-level | `Layout.tsx` | Close drawer → Dashboard → Trap |
+
+**Full Hierarchy Navigation Flow:**
+```
+Deep Folder → Parent Folder → Tab Root → Default Tab → Dashboard → (Trapped)
+```
+
+| Current State | Back Action | Handler | Result |
+|---------------|-------------|---------|--------|
+| Deep folder (Groceries) | Back | Shell (15) | → Parent folder (Lists) |
+| Folder in tab (Lists) | Back | Shell (15) | → Tab root (Shopping) |
+| Non-default tab (Shopping) | Back | Shell (15) | → Default tab (Overview) |
+| Default tab (Overview) | Back | App (0) | → Dashboard |
+| Dashboard | Back | App (0) | Trapped (nothing happens) |
+| System Apps (Health, etc.) | Back | App (0) | → Dashboard |
 
 **Implementation:**
 - Single global `popstate` listener in `useBackButton.ts`
@@ -303,10 +317,19 @@ The back button follows a **Chain of Command** pattern with priority-based handl
 - Handlers return `true` if they consumed the event, `false` to propagate
 - Higher priority handlers are called first
 
-**ViewEnginePane Integration:**
-- Registers at priority 20
-- If `pathStack.length > 0`, calls `navigateBack()` and returns `true`
-- Otherwise returns `false` to let app-level navigation take over
+**Shell Back Handler (`layout_app_shell.tsx`):**
+- Registers at priority 15
+- Logic:
+  1. If deep in folder hierarchy (`isDeepView`) → `navigateBack()` → return `true`
+  2. If at non-default tab root → `navigateToNode(defaultTabId)` → return `true`
+  3. If at default tab root → return `false` (delegate to app-level)
+
+**App-level Handler (`useAppStore.goBack()`):**
+- Registers at priority 0 via `Layout.tsx`
+- Logic:
+  1. If drawer open → close drawer → return `true`
+  2. If not at dashboard → navigate to dashboard → return `true`
+  3. If at dashboard → return `true` (trap - prevent app exit)
 
 **Example Usage:**
 ```tsx
@@ -319,11 +342,8 @@ useBackButton({
   priority: 30
 })
 
-// In ViewEnginePane (automatic)
-useBackButton({
-  onCloseModal: () => pathStack.length > 0 ? (navigateBack(), true) : false,
-  priority: 20
-})
+// Shell handles folder + tab navigation automatically at priority 15
+// App-level handles pane exit + dashboard trap at priority 0
 ```
 
 3. The Dashboard Pane (Home HUD)

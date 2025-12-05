@@ -184,7 +184,7 @@ export const useAppStore = create<AppState>()(
       },
       
       goBack: () => {
-        const { paneHistory, paneOrder, isDrawerOpen } = get()
+        const { paneOrder, isDrawerOpen, currentPaneIndex } = get()
         
         // Priority 1: Close drawer if open
         if (isDrawerOpen) {
@@ -192,27 +192,16 @@ export const useAppStore = create<AppState>()(
           return true
         }
         
-        // Priority 2: Go to previous pane in history
-        if (paneHistory.length > 0) {
-          const newHistory = [...paneHistory]
-          const previousIndex = newHistory.pop()!
-          set({ 
-            currentPaneIndex: previousIndex,
-            paneHistory: newHistory
-          })
-          return true
-        }
-        
-        // Priority 3: Go to dashboard if not already there
+        // Priority 2: Always go to dashboard (simplified - no history tracking)
         const dashboardIndex = paneOrder.indexOf('dashboard')
-        const { currentPaneIndex } = get()
         if (currentPaneIndex !== dashboardIndex) {
           set({ currentPaneIndex: dashboardIndex })
           return true
         }
         
-        // Already at dashboard with no history
-        return false
+        // Priority 3: Already at dashboard - trap (return true to prevent app exit)
+        // Returning true signals we handled the back press, preventing browser default
+        return true
       },
       
       canGoBack: () => {

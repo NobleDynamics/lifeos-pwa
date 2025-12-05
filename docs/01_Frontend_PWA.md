@@ -108,6 +108,45 @@ These reusable components enforce DRY principles across the app:
 | `Avatar` | Renders user avatars with icon or image support | `src?`, `name?`, `size?`, `className?` |
 | `AvatarPicker` | Interactive picker for icon + color avatars | `value`, `onChange`, `name?`, `label?` |
 
+### Engine Shared Components (src/engine/components/shared/)
+
+| Component | Purpose | Props |
+|-----------|---------|-------|
+| `NoteViewerModal` | Fullscreen markdown note viewer/editor | `isOpen`, `onClose`, `node`, `onSave?`, `initialMode?` |
+
+#### NoteViewerModal Features
+
+A fullscreen lightbox modal for viewing and editing markdown notes using `@uiw/react-md-editor`.
+
+**View/Edit Mode Transitions:**
+- **View Mode:** Full-width rendered markdown
+- **Enter Edit:** Tap content OR swipe left gesture
+- **Edit Layout:** 80/20 split (editor / preview sidebar)
+- **Exit Edit:** Swipe right OR tap "Done" button
+- **100% Edit:** Swipe left again to hide preview
+
+**Swipe Gesture Flow:**
+```
+View Mode → [swipe left] → Edit (80/20) → [swipe left] → Edit (100%)
+Edit (100%) → [swipe right] → Edit (80/20) → [swipe right] → View Mode
+```
+
+**Autosave & Version History:**
+- Content autosaves every 2 seconds after typing stops
+- Version history is throttled (60 seconds OR 50+ character changes)
+- Keeps last 10 versions with timestamps
+- On modal close, forces version save if 10+ characters changed
+
+**Mobile-Optimized Toolbar:**
+- All buttons have 44px minimum touch targets
+- Cyberpunk theme: dark background, cyan accents, neon glow on hover
+- Primary tools: Bold, Italic, Link, Heading, List, Code
+- Secondary tools: Quote, Strikethrough, Horizontal Rule
+
+**CSS Classes (src/index.css):**
+- `.w-md-editor-toolbar` - Mobile toolbar sizing
+- `.wmde-markdown-preview-compact` - Compact preview sidebar styles
+
 ### Avatar System (Icon + Color Format)
 
 The Avatar system supports both traditional image URLs and a custom "Icon + Color" string format for Cyberpunk-style avatars.

@@ -14,6 +14,10 @@ type BackHandler = {
 const backHandlers: BackHandler[] = []
 let historyInitialized = false
 
+// Track our "floor" entry to prevent app exit
+let historyDepth = 0
+const MIN_HISTORY_DEPTH = 2
+
 function registerHandler(id: string, priority: number, handler: () => boolean) {
   // Remove existing handler with same id
   const existingIndex = backHandlers.findIndex(h => h.id === id)
@@ -32,6 +36,23 @@ function unregisterHandler(id: string) {
   const index = backHandlers.findIndex(h => h.id === id)
   if (index >= 0) {
     backHandlers.splice(index, 1)
+  }
+}
+
+/**
+ * Push a new history entry and track depth
+ */
+function pushHistory() {
+  window.history.pushState({ lifeos: true, depth: historyDepth + 1 }, '')
+  historyDepth++
+}
+
+/**
+ * Ensure we have minimum history entries to prevent app exit
+ */
+function ensureHistoryFloor() {
+  while (historyDepth < MIN_HISTORY_DEPTH) {
+    pushHistory()
   }
 }
 
@@ -73,22 +94,41 @@ export function useBackButton(options?: {
 
     // Initialize history only once globally
     if (!historyInitialized) {
-      window.history.pushState({ lifeos: true }, '')
       historyInitialized = true
+      
+      // Push initial "floor" entries to prevent app exit
+      // These entries act as a buffer - back button can never exhaust them
+      ensureHistoryFloor()
 
       // Set up single global popstate listener
-      const handlePopState = (_e: PopStateEvent) => {
+      const handlePopState = (e: PopStateEvent) => {
+        // Track that we went back (consumed a history entry)
+        const eventDepth = (e.state as { depth?: number })?.depth
+        if (eventDepth !== undefined) {
+          historyDepth = eventDepth
+        } else {
+          // Unknown state - assume we're at the floor
+          historyDepth = 0
+        }
+        
+        // FIRST: Re-push history to maintain floor (before handlers)
+        // This ensures we always have a buffer entry
+        pushHistory()
+        
         // Try each handler in priority order
+        let handled = false
         for (const { handler } of backHandlers) {
           if (handler()) {
-            // Handler dealt with it, re-push history
-            window.history.pushState({ lifeos: true }, '')
-            return
+            handled = true
+            break
           }
         }
         
-        // No handler dealt with it - at root, re-push to prevent leaving app
-        window.history.pushState({ lifeos: true }, '')
+        // If no handler dealt with it, goBack is the fallback at priority 0
+        // which should always return true (traps at dashboard)
+        if (!handled) {
+          console.warn('[useBackButton] No handler handled back - this should not happen')
+        }
       }
 
       window.addEventListener('popstate', handlePopState)

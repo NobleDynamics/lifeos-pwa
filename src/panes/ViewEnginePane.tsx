@@ -185,21 +185,27 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
    * - We sync React state with the URL, giving "go back to where I was" behavior
    * 
    * Priority: 20 (called before shell at 15 and app-level at 0)
+   * 
+   * IMPORTANT: When URL is empty, we sync state to null but return FALSE
+   * This lets the shell handler run next to handle tab-level navigation
    */
   const handleHistoryBack = useCallback(() => {
     // Read the nodeId from the CURRENT URL (after browser back)
     const urlNodeId = getNodeIdFromUrl()
     
-    // If we have a targetNodeId but URL is empty, we're at root now
-    if (targetNodeId !== null && urlNodeId === null) {
-      setTargetNodeId(null)
-      return true // We handled the navigation
+    // If URL has a SPECIFIC nodeId different from our current state, sync to it
+    if (urlNodeId !== null && urlNodeId !== targetNodeId) {
+      setTargetNodeId(urlNodeId)
+      return true // We handled the navigation - synced to a specific node
     }
     
-    // If URL has a nodeId different from our current state, sync to it
-    if (urlNodeId !== targetNodeId) {
-      setTargetNodeId(urlNodeId)
-      return true // We handled the navigation
+    // If URL is empty but we have a targetNodeId, clear it
+    // BUT return false so shell can handle tab-level navigation
+    if (targetNodeId !== null && urlNodeId === null) {
+      setTargetNodeId(null)
+      // Don't return true! Let the shell handler decide what to do
+      // (e.g., switch from non-default tab to default tab, then to dashboard)
+      return false
     }
     
     // URL matches our state - nothing to do at this level

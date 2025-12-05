@@ -21,7 +21,7 @@
  */
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, LayoutGrid, Plus, Folder, CheckSquare, Home } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Plus, Folder, CheckSquare, Home, ChevronDown } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNodeMeta } from '../../../context/NodeContext'
@@ -33,6 +33,9 @@ import { useBackButton } from '@/hooks/useBackButton'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { DRAWER_HANDLE_HEIGHT } from '@/components/Layout'
+import { DynamicFormSheet } from '../../shared/DynamicFormSheet'
+import type { HeaderActionConfig, ActionOption } from '../../../types/actions'
+import type { Node as EngineNode } from '../../../types/node'
 
 function LayoutAppShellContent({ node }: VariantComponentProps) {
     const { title } = node
@@ -41,12 +44,16 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     // Get navigation context
     const { targetNodeId, navigateBack, canNavigateBack, targetPath, navigateToNode, navigateToLevel, rootNode } = useShellNavigation()
     
-    // Get action context for header button
-    const { actionConfig } = useShellAction()
+    // Get action context for header button (legacy - used as fallback)
+    const { actionConfig: legacyActionConfig } = useShellAction()
     const actions = useEngineActions()
     
     // Dropdown state for action button
     const [showActionDropdown, setShowActionDropdown] = useState(false)
+    
+    // State for DynamicFormSheet
+    const [formSheetOpen, setFormSheetOpen] = useState(false)
+    const [selectedAction, setSelectedAction] = useState<ActionOption | null>(null)
 
     // =========================================================================
     // TAB STATE MANAGEMENT
@@ -248,18 +255,10 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
         navigateToNode(tabId)
     }
 
-    // Handle action button click
+    // Handle action button click - toggles dropdown
     const handleActionClick = () => {
         if (actionConfig) {
-            setShowActionDropdown(true)
-        }
-    }
-
-    // Handle option selection from dropdown
-    const handleOptionSelect = (option: CreateOption) => {
-        setShowActionDropdown(false)
-        if (actions && actionConfig) {
-            actions.onOpenCreateForm(option.type, actionConfig.parentId)
+            setShowActionDropdown(!showActionDropdown)
         }
     }
 
@@ -310,6 +309,90 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
 
     // Check if this shell has bottom tabs (used for dynamic spacer height)
     const hasBottomTabs = node.children && node.children.length > 0
+
+    // =========================================================================
+    // HEADER ACTION CONFIGURATION (JSONB-driven)
+    // =========================================================================
+    
+    // Read header_action from the current viewport's metadata
+    // This follows the Generic Engine pattern - behavior is driven by metadata
+    const metadataHeaderAction = viewportContent?.metadata?.header_action as HeaderActionConfig | undefined
+    const showHeaderAction = viewportContent?.metadata?.show_header_action !== false
+    
+    // Compute the effective action config from metadata (new JSONB-driven) or legacy context
+    const actionConfig = useMemo(() => {
+        // Check for explicit disable flag
+        if (!showHeaderAction) return null
+        
+        // Priority 1: New JSONB-driven header_action from metadata
+        if (metadataHeaderAction && metadataHeaderAction.options?.length > 0) {
+            return metadataHeaderAction
+        }
+        
+        // Priority 2: Legacy ShellActionContext (child views pushing config)
+        if (legacyActionConfig) {
+            // Convert legacy format to new format for compatibility
+            return {
+                label: legacyActionConfig.label,
+                icon: 'Plus',
+                options: legacyActionConfig.options.map(opt => ({
+                    id: opt.type,
+                    label: opt.label,
+                    icon: opt.icon,
+                    action_type: 'create' as const,
+                    create_variant: opt.variant,
+                }))
+            } as HeaderActionConfig
+        }
+        
+        return null
+    }, [showHeaderAction, metadataHeaderAction, legacyActionConfig])
+    
+    // Handle new action option click - opens DynamicFormSheet
+    const handleNewActionSelect = (option: ActionOption) => {
+        setShowActionDropdown(false)
+        
+        if (option.action_type === 'create') {
+            // Open the DynamicFormSheet with the create schema
+            setSelectedAction(option)
+            setFormSheetOpen(true)
+        } else if (option.action_type === 'navigate' && option.target_id) {
+            navigateToNode(option.target_id)
+        } else if (option.action_type === 'custom' && option.custom_handler) {
+            // Emit custom event - can be handled by parent components
+            console.log('[ActionButton] Custom handler:', option.custom_handler)
+            // TODO: Implement custom event system
+        }
+    }
+    
+    // Handle form submission from DynamicFormSheet
+    const handleFormSubmit = useCallback(async (formData: Record<string, unknown>) => {
+        if (!selectedAction || !viewportContent) return
+        
+        console.log('[ActionButton] Form submitted:', formData)
+        console.log('[ActionButton] Creating child under:', viewportContent.id)
+        console.log('[ActionButton] With variant:', selectedAction.create_variant)
+        
+        // Use EngineActions behavior system for creation
+        if (actions) {
+            actions.onTriggerBehavior(
+                viewportContent as EngineNode,
+                {
+                    action: 'create_child',
+                    target: selectedAction.create_variant,
+                    payload: {
+                        title: (formData.title as string) || 'New Item',
+                        variant: selectedAction.create_variant,
+                        type: selectedAction.create_node_type || 'item',
+                        metadata: formData,
+                    }
+                }
+            )
+        }
+        
+        setFormSheetOpen(false)
+        setSelectedAction(null)
+    }, [selectedAction, viewportContent, actions])
 
     // =========================================================================
     // RENDER
@@ -377,27 +460,33 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                                     <div
                                         className={cn(
                                             "absolute right-0 top-full mt-2 z-50",
-                                            "min-w-[160px] py-2 rounded-lg shadow-lg",
+                                            "min-w-[180px] py-2 rounded-lg shadow-lg",
                                             "bg-dark-100 border border-dark-300"
                                         )}
                                     >
                                         {actionConfig.options.map((option, idx) => {
-                                            const iconName = option.icon || (option.type === 'folder' ? 'Folder' : 'CheckSquare')
+                                            const iconName = option.icon || 'Plus'
                                             // @ts-ignore - Dynamic icon lookup
-                                            const IconComponent = LucideIcons[iconName] || (option.type === 'folder' ? Folder : CheckSquare)
+                                            const IconComponent = LucideIcons[iconName] || Plus
+                                            const iconColor = option.color || (option.action_type === 'create' ? '#06b6d4' : '#a855f7')
                                             
                                             return (
                                                 <button
-                                                    key={idx}
-                                                    onClick={() => handleOptionSelect(option)}
+                                                    key={option.id || idx}
+                                                    onClick={() => handleNewActionSelect(option)}
                                                     className={cn(
                                                         "w-full px-4 py-2.5 text-left text-sm",
                                                         "flex items-center gap-3",
                                                         "text-white hover:bg-dark-200 transition-colors"
                                                     )}
                                                 >
-                                                    <IconComponent size={16} className={option.type === 'folder' ? "text-cyan-400" : "text-green-400"} />
-                                                    {option.label}
+                                                    <IconComponent size={16} style={{ color: iconColor }} />
+                                                    <div className="flex flex-col">
+                                                        <span>{option.label}</span>
+                                                        {option.description && (
+                                                            <span className="text-xs text-dark-400">{option.description}</span>
+                                                        )}
+                                                    </div>
                                                 </button>
                                             )
                                         })}
@@ -476,6 +565,18 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
                     aria-hidden="true" 
                 />
             </div>
+
+            {/* DynamicFormSheet for creating new items */}
+            <DynamicFormSheet
+                isOpen={formSheetOpen}
+                onClose={() => {
+                    setFormSheetOpen(false)
+                    setSelectedAction(null)
+                }}
+                title={selectedAction?.label || 'Create'}
+                schema={selectedAction?.create_schema || []}
+                onSubmit={handleFormSubmit}
+            />
 
             {/* Tab Bar - Matches legacy CategoryPane styling */}
             {node.children && node.children.length > 0 && (

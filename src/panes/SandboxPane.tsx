@@ -153,6 +153,35 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
       },
     },
   },
+  row_media_left: {
+    category: 'Row',
+    description: 'Row with image thumbnail on left (round/square)',
+    node: {
+      id: 'mock-row-media-left',
+      type: 'item',
+      variant: 'row_media_left',
+      title: 'John Smith',
+      metadata: { 
+        media: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+        description: 'Product Manager',
+        media_shape: 'round',
+      },
+    },
+  },
+  row_simple_description: {
+    category: 'Row',
+    description: 'Simple row with title and multiline description',
+    node: {
+      id: 'mock-row-simple-desc',
+      type: 'item',
+      variant: 'row_simple_description',
+      title: 'Meeting Notes',
+      metadata: { 
+        description: 'Discussed Q4 roadmap and resource allocation for the next sprint...',
+        border_color: '#8b5cf6',
+      },
+    },
+  },
   
   // === CARDS ===
   card_media_top: {
@@ -213,6 +242,69 @@ const GALLERY_MOCKS: Record<string, { node: Node; description: string; category:
         format: 'currency',
         trend: 8.5,
         color: '#06b6d4',
+      },
+    },
+  },
+  card_folder: {
+    category: 'Card',
+    description: 'Grid folder card with icon, title, count badge',
+    node: {
+      id: 'mock-card-folder',
+      type: 'container',
+      variant: 'card_folder',
+      title: 'Photos',
+      metadata: { 
+        icon: 'Camera',
+        color: '#ec4899',
+        neon_glow: true,
+      },
+      children: [
+        { id: 'f-1', type: 'item', variant: 'row_simple', title: 'Item 1', metadata: {} },
+        { id: 'f-2', type: 'item', variant: 'row_simple', title: 'Item 2', metadata: {} },
+        { id: 'f-3', type: 'item', variant: 'row_simple', title: 'Item 3', metadata: {} },
+      ],
+    },
+  },
+  card_media_top_compact: {
+    category: 'Card',
+    description: 'Compact card with 4:3 image (use col_span: 3)',
+    node: {
+      id: 'mock-card-media-compact',
+      type: 'item',
+      variant: 'card_media_top_compact',
+      title: 'Quick Recipe',
+      metadata: { 
+        media: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=150&fit=crop',
+        subtext: 'Easy to make',
+        accent_color: '#10b981',
+        badge_1: '15 min',
+      },
+    },
+  },
+  card_media_thumbnail_compact: {
+    category: 'Card',
+    description: 'Compact square thumbnail (use col_span: 3)',
+    node: {
+      id: 'mock-thumbnail-compact',
+      type: 'item',
+      variant: 'card_media_thumbnail_compact',
+      title: 'Album Cover',
+      metadata: { 
+        url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150&h=150&fit=crop',
+      },
+    },
+  },
+  card_media_cover_compact: {
+    category: 'Card',
+    description: 'Compact poster card with 3:4 portrait ratio',
+    node: {
+      id: 'mock-cover-compact',
+      type: 'item',
+      variant: 'card_media_cover_compact',
+      title: 'Blade Runner',
+      metadata: { 
+        url: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=200&h=267&fit=crop',
+        description: 'Sci-Fi • 1982',
       },
     },
   },

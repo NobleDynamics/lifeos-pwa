@@ -906,3 +906,288 @@ All progress and chart variants support **automatic aggregation** from children 
 4. **Match format to domain**: Use `'currency'` for money, `'percent'` for ratios, `'number'` for counts
 5. **Use col_span** in dashboard layouts to control card widths
 6. **Apply colors** that match the category or use the default cyberpunk palette
+
+---
+
+## JSONB Action System (Generic Engine)
+
+The ViewEngine supports metadata-driven actions for header buttons and context menus. This follows the "Generic Engine" philosophy where behavior is driven entirely by JSONB metadata, not hardcoded per-variant.
+
+### Header Action (`metadata.header_action`)
+
+Defines the "+" button in the app shell header for a view/tab container.
+
+**Schema:**
+```typescript
+interface HeaderActionConfig {
+  label?: string                // Button label (default: "Add")
+  icon?: string                 // Lucide icon name (default: "Plus")
+  options: ActionOption[]       // Dropdown options
+}
+
+interface ActionOption {
+  id: string                    // Unique identifier
+  label: string                 // Display text (e.g., "Upload Photo")
+  icon?: string                 // Lucide icon name
+  description?: string          // Tooltip/subtitle
+  color?: string                // Accent color (hex)
+  
+  action_type: 'create' | 'navigate' | 'custom'
+  
+  // For 'create':
+  create_schema?: CreateFieldSchema[]
+  create_variant?: string       // Variant for new node
+  create_node_type?: 'container' | 'collection' | 'item'
+  
+  // For 'navigate':
+  target_id?: string            // Node ID to navigate to
+  
+  // For 'custom':
+  custom_handler?: string       // Event name to emit
+}
+```
+
+**Example:**
+```json
+{
+  "variant": "view_gallery_grid",
+  "title": "All Photos",
+  "metadata": {
+    "header_action": {
+      "label": "Add",
+      "icon": "Plus",
+      "options": [
+        {
+          "id": "upload_photo",
+          "label": "Upload Photo",
+          "icon": "Upload",
+          "action_type": "create",
+          "create_variant": "card_media_thumbnail",
+          "create_schema": [
+            { "key": "url", "label": "Photo URL", "type": "text", "required": true },
+            { "key": "title", "label": "Title", "type": "text", "required": true },
+            { "key": "alt", "label": "Description", "type": "textarea" }
+          ]
+        },
+        {
+          "id": "take_photo",
+          "label": "Take Photo",
+          "icon": "Camera",
+          "action_type": "custom",
+          "custom_handler": "open_camera"
+        }
+      ]
+    }
+  }
+}
+```
+
+**To disable header action:** Set `"show_header_action": false` in metadata.
+
+---
+
+### Context Menu (`metadata.child_context_menu`)
+
+Defines long-press/right-click options for child items. Stored on the **parent** container and applies to all its children.
+
+**Schema:**
+```typescript
+interface ContextMenuConfig {
+  options: ContextMenuOption[]
+}
+
+interface ContextMenuOption {
+  id: string                    // Unique identifier
+  label: string                 // Display text
+  icon?: string                 // Lucide icon name
+  color?: string                // Accent color (hex) - red for destructive
+  divider_before?: boolean      // Show divider above this option
+  
+  action_type: 'edit' | 'delete' | 'move' | 'navigate' | 'custom'
+  
+  // For 'edit':
+  edit_schema?: CreateFieldSchema[]  // Fields to edit
+  edit_fields?: string[]             // Legacy: metadata keys to edit
+  
+  // For 'move':
+  move_targets?: string[]       // Allowed parent node IDs
+  
+  // For 'custom':
+  custom_handler?: string       // Event name to emit
+  
+  // Conditional visibility:
+  show_if?: {
+    key: string
+    value: unknown
+    operator?: 'eq' | 'neq' | 'exists' | 'not_exists'
+  }
+}
+```
+
+**Example:**
+```json
+{
+  "variant": "view_list_stack",
+  "title": "All Notes",
+  "metadata": {
+    "child_context_menu": {
+      "options": [
+        { "id": "open", "label": "Open Note", "icon": "ExternalLink", "action_type": "navigate" },
+        { 
+          "id": "edit", 
+          "label": "Edit", 
+          "icon": "Pencil", 
+          "action_type": "edit",
+          "edit_schema": [
+            { "key": "title", "label": "Title", "type": "text", "required": true },
+            { "key": "content", "label": "Content", "type": "textarea" },
+            { "key": "accent_color", "label": "Color", "type": "color" }
+          ]
+        },
+        { "id": "duplicate", "label": "Duplicate", "icon": "Copy", "action_type": "custom", "custom_handler": "duplicate_note" },
+        { "id": "move", "label": "Move to Folder", "icon": "FolderInput", "action_type": "move" },
+        { "id": "delete", "label": "Delete", "icon": "Trash2", "color": "#ef4444", "divider_before": true, "action_type": "delete" }
+      ]
+    }
+  }
+}
+```
+
+**Item-level override:** Set `metadata.context_menu` on individual items to override the parent's `child_context_menu`.
+
+---
+
+### Form Field Types (`CreateFieldSchema`)
+
+Used by both `create_schema` and `edit_schema` to define dynamic forms.
+
+| Type | Description | Special Options |
+|------|-------------|-----------------|
+| `text` | Single line input | `placeholder` |
+| `textarea` | Multi-line input | `placeholder` |
+| `number` | Numeric input | `min`, `max`, `step` |
+| `currency` | Currency input | `min`, `max`, `currency_code` |
+| `date` | Date picker | - |
+| `datetime` | Date + time picker | - |
+| `select` | Dropdown | `options: [{value, label, icon?, color?}]` |
+| `multi_select` | Multi-select tags | `options: [...]` |
+| `media` | File upload | `accept`, `max_size_mb` |
+| `color` | Color picker | `color_palette: string[]` (default: 11 presets) |
+| `icon` | Icon picker | `icon_set: string[]` (default: 28 curated) |
+| `toggle` | Boolean switch | `help_text` |
+| `profile_select` | Household member picker | - |
+| `node_reference` | Reference to another node | `reference_filter: {type?, variant?, parent_id?}` |
+
+**Field Schema:**
+```typescript
+interface CreateFieldSchema {
+  key: string                   // Metadata key to save
+  label: string                 // Form field label
+  type: FormFieldType           // One of the types above
+  required?: boolean
+  default_value?: unknown
+  placeholder?: string
+  help_text?: string
+  
+  // Type-specific options...
+  options?: SelectOption[]      // For select/multi_select
+  accept?: string               // For media: e.g., "image/*"
+  min?: number                  // For number/currency
+  max?: number
+  step?: number
+  color_palette?: string[]      // For color
+  icon_set?: string[]           // For icon
+}
+```
+
+---
+
+### Preset Values
+
+**Color Palette (11 colors):**
+```
+#00EAFF (Cyan), #FF6B6B (Red), #4ECDC4 (Teal), #45B7D1 (Blue),
+#96CEB4 (Green), #FFEAA7 (Yellow), #DDA0DD (Plum), #98D8C8 (Mint),
+#F7DC6F (Gold), #BB8FCE (Purple), #85C1E9 (Light Blue)
+```
+
+**Curated Icons (28 icons):**
+```
+Folder, List, ShoppingCart, Dumbbell, Utensils, Box, Archive,
+DollarSign, Cloud, House, Heart, Briefcase, GraduationCap, Music,
+FileText, Car, Plane, Book, Camera, Gift, Star,
+Image, Video, Paintbrush, Hammer, Pencil, Scissors, Shirt
+```
+
+---
+
+### Complete Example: Finance Transactions
+
+```json
+{
+  "id": "...",
+  "type": "container",
+  "variant": "view_list_stack",
+  "title": "Transactions",
+  "metadata": {
+    "show_header": false,
+    "header_action": {
+      "label": "Add",
+      "icon": "Plus",
+      "options": [
+        {
+          "id": "expense",
+          "label": "Add Expense",
+          "icon": "MinusCircle",
+          "color": "#ef4444",
+          "action_type": "create",
+          "create_variant": "row_transaction_history",
+          "create_schema": [
+            { "key": "title", "label": "Merchant", "type": "text", "required": true },
+            { "key": "amount", "label": "Amount", "type": "currency", "required": true },
+            { "key": "category", "label": "Category", "type": "select", "options": [
+              { "value": "Food", "label": "Food", "icon": "UtensilsCrossed" },
+              { "value": "Transport", "label": "Transport", "icon": "Car" },
+              { "value": "Shopping", "label": "Shopping", "icon": "ShoppingBag" }
+            ]},
+            { "key": "date", "label": "Date", "type": "date" }
+          ]
+        },
+        {
+          "id": "income",
+          "label": "Add Income",
+          "icon": "PlusCircle",
+          "color": "#10b981",
+          "action_type": "create",
+          "create_variant": "row_transaction_history",
+          "create_schema": [
+            { "key": "title", "label": "Source", "type": "text", "required": true },
+            { "key": "amount", "label": "Amount", "type": "currency", "required": true },
+            { "key": "date", "label": "Date", "type": "date" }
+          ]
+        }
+      ]
+    },
+    "child_context_menu": {
+      "options": [
+        { 
+          "id": "edit", 
+          "label": "Edit Transaction", 
+          "icon": "Pencil", 
+          "action_type": "edit",
+          "edit_schema": [
+            { "key": "title", "label": "Merchant", "type": "text" },
+            { "key": "amount", "label": "Amount", "type": "currency" },
+            { "key": "category", "label": "Category", "type": "select", "options": [
+              { "value": "Food", "label": "Food" },
+              { "value": "Transport", "label": "Transport" }
+            ]}
+          ]
+        },
+        { "id": "delete", "label": "Delete", "icon": "Trash2", "color": "#ef4444", "divider_before": true, "action_type": "delete" }
+      ]
+    }
+  },
+  "children": [...]
+}
+```

@@ -31,6 +31,52 @@ export {
   ResourceTypeToNodeType,
 } from './types/node'
 
+// Action & Context Menu Types (JSONB-driven UI interactions)
+export type {
+  FormFieldType,
+  SelectOption,
+  CreateFieldSchema,
+  ActionType,
+  ActionOption,
+  HeaderActionConfig,
+  ContextMenuActionType,
+  ContextMenuOption,
+  ContextMenuConfig,
+  FormResult,
+  ContextMenuState,
+  DynamicFormState,
+} from './types/actions'
+
+export {
+  FormFieldTypes,
+  ActionTypes,
+  ContextMenuActionTypes,
+  DEFAULT_CONTEXT_MENU,
+  DEFAULT_HEADER_ACTION,
+  isHeaderActionConfig,
+  isContextMenuConfig,
+  shouldShowOption,
+} from './types/actions'
+
+// Shared Components
+export { DynamicFormSheet, PRESET_COLORS, CURATED_ICONS } from './components/shared/DynamicFormSheet'
+export type { DynamicFormSheetProps } from './components/shared/DynamicFormSheet'
+
+export { ContextMenuSheet } from './components/shared/ContextMenuSheet'
+
+// Context Menu Context
+export {
+  ContextMenuProvider,
+  useContextMenu,
+  useContextMenuTrigger,
+} from './context/ContextMenuContext'
+
+export type {
+  ContextMenuState as ContextMenuContextState,
+  ContextMenuContextValue,
+  ContextMenuHandlers,
+} from './context/ContextMenuContext'
+
 // =============================================================================
 // CONTEXT EXPORTS
 // =============================================================================

@@ -288,62 +288,76 @@ Contents: A scrollable grid layout showing all System and User Apps.
 
 D. Back Button Handling (Android/Browser)
 
-The back button follows a **Chain of Command** pattern with priority-based handlers:
+The back button uses **Browser History** for "go back to where I was" navigation, combined with a **Chain of Command** pattern for fallback handling.
+
+**Key Behavior:** Back button navigates through browser history (like a web browser), NOT hierarchically up the folder tree.
 
 | Priority | Handler | Location | Action |
 |----------|---------|----------|--------|
 | 30+ | Modals/Sheets | Various | Close open modal/sheet |
-| 15 | `layout_app_shell` | Shell | Navigate folder hierarchy OR switch tabs |
-| 10 | Custom handlers | Various | Component-specific back actions |
+| 20 | `ViewEnginePane` | Pane | **Sync React state with URL history** |
+| 15 | `layout_app_shell` | Shell | Tab switching (non-default → default tab) |
 | 0 | App-level | `Layout.tsx` | Close drawer → Dashboard → Trap |
 
-**Full Hierarchy Navigation Flow:**
+**Browser History Navigation Flow:**
 ```
-Deep Folder → Parent Folder → Tab Root → Default Tab → Dashboard → (Trapped)
+Click: Shopping Tab → Grocery List → (history: [Shopping, GroceryList])
+Back: GroceryList → Shopping Tab (returns to previous URL)
+Back: Shopping Tab → Default Tab (shell handles tab switching)
+Back: Default Tab → Dashboard (app-level)
+Back: Dashboard → (Trapped - prevent app exit)
 ```
 
-| Current State | Back Action | Handler | Result |
-|---------------|-------------|---------|--------|
-| Deep folder (Groceries) | Back | Shell (15) | → Parent folder (Lists) |
-| Folder in tab (Lists) | Back | Shell (15) | → Tab root (Shopping) |
-| Non-default tab (Shopping) | Back | Shell (15) | → Default tab (Overview) |
-| Default tab (Overview) | Back | App (0) | → Dashboard |
-| Dashboard | Back | App (0) | Trapped (nothing happens) |
-| System Apps (Health, etc.) | Back | App (0) | → Dashboard |
+**Implementation Details:**
 
-**Implementation:**
-- Single global `popstate` listener in `useBackButton.ts`
-- Components register handlers with `useBackButton({ onCloseModal, priority })`
-- Handlers return `true` if they consumed the event, `false` to propagate
-- Higher priority handlers are called first
-
-**Shell Back Handler (`layout_app_shell.tsx`):**
-- Registers at priority 15
-- Logic:
-  1. If deep in folder hierarchy (`isDeepView`) → `navigateBack()` → return `true`
-  2. If at non-default tab root → `navigateToNode(defaultTabId)` → return `true`
-  3. If at default tab root → return `false` (delegate to app-level)
-
-**App-level Handler (`useAppStore.goBack()`):**
-- Registers at priority 0 via `Layout.tsx`
-- Logic:
-  1. If drawer open → close drawer → return `true`
-  2. If not at dashboard → navigate to dashboard → return `true`
-  3. If at dashboard → return `true` (trap - prevent app exit)
-
-**Example Usage:**
+**1. ViewEnginePane Handler (Priority 20):**
+- Syncs React state (`targetNodeId`) with URL hash after browser handles `popstate`
+- Forward navigation pushes history via `pushNodeToHistory(nodeId)`
+- Back button reads URL hash and updates React state to match
 ```tsx
-// In a modal component
-useBackButton({
-  onCloseModal: () => {
-    closeModal()
-    return true // We handled it
-  },
-  priority: 30
-})
+const handleHistoryBack = useCallback(() => {
+  const urlNodeId = getNodeIdFromUrl()
+  if (urlNodeId !== targetNodeId) {
+    setTargetNodeId(urlNodeId)
+    return true // We synced with URL
+  }
+  return false // Nothing to sync, delegate down
+}, [targetNodeId])
+```
 
-// Shell handles folder + tab navigation automatically at priority 15
-// App-level handles pane exit + dashboard trap at priority 0
+**2. Shell Handler (Priority 15):**
+- Only handles tab-level navigation when URL history is exhausted
+- If at non-default tab root → navigate to default tab
+- If at default tab root → return `false` (delegate to app-level)
+
+**3. App-level Handler (Priority 0):**
+- If drawer open → close drawer → return `true`
+- If not at Dashboard → navigate to Dashboard → return `true`
+- If at Dashboard → return `true` (trap - prevents app exit)
+
+**Example Navigation Trace:**
+```
+User at: My Home > Shopping Tab
+Click "Grocery List" → URL: #node=grocery-list-id
+Click "Milk" item → URL: #node=milk-id
+
+Press Back → URL reverts to #node=grocery-list-id
+  → ViewEnginePane syncs: targetNodeId = grocery-list-id ✓
+
+Press Back → URL reverts to #node=<empty>
+  → ViewEnginePane syncs: targetNodeId = null ✓
+  → Shell detects tab root, activates Shopping tab
+
+Press Back → URL has no more history
+  → ViewEnginePane: nothing to sync (returns false)
+  → Shell: at non-default tab, switch to default tab ✓
+
+Press Back → 
+  → ViewEnginePane: nothing to sync (returns false)
+  → Shell: at default tab (returns false)
+  → App-level: navigate to Dashboard ✓
+
+Press Back at Dashboard → Trapped (nothing happens)
 ```
 
 3. The Dashboard Pane (Home HUD)

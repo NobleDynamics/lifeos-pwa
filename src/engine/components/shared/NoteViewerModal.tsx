@@ -99,13 +99,26 @@ function formatLastSaved(date: Date | null): string {
 // CUSTOM TOOLBAR - Minimal set in horizontal row
 // =============================================================================
 
+// Custom heading commands with shorter labels to prevent overlap
+const heading1Command = {
+  ...commands.title1,
+  buttonProps: { 'aria-label': 'Heading 1', title: 'Heading 1' },
+  icon: <span style={{ fontSize: '12px', fontWeight: 'bold' }}>H1</span>,
+}
+
+const heading2Command = {
+  ...commands.title2,
+  buttonProps: { 'aria-label': 'Heading 2', title: 'Heading 2' },
+  icon: <span style={{ fontSize: '12px', fontWeight: 'bold' }}>H2</span>,
+}
+
 const getToolbarCommands = () => [
   commands.bold,
   commands.italic,
   commands.strikethrough,
   commands.divider,
-  commands.title1,
-  commands.title2,
+  heading1Command,
+  heading2Command,
   commands.divider,
   commands.unorderedListCommand,
   commands.orderedListCommand,

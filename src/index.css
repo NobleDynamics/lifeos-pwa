@@ -219,13 +219,30 @@
   text-decoration: underline !important;
 }
 
-.wmde-markdown ul,
+.wmde-markdown ul {
+  padding-left: 1.5em !important;
+  list-style-type: disc !important;
+}
+
 .wmde-markdown ol {
   padding-left: 1.5em !important;
+  list-style-type: decimal !important;
 }
 
 .wmde-markdown li {
   margin: 0.25em 0 !important;
+  display: list-item !important;
+}
+
+/* Nested lists */
+.wmde-markdown ul ul,
+.wmde-markdown ol ul {
+  list-style-type: circle !important;
+}
+
+.wmde-markdown ul ul ul,
+.wmde-markdown ol ul ul {
+  list-style-type: square !important;
 }
 
 .wmde-markdown hr {
@@ -271,6 +288,9 @@
   max-height: 48px !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
 }
 
 .w-md-editor-toolbar ul {
@@ -298,15 +318,21 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #9ca3af !important; /* dark-400 */
+  color: #06b6d4 !important; /* primary cyan */
   transition: all 0.15s ease !important;
   flex-shrink: 0 !important;
 }
 
-/* Button icons */
+/* Button icons - cyan */
 .w-md-editor-toolbar li > button svg {
   width: 16px !important;
   height: 16px !important;
+  color: #06b6d4 !important;
+}
+
+/* Text inside buttons (like H1, H2) - cyan */
+.w-md-editor-toolbar li > button span {
+  color: #06b6d4 !important;
 }
 
 /* Hover state with neon glow */

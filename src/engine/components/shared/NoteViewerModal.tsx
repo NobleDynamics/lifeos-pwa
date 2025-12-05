@@ -270,6 +270,9 @@ export function NoteViewerModal({
   }, [currentPane, containerWidth])
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Stop propagation to prevent SwipeDeck from receiving this event
+    e.stopPropagation()
+    
     if (isAnimating) return
     
     const touch = e.touches[0]
@@ -283,6 +286,9 @@ export function NoteViewerModal({
   }, [isAnimating])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    // Stop propagation to prevent SwipeDeck from receiving this event
+    e.stopPropagation()
+    
     const gesture = gestureRef.current
     if (!gesture.isDragging || !containerWidth) return
     
@@ -324,6 +330,9 @@ export function NoteViewerModal({
   }, [containerWidth, getBaseOffset])
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    // Stop propagation to prevent SwipeDeck from receiving this event
+    e.stopPropagation()
+    
     const gesture = gestureRef.current
     if (!gesture.isDragging) return
     
@@ -489,22 +498,26 @@ export function NoteViewerModal({
                   </button>
                 </div>
 
-                {/* History Button */}
-                {history.length > 0 && (
-                  <button
-                    onClick={() => setShowHistory(!showHistory)}
-                    className={cn(
-                      "p-2 rounded-lg transition-colors",
-                      showHistory 
+                {/* History Button - Always visible, disabled when empty */}
+                <button
+                  onClick={() => history.length > 0 && setShowHistory(!showHistory)}
+                  disabled={history.length === 0}
+                  className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    history.length === 0
+                      ? "text-dark-500 cursor-not-allowed opacity-50"
+                      : showHistory 
                         ? "bg-primary/20 text-primary" 
                         : "hover:bg-dark-200 text-dark-400"
-                    )}
-                    aria-label="Version history"
-                    title={`${history.length} version${history.length > 1 ? 's' : ''}`}
-                  >
-                    <History size={18} />
-                  </button>
-                )}
+                  )}
+                  aria-label="Version history"
+                  title={history.length > 0 
+                    ? `${history.length} version${history.length > 1 ? 's' : ''} saved` 
+                    : 'No version history yet'
+                  }
+                >
+                  <History size={18} />
+                </button>
               </div>
             </div>
 

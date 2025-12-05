@@ -179,7 +179,7 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     const showBackButton = !isAtTabRoot && canNavigateBack
 
     // =========================================================================
-    // BACK BUTTON HANDLING (Priority 15 - between ViewEngine and App-level)
+    // BACK BUTTON HANDLING (Priority 15 - Tab switching only)
     // =========================================================================
     
     // Determine the effective default tab ID
@@ -197,29 +197,29 @@ function LayoutAppShellContent({ node }: VariantComponentProps) {
     /**
      * Back button handler for the App Shell
      * 
-     * Priority: 15 (called before app-level at 0)
+     * Priority: 15 (called AFTER ViewEnginePane at 20, BEFORE app-level at 0)
+     * 
+     * BROWSER HISTORY STRATEGY:
+     * ViewEnginePane (priority 20) handles syncing with URL history.
+     * The shell only handles tab switching when there's no more URL history.
      * 
      * Handles:
-     * 1. Deep folder navigation → go up one level
-     * 2. Non-default tab root → go to default tab
-     * 3. Default tab root → return false (let app-level handle exit)
+     * 1. At non-default tab root → go to default tab
+     * 2. At default tab root → return false (let app-level handle exit)
      */
     const handleShellBack = useCallback(() => {
-        // Case 1: Deep in folder hierarchy → navigate up one level
-        if (isDeepView && canNavigateBack) {
-            navigateBack()
-            return true
-        }
+        // Only handle tab-level navigation when at tab root (no deep folder)
+        // ViewEnginePane handles folder navigation via URL history
         
-        // Case 2: At non-default tab root → go to default tab
+        // Case 1: At non-default tab root → go to default tab
         if (isAtTabRoot && !isAtDefaultTabRoot && effectiveDefaultTabId) {
             navigateToNode(effectiveDefaultTabId)
             return true
         }
         
-        // Case 3: At default tab root → let app-level handler take over
+        // Case 2: At default tab root → let app-level handler take over
         return false
-    }, [isDeepView, canNavigateBack, navigateBack, isAtTabRoot, isAtDefaultTabRoot, effectiveDefaultTabId, navigateToNode])
+    }, [isAtTabRoot, isAtDefaultTabRoot, effectiveDefaultTabId, navigateToNode])
     
     // Register back button handler at priority 15
     useBackButton({

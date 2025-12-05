@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { Plus, List, MoreVertical } from 'lucide-react'
 import { TodoList } from '@/types/database'
 import { useLists, useAllItems } from '@/hooks/useTodoData'
@@ -67,8 +67,14 @@ export function TodoListsView({ accentColor = '#00EAFF' }: TodoListsViewProps) {
     showContextMenu(x, y, list, 'list')
   }
 
+  // Legacy long press - data is stored in ref, not passed to callback
+  const longPressDataRef = useRef<TodoList | null>(null)
   const longPressHandlers = useLongPress(
-    (e, list) => handleListContextMenu(e as React.MouseEvent | React.TouchEvent, list as TodoList),
+    (e) => {
+      if (longPressDataRef.current) {
+        handleListContextMenu(e as React.MouseEvent | React.TouchEvent, longPressDataRef.current)
+      }
+    },
     { threshold: 500 }
   )
 

@@ -17,7 +17,7 @@
  * @module panes/ViewEnginePane
  */
 
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState, useEffect } from 'react'
 import { Loader2, AlertCircle } from 'lucide-react'
 import {
   ViewEngine,
@@ -45,6 +45,7 @@ import { ResourceForm } from '@/components/ResourceForm'
 import { ResourceContextMenu } from '@/components/ResourceContextMenu'
 import { Resource } from '@/types/database'
 import { cn } from '@/lib/utils'
+import { useBackButton } from '@/hooks/useBackButton'
 
 // =============================================================================
 // TYPES
@@ -172,13 +173,45 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [rootId, resources])
 
   // ==========================================================================
-  // URL STATE MANAGEMENT
+  // BROWSER HISTORY-BASED BACK NAVIGATION
   // ==========================================================================
   
-  // NOTE: We do NOT add a separate popstate listener here.
-  // The global useBackButton system handles popstate events.
-  // Our handleBack callback (registered below) reacts to back button presses.
-  // This prevents the "War of the Handlers" bug where two listeners compete.
+  /**
+   * Back button handler - syncs with browser history (URL hash)
+   * 
+   * BROWSER HISTORY STRATEGY:
+   * - Forward navigation pushes history entries with nodeId in URL hash
+   * - Back button reads the CURRENT URL hash (which browser has already navigated to)
+   * - We sync React state with the URL, giving "go back to where I was" behavior
+   * 
+   * Priority: 20 (called before shell at 15 and app-level at 0)
+   */
+  const handleHistoryBack = useCallback(() => {
+    // Read the nodeId from the CURRENT URL (after browser back)
+    const urlNodeId = getNodeIdFromUrl()
+    
+    // If we have a targetNodeId but URL is empty, we're at root now
+    if (targetNodeId !== null && urlNodeId === null) {
+      setTargetNodeId(null)
+      return true // We handled the navigation
+    }
+    
+    // If URL has a nodeId different from our current state, sync to it
+    if (urlNodeId !== targetNodeId) {
+      setTargetNodeId(urlNodeId)
+      return true // We handled the navigation
+    }
+    
+    // URL matches our state - nothing to do at this level
+    // Let lower priority handlers (shell/app-level) deal with it
+    return false
+  }, [targetNodeId])
+  
+  // Register back button handler at PRIORITY 20 (highest for navigation)
+  useBackButton({
+    onCloseModal: handleHistoryBack,
+    priority: 20,
+  })
 
   // ==========================================================================
   // NAVIGATION CALLBACKS

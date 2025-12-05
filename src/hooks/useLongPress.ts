@@ -5,6 +5,10 @@
  * This is a global utility hook that can be used by any component that needs
  * long-press/right-click behavior for triggering context menus.
  * 
+ * Supports two signatures:
+ * 1. Legacy: useLongPress(callback, { threshold }) - callback receives event
+ * 2. New: useLongPress({ onLongPress, onClick, delay, disabled }) - options object
+ * 
  * @module hooks/useLongPress
  */
 
@@ -16,6 +20,13 @@ export interface LongPressEvent {
   target: EventTarget | null
 }
 
+// Legacy interface for backwards compatibility
+export interface LegacyLongPressOptions {
+  /** Delay in ms before triggering long press (default: 500) */
+  threshold?: number
+}
+
+// New interface
 export interface UseLongPressOptions {
   /** Delay in ms before triggering long press (default: 500) */
   delay?: number
@@ -25,6 +36,17 @@ export interface UseLongPressOptions {
   onClick?: () => void
   /** Whether long press is disabled */
   disabled?: boolean
+}
+
+// Legacy handlers interface (passes node as second arg)
+export interface LegacyLongPressHandlers {
+  onTouchStart: (e: React.TouchEvent, data?: unknown) => void
+  onTouchEnd: (e: React.TouchEvent) => void
+  onTouchMove?: (e: React.TouchEvent) => void
+  onContextMenu?: (e: React.MouseEvent) => void
+  onMouseDown: (e: React.MouseEvent, data?: unknown) => void
+  onMouseUp: (e: React.MouseEvent) => void
+  onMouseLeave: (e: React.MouseEvent) => void
 }
 
 export interface LongPressHandlers {
@@ -40,7 +62,21 @@ export interface LongPressHandlers {
 /**
  * Hook for detecting long press (touch) and right-click (mouse) events
  * 
- * @example
+ * @example Legacy signature (backwards compatible):
+ * ```tsx
+ * const handlers = useLongPress(
+ *   (e) => handleContextMenu(e),
+ *   { threshold: 500 }
+ * )
+ * 
+ * return <div 
+ *   onMouseDown={(e) => handlers.onMouseDown(e, node)}
+ *   onTouchStart={(e) => handlers.onTouchStart(e, node)}
+ *   {...handlers}
+ * >Content</div>
+ * ```
+ * 
+ * @example New signature:
  * ```tsx
  * const handlers = useLongPress({
  *   onLongPress: (e) => {
@@ -55,15 +91,29 @@ export interface LongPressHandlers {
  * return <div {...handlers}>Content</div>
  * ```
  */
-export function useLongPress({
-  delay = 500,
-  onLongPress,
-  onClick,
-  disabled = false,
-}: UseLongPressOptions): LongPressHandlers {
+export function useLongPress(
+  callbackOrOptions: ((event: React.MouseEvent | React.TouchEvent) => void) | UseLongPressOptions,
+  legacyOptions?: LegacyLongPressOptions
+): LongPressHandlers | LegacyLongPressHandlers {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isLongPressRef = useRef(false)
   const startPosRef = useRef({ x: 0, y: 0 })
+  const dataRef = useRef<unknown>(null)
+
+  // Determine which signature is being used
+  const isLegacySignature = typeof callbackOrOptions === 'function'
+  
+  const callback = isLegacySignature 
+    ? callbackOrOptions as (event: React.MouseEvent | React.TouchEvent) => void
+    : null
+  const options = isLegacySignature 
+    ? null 
+    : callbackOrOptions as UseLongPressOptions
+
+  const delay = legacyOptions?.threshold ?? options?.delay ?? 500
+  const onLongPress = options?.onLongPress
+  const onClick = options?.onClick
+  const disabled = options?.disabled ?? false
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -72,9 +122,38 @@ export function useLongPress({
     }
   }, [])
 
-  // Touch handlers
+  // Legacy touch start (with optional data parameter)
+  const legacyOnTouchStart = useCallback((e: React.TouchEvent, data?: unknown) => {
+    if (!callback) return
+    
+    dataRef.current = data
+    const touch = e.touches[0]
+    startPosRef.current = { x: touch.clientX, y: touch.clientY }
+    isLongPressRef.current = false
+
+    timerRef.current = setTimeout(() => {
+      isLongPressRef.current = true
+      callback(e)
+    }, delay)
+  }, [callback, delay])
+
+  // Legacy mouse down (with optional data parameter)
+  const legacyOnMouseDown = useCallback((e: React.MouseEvent, data?: unknown) => {
+    if (!callback || e.button !== 0) return // Only left click
+    
+    dataRef.current = data
+    startPosRef.current = { x: e.clientX, y: e.clientY }
+    isLongPressRef.current = false
+
+    timerRef.current = setTimeout(() => {
+      isLongPressRef.current = true
+      callback(e)
+    }, delay)
+  }, [callback, delay])
+
+  // New touch start
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (disabled) return
+    if (disabled || !onLongPress) return
     
     const touch = e.touches[0]
     startPosRef.current = { x: touch.clientX, y: touch.clientY }
@@ -123,16 +202,18 @@ export function useLongPress({
     e.preventDefault()
     e.stopPropagation()
     
-    onLongPress({
-      clientX: e.clientX,
-      clientY: e.clientY,
-      target: e.target,
-    })
+    if (onLongPress) {
+      onLongPress({
+        clientX: e.clientX,
+        clientY: e.clientY,
+        target: e.target,
+      })
+    }
   }, [disabled, onLongPress])
 
-  // Optional: Also support long-press with mouse (hold left click)
+  // New mouse down
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (disabled || e.button !== 0) return // Only left click
+    if (disabled || e.button !== 0 || !onLongPress) return // Only left click
     
     startPosRef.current = { x: e.clientX, y: e.clientY }
     isLongPressRef.current = false
@@ -159,6 +240,18 @@ export function useLongPress({
     clearTimer()
   }, [clearTimer])
 
+  // Return legacy handlers if using legacy signature
+  if (isLegacySignature) {
+    return {
+      onTouchStart: legacyOnTouchStart,
+      onTouchEnd,
+      onMouseDown: legacyOnMouseDown,
+      onMouseUp,
+      onMouseLeave,
+    } as LegacyLongPressHandlers
+  }
+
+  // Return new handlers
   return {
     onTouchStart,
     onTouchEnd,

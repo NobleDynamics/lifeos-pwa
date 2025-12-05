@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { Plus, MoreVertical, Target, List } from 'lucide-react'
 import { TodoCategory } from '@/types/database'
 import { useCategories, useAllLists } from '@/hooks/useTodoData'
@@ -66,8 +66,14 @@ export function TodoCategoryList({ accentColor = '#00EAFF' }: TodoCategoryListPr
     showContextMenu(x, y, category, 'category')
   }
 
+  // Legacy long press - data is stored in ref, not passed to callback
+  const longPressDataRef = useRef<TodoCategory | null>(null)
   const longPressHandlers = useLongPress(
-    (e, category) => handleCategoryContextMenu(e as React.MouseEvent | React.TouchEvent, category as TodoCategory),
+    (e) => {
+      if (longPressDataRef.current) {
+        handleCategoryContextMenu(e as React.MouseEvent | React.TouchEvent, longPressDataRef.current)
+      }
+    },
     { threshold: 500 }
   )
 

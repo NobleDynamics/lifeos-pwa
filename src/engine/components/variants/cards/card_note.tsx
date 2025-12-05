@@ -19,7 +19,7 @@ import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
 import { useSlot } from '../../../hooks/useSlot'
-import { useLongPress, type LongPressEvent } from '@/hooks/useLongPress'
+import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
 import type { VersionEntry } from '../../shared/NoteViewerModal'
 
@@ -189,19 +189,37 @@ export function CardNote({ node }: VariantComponentProps) {
   // Get plain text preview
   const plainTextPreview = stripMarkdown(content)
   
-  // Long press handler
-  const longPressHandlers = useLongPress({
-    onLongPress: (e: LongPressEvent) => {
-      setMenuPosition({ x: e.clientX, y: e.clientY })
-    },
-    onClick: () => {
-      // Open note viewer/editor modal
-      if (actions) {
-        actions.onOpenNote(node)
-      }
-    },
-    disabled: false,
-  })
+  // Handle card click - open note viewer
+  const handleClick = () => {
+    if (actions) {
+      actions.onOpenNote(node)
+    }
+  }
+
+  // Handle context menu / long press - open version history
+  const handleContextMenu = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Get coordinates based on event type
+    let x: number, y: number
+    if ('touches' in e) {
+      const touch = e.touches[0] || e.changedTouches[0]
+      x = touch?.clientX ?? 0
+      y = touch?.clientY ?? 0
+    } else {
+      x = e.clientX
+      y = e.clientY
+    }
+    
+    setMenuPosition({ x, y })
+  }
+
+  // Legacy signature - for context menu only
+  const longPressHandlers = useLongPress(
+    handleContextMenu,
+    { threshold: 500 }
+  )
   
   // Handle version restore
   const handleRestoreVersion = (version: VersionEntry) => {
@@ -226,13 +244,13 @@ export function CardNote({ node }: VariantComponentProps) {
   return (
     <>
       <div
-        {...longPressHandlers}
         className={cn(
           "rounded-lg overflow-hidden",
           "bg-dark-100/80 backdrop-blur-sm",
           "border transition-all duration-200",
           "hover:shadow-lg hover:shadow-purple-500/10",
-          "cursor-pointer select-none"
+          "cursor-pointer select-none",
+          "active:scale-[0.98]" // Touch feedback
         )}
         style={{ 
           borderColor: neonGlow ? accentColor : 'rgb(26, 26, 36)',
@@ -240,6 +258,21 @@ export function CardNote({ node }: VariantComponentProps) {
         }}
         data-variant="card_note"
         data-node-id={node.id}
+        role="button"
+        tabIndex={0}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onMouseDown={(e) => longPressHandlers.onMouseDown(e, node)}
+        onMouseUp={longPressHandlers.onMouseUp}
+        onMouseLeave={longPressHandlers.onMouseLeave}
+        onTouchStart={(e) => longPressHandlers.onTouchStart(e, node)}
+        onTouchEnd={longPressHandlers.onTouchEnd}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleClick()
+          }
+        }}
       >
         {/* Accent Bar */}
         <div 

@@ -1414,11 +1414,42 @@ Long-press or right-click shows version history with timestamps and previews.
 ```
 
 ### Note Interaction Flow
-1. **Click note** → `onClick` fires → calls `actions.onOpenNote(node)`
+1. **Click note** → Native `onClick` handler fires → calls `actions.onOpenNote(node)`
 2. **ViewEnginePane** receives callback → sets `selectedNoteNode` state
 3. **NoteViewerModal** renders with the selected note
 4. **User edits** → autosave triggers → `handleSaveNote` updates database via `useUpdateResource`
 5. **Close modal** → `setSelectedNoteNode(null)` clears state
+
+**Click Handling Pattern:**
+Note components use the same **proven pattern** as `row_neon_group`:
+- Native `onClick` handler for tap/click actions
+- Legacy `useLongPress` signature for context menu (long-press / right-click) only
+- Explicit event handlers: `onMouseDown`, `onMouseUp`, `onTouchStart`, `onTouchEnd`
+
+```tsx
+// Correct pattern (matching row_neon_group)
+const handleClick = () => {
+  if (actions) actions.onOpenNote(node)
+}
+
+const handleContextMenu = (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  setMenuPosition({ x: e.clientX, y: e.clientY })
+}
+
+const longPressHandlers = useLongPress(handleContextMenu, { threshold: 500 })
+
+<div
+  onClick={handleClick}
+  onContextMenu={handleContextMenu}
+  onMouseDown={(e) => longPressHandlers.onMouseDown(e, node)}
+  onMouseUp={longPressHandlers.onMouseUp}
+  onMouseLeave={longPressHandlers.onMouseLeave}
+  onTouchStart={(e) => longPressHandlers.onTouchStart(e, node)}
+  onTouchEnd={longPressHandlers.onTouchEnd}
+>
+```
 
 ### Version History System
 - **Autosave:** Saves 2 seconds after typing stops
@@ -1431,18 +1462,41 @@ Long-press or right-click shows version history with timestamps and previews.
 
 Provides long-press (touch) and right-click (mouse) detection for context menus.
 
+**Two Signatures:**
+
+**1. Legacy Signature (RECOMMENDED for interactive components):**
+```typescript
+// For components that need native onClick + context menu
+const longPressHandlers = useLongPress(
+  (e) => setMenuPosition({ x: e.clientX, y: e.clientY }),
+  { threshold: 500 }
+)
+
+// Use with explicit handlers
+<div
+  onClick={handleClick}  // ← Native onClick for tap/click!
+  onContextMenu={handleContextMenu}
+  onMouseDown={(e) => longPressHandlers.onMouseDown(e, node)}
+  onMouseUp={longPressHandlers.onMouseUp}
+  onMouseLeave={longPressHandlers.onMouseLeave}
+  onTouchStart={(e) => longPressHandlers.onTouchStart(e, node)}
+  onTouchEnd={longPressHandlers.onTouchEnd}
+>
+```
+
+**2. New Signature (for simpler use cases):**
 ```typescript
 const handlers = useLongPress({
-  onLongPress: (e) => {
-    setMenuPosition({ x: e.clientX, y: e.clientY })
-  },
-  onClick: () => { /* regular click */ },
+  onLongPress: (e) => { /* context menu */ },
+  onClick: () => { /* regular click - triggered via onMouseUp/onTouchEnd */ },
   delay: 500,
   disabled: false
 })
 
 return <div {...handlers}>Content</div>
 ```
+
+> **Note:** The legacy signature with native `onClick` is more reliable across browsers and devices. Use it for important interactive components like note cards and folder rows.
 
 ---
 

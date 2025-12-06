@@ -10,9 +10,10 @@
  * @module engine/components/variants/layouts/view_gallery_grid
  */
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
+import { SiblingsProvider } from '../../../context/SiblingsContext'
 import { renderChildren } from '../../ViewEngine'
 import { useSlot } from '../../../hooks/useSlot'
 import { useShellAction, type CreateOption } from '../../../context/ShellActionContext'
@@ -47,6 +48,9 @@ export function ViewGalleryGrid({ node }: VariantComponentProps) {
 
   // Check if we have children to render
   const hasChildren = node.children && node.children.length > 0
+  
+  // Siblings for context - provides children to descendant components (like thumbnails for lightbox)
+  const siblings = useMemo(() => node.children || [], [node.children])
 
   // ==========================================================================
   // SHELL ACTION CONFIG (Dynamic Header Action)
@@ -94,21 +98,23 @@ export function ViewGalleryGrid({ node }: VariantComponentProps) {
         </div>
       )}
 
-      {/* Tight Grid Container */}
-      {hasChildren ? (
-        <div 
-          className={cn(
-            "grid gap-1",
-            "grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-          )}
-        >
-          {renderChildren(node, depth, rootId, rootNode)}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-dark-400 text-sm italic border border-dashed border-dark-300 rounded-lg mx-2">
-          No items
-        </div>
-      )}
+      {/* Tight Grid Container - wrapped with SiblingsProvider for lightbox navigation */}
+      <SiblingsProvider siblings={siblings}>
+        {hasChildren ? (
+          <div 
+            className={cn(
+              "grid gap-1",
+              "grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+            )}
+          >
+            {renderChildren(node, depth, rootId, rootNode)}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-dark-400 text-sm italic border border-dashed border-dark-300 rounded-lg mx-2">
+            No items
+          </div>
+        )}
+      </SiblingsProvider>
     </div>
   )
 }

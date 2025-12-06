@@ -57,6 +57,7 @@ interface SubViewState {
 export interface ImmersiveApp {
   context: string
   title: string
+  sourceIndex: number // Track where user came from for smart back navigation
 }
 
 interface AppState {
@@ -70,6 +71,7 @@ interface AppState {
   
   // Immersive App (rendered as modal overlay)
   immersiveApp: ImmersiveApp | null
+  
   
   // Tab state per pane
   tabs: TabState
@@ -284,12 +286,25 @@ export const useAppStore = create<AppState>()(
       registerDynamicPanes: (panes) => set({ dynamicPanes: panes }),
       
       // Immersive App actions
-      openImmersiveApp: (context, title) => set({ 
-        immersiveApp: { context, title },
-        isDrawerOpen: false,
-        drawerHeight: 0
-      }),
-      closeImmersiveApp: () => set({ immersiveApp: null }),
+      openImmersiveApp: (context, title) => {
+        const currentIndex = get().currentPaneIndex
+        set({ 
+          immersiveApp: { context, title, sourceIndex: currentIndex },
+          isDrawerOpen: false,
+          drawerHeight: 0
+        })
+      },
+      closeImmersiveApp: () => {
+        const { immersiveApp, paneOrder } = get()
+        const dashboardIndex = paneOrder.indexOf('dashboard')
+        // Navigate back to source pane, or dashboard if invalid
+        const targetIndex = immersiveApp?.sourceIndex ?? dashboardIndex
+        
+        set({ 
+          immersiveApp: null,
+          currentPaneIndex: targetIndex >= 0 ? targetIndex : dashboardIndex
+        })
+      },
       
       // === NEW: Navigation actions for State-First Back Navigation ===
       

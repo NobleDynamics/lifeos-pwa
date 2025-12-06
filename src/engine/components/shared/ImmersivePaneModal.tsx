@@ -7,8 +7,10 @@
  * Features:
  * - Portal to document.body (escapes SwipeDeck transform context)
  * - Touch event isolation for internal gestures
- * - Back button integration
- * - Header with close button and title
+ * - Back button integration with smart navigation
+ * - Header matching layout_app_shell pattern
+ * - ContextMenu support for long-press actions
+ * - Bottom padding for drawer handle visibility
  * 
  * @module engine/components/shared/ImmersivePaneModal
  */
@@ -16,9 +18,13 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { ChevronLeft, LayoutGrid, Plus } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import ViewEnginePane from '@/panes/ViewEnginePane'
 import { useBackButton } from '@/hooks/useBackButton'
+import { ContextMenuProvider, ContextMenuSheet } from '@/engine'
+import { DRAWER_HANDLE_HEIGHT } from '@/components/Layout'
+import { cn } from '@/lib/utils'
 
 // =============================================================================
 // TYPES
@@ -31,6 +37,8 @@ export interface ImmersivePaneModalProps {
   context: string | null
   /** Display title for the header */
   title?: string
+  /** Icon name (Lucide) for the header */
+  icon?: string
   /** Callback to close the modal */
   onClose: () => void
 }
@@ -43,6 +51,7 @@ export function ImmersivePaneModal({
   isOpen,
   context,
   title,
+  icon,
   onClose,
 }: ImmersivePaneModalProps) {
   // Store isOpen in a ref so handler can access current value
@@ -93,6 +102,11 @@ export function ImmersivePaneModal({
     e.stopPropagation()
   }, [])
 
+  // Get icon component
+  const iconName = icon || 'LayoutGrid'
+  // @ts-ignore - Dynamic icon lookup
+  const IconComponent = LucideIcons[iconName] || LayoutGrid
+
   const modalContent = (
     <AnimatePresence mode="wait">
       {isOpen && context && (
@@ -110,41 +124,81 @@ export function ImmersivePaneModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="absolute inset-0 bg-dark/95 backdrop-blur-sm"
-            onClick={onClose}
           />
 
-          {/* Modal Content */}
+          {/* Modal Content - Full height flex container */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-            className="relative flex flex-col h-full max-h-full"
+            className="relative flex flex-col h-full"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-dark-200 bg-dark-100/90 backdrop-blur-sm z-10">
-              <h2 className="font-semibold text-white truncate">
-                {title || 'App'}
-              </h2>
-              
-              <button
-                onClick={onClose}
-                className="p-2 -mr-2 rounded-lg hover:bg-dark-200 transition-colors"
-                aria-label="Close"
-              >
-                <X size={20} className="text-dark-400" />
-              </button>
+            {/* Header - Matches layout_app_shell pattern */}
+            <div className="flex-shrink-0 px-4 pt-4 pb-2 safe-top z-10 bg-dark-100/90 backdrop-blur-sm border-b border-dark-200">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {/* Back Button */}
+                  <button
+                    onClick={onClose}
+                    className="p-1 -ml-1 rounded-lg hover:bg-dark-200 transition-colors"
+                    aria-label="Go back"
+                  >
+                    <ChevronLeft size={24} className="text-dark-400" />
+                  </button>
+
+                  {/* App Icon */}
+                  <IconComponent size={24} className="text-primary flex-shrink-0" />
+
+                  {/* Title */}
+                  <h1 className="text-xl font-bold truncate text-white">
+                    {title || 'App'}
+                  </h1>
+                </div>
+
+                {/* Action Button Placeholder - Can be extended for "+ Add Card" etc. */}
+                {/* Future: Accept actionConfig prop to enable this */}
+                {/*
+                <button
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                    "text-sm font-medium text-white",
+                    "bg-gradient-to-r from-cyan-600 to-cyan-500",
+                    "hover:from-cyan-500 hover:to-cyan-400",
+                    "active:scale-95 transition-all duration-150",
+                    "shadow-lg shadow-cyan-500/20"
+                  )}
+                >
+                  <Plus size={16} />
+                  Add
+                </button>
+                */}
+              </div>
             </div>
 
-            {/* Content Area - ViewEnginePane */}
+            {/* Content Area - ViewEnginePane with ContextMenu support */}
+            {/* 
+              Height structure:
+              - flex-1 min-h-0: Fill remaining space after header
+              - Inner div with calculated height: Account for drawer handle
+              - overflow-hidden on outer, overflow managed by inner components
+            */}
             <div 
-              className="flex-1 overflow-hidden relative bg-dark"
+              className="flex-1 min-h-0 flex flex-col relative bg-dark"
               onClick={(e) => e.stopPropagation()} // Prevent backdrop click from closing
             >
-              <ViewEnginePane
-                context={context}
-                title={title}
-              />
+              <div 
+                className="flex-1 min-h-0 overflow-hidden"
+                style={{ marginBottom: `${DRAWER_HANDLE_HEIGHT}px` }}
+              >
+                <ContextMenuProvider>
+                  <ViewEnginePane
+                    context={context}
+                    title={title}
+                  />
+                  <ContextMenuSheet />
+                </ContextMenuProvider>
+              </div>
             </div>
           </motion.div>
         </div>

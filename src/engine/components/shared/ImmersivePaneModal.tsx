@@ -50,6 +50,14 @@ export interface ImmersivePaneModalProps {
   onClose: () => void
 }
 
+// Interface for extended ViewEnginePane props
+interface ViewEnginePaneExtended {
+  context: string
+  title?: string
+  /** Disable internal fixed positioning (when inside immersive modal) */
+  disableImmersiveMode?: boolean
+}
+
 // =============================================================================
 // COMPONENT
 // =============================================================================
@@ -253,30 +261,29 @@ export function ImmersivePaneModal({
               </div>
             </header>
 
-            {/* Content Area - Explicit calculated height */}
-            <div 
-              className="relative bg-dark"
-              style={{ 
-                height: `calc(100vh - ${HEADER_HEIGHT}px - ${DRAWER_HANDLE_HEIGHT}px - env(safe-area-inset-top, 0px))`,
-                overflow: 'hidden'
-              }}
+            {/* Content Area - Flex-grow with proper height constraints */}
+            <main 
+              className="flex-1 min-h-0 flex flex-col relative bg-dark overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <ContextMenuProvider>
-                <div className="h-full overflow-hidden">
+                {/* Inner wrapper to constrain height for child components */}
+                <div className="flex-1 min-h-0 overflow-hidden">
                   <ViewEnginePane
                     context={context}
                     title={title}
+                    // @ts-ignore - Extended prop for immersive context
+                    disableImmersiveMode={true}
                   />
                 </div>
                 <ContextMenuSheet />
               </ContextMenuProvider>
-            </div>
+            </main>
 
-            {/* Bottom spacer for drawer handle visibility */}
-            <div 
-              className="flex-shrink-0 bg-dark"
-              style={{ height: `${DRAWER_HANDLE_HEIGHT}px` }}
+            {/* Bottom spacer for drawer handle visibility - fixed at bottom */}
+            <footer 
+              className="flex-shrink-0 bg-dark-100/50"
+              style={{ height: `${DRAWER_HANDLE_HEIGHT}px`, minHeight: `${DRAWER_HANDLE_HEIGHT}px` }}
               aria-hidden="true"
             />
           </motion.div>

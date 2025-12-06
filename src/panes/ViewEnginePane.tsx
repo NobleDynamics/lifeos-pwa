@@ -64,6 +64,13 @@ export interface ViewEnginePaneProps {
   context: string
   /** Optional display title for the empty state */
   title?: string
+  /** 
+   * Disable internal immersive mode handling (when inside ImmersivePaneModal).
+   * When true:
+   * - Skips the `fixed inset-0` styling for presentation_mode='immersive'
+   * - Skips registering back button handlers (modal handles it)
+   */
+  disableImmersiveMode?: boolean
 }
 
 // =============================================================================
@@ -133,7 +140,7 @@ function pushNodeToHistory(nodeId: string | null) {
 // CONTENT COMPONENT
 // =============================================================================
 
-function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
+function ViewEnginePaneContent({ context, title, disableImmersiveMode = false }: ViewEnginePaneProps) {
   // Step 1: Get or create the context root
   const {
     rootId,
@@ -211,10 +218,14 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
    * - No stale state issues since we read from store.getState()
    * 
    * Priority: 20 (called before shell at 15 and app-level at 0)
+   * 
+   * NOTE: When disableImmersiveMode is true, we skip registering back handlers
+   * because the parent ImmersivePaneModal handles back navigation via history push/pop.
    */
   
   // Register back button handler at PRIORITY 20 (folder navigation)
-  useBackButton({
+  // Skip when inside immersive modal - the modal handles back
+  useBackButton(disableImmersiveMode ? undefined : {
     id: `viewengine:${paneId}`,
     priority: 20,
     handler: () => useAppStore.getState().backFromNode(paneId)
@@ -538,7 +549,8 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }
 
   // Check for immersive mode
-  const isImmersive = fullNodeTree?.metadata?.presentation_mode === 'immersive'
+  // Skip internal immersive handling if parent is already handling it (ImmersivePaneModal)
+  const isImmersive = !disableImmersiveMode && fullNodeTree?.metadata?.presentation_mode === 'immersive'
 
   // Determine currentParentId for create forms
   // If targetNodeId is set, that's the current parent for new items

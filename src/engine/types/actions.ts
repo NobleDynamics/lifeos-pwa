@@ -200,11 +200,12 @@ export interface HeaderActionConfig {
  * Action types for context menu options.
  */
 export const ContextMenuActionTypes = [
-  'edit',     // Open edit form with specified fields
-  'delete',   // Show confirm dialog, then delete node
-  'move',     // Show move target picker, update parent_id
-  'navigate', // Navigate to node detail view
-  'custom',   // Emit custom event via onTriggerBehavior
+  'edit',           // Open edit form with specified fields
+  'delete',         // Show confirm dialog, then delete node
+  'move',           // Show move target picker, update parent_id
+  'move_to_column', // Kanban: show column picker, move to sibling column
+  'navigate',       // Navigate to node detail view
+  'custom',         // Emit custom event via onTriggerBehavior
 ] as const
 
 export type ContextMenuActionType = (typeof ContextMenuActionTypes)[number]

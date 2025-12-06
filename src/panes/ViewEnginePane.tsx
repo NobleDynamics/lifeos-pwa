@@ -290,6 +290,22 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [])
 
   /**
+   * Handle moving a node to a new parent (e.g., Kanban card between columns)
+   */
+  const handleMoveNode = useCallback((nodeId: string, newParentId: string) => {
+    // Find current parent to pass as oldParentId (for cache updates)
+    const resource = resources?.find(r => r.id === nodeId)
+    
+    console.log('[ViewEnginePane] Moving node:', nodeId, 'to parent:', newParentId)
+    
+    moveResourceMutation.mutate({
+      id: nodeId,
+      newParentId: newParentId,
+      oldParentId: resource?.parent_id || null
+    })
+  }, [resources, moveResourceMutation])
+
+  /**
    * Handle saving note content from the modal
    */
   const handleSaveNote = useCallback((content: string, history: VersionEntry[]) => {
@@ -385,6 +401,23 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
         break
       }
 
+      case 'move_to_column': {
+        // This is handled by the dedicated onMoveNode callback
+        // For trigger behavior, we still support it
+        if (!config.payload?.parent_id) {
+          console.warn('[ViewEnginePane] move_to_column missing payload.parent_id')
+          return
+        }
+
+        const resource = resources?.find(r => r.id === node.id)
+        moveResourceMutation.mutate({
+          id: node.id,
+          newParentId: config.payload.parent_id,
+          oldParentId: resource?.parent_id || null
+        })
+        break
+      }
+
       case 'log_event': {
         // Create a new child node of type 'event' (stored as task/item)
         createResourceMutation.mutate({
@@ -451,6 +484,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
             onCycleStatus={handleCycleStatus}
             onTriggerBehavior={handleTriggerBehavior}
             onOpenNote={handleOpenNote}
+            onMoveNode={handleMoveNode}
           >
             {/* Shell controls its own scroll - no overflow here */}
             <ViewEngine root={emptyRoot} className="flex-1 min-h-0" />
@@ -502,6 +536,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           onCycleStatus={handleCycleStatus}
           onTriggerBehavior={handleTriggerBehavior}
           onOpenNote={handleOpenNote}
+          onMoveNode={handleMoveNode}
         >
           {/* 
             PERSISTENT SHELL ARCHITECTURE:

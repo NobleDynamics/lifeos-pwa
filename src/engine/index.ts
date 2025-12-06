@@ -201,6 +201,7 @@ export { DebugNode } from './components/DebugNode'
 export { ViewListStack } from './components/variants/views/view_list_stack'
 export { ViewDirectory } from './components/variants/views/view_directory'
 export { ViewGridFixed } from './components/variants/views/view_grid_fixed'
+export { ViewBoardColumns } from './components/variants/views/view_board_columns'
 export { LayoutAppShell } from './components/variants/layouts/layout_app_shell'
 export { LayoutTopTabs } from './components/variants/layouts/layout_top_tabs'
 
@@ -226,6 +227,10 @@ export { CardFolder } from './components/variants/cards/card_folder'
 export { CardNote } from './components/variants/cards/card_note'
 export { CardNoteLarge } from './components/variants/cards/card_note_large'
 
+// Kanban Cards
+export { CardKanbanDetails } from './components/variants/cards/card_kanban_details'
+export { CardKanbanImage } from './components/variants/cards/card_kanban_image'
+
 // Compact Cards (for side-by-side layouts)
 export { CardMediaTopCompact } from './components/variants/cards/card_media_top_compact'
 export { CardMediaThumbnailCompact } from './components/variants/cards/card_media_thumbnail_compact'
@@ -248,6 +253,10 @@ export { ViewDashboardMasonry, ViewDashboardResponsive } from './components/vari
 // Gallery & Carousel Layouts
 export { ViewGalleryGrid } from './components/variants/layouts/view_gallery_grid'
 export { ViewCarouselSnap } from './components/variants/layouts/view_carousel_snap'
+
+// Shared Components
+export { MoveToColumnSheet } from './components/shared/MoveToColumnSheet'
+export type { MoveToColumnSheetProps } from './components/shared/MoveToColumnSheet'
 
 // =============================================================================
 // ENGINE INITIALIZATION
@@ -305,6 +314,11 @@ import { ViewDashboardMasonry, ViewDashboardResponsive } from './components/vari
 // Gallery & Carousel Layouts
 import { ViewGalleryGrid } from './components/variants/layouts/view_gallery_grid'
 import { ViewCarouselSnap } from './components/variants/layouts/view_carousel_snap'
+
+// Kanban Components
+import { ViewBoardColumns } from './components/variants/views/view_board_columns'
+import { CardKanbanDetails } from './components/variants/cards/card_kanban_details'
+import { CardKanbanImage } from './components/variants/cards/card_kanban_image'
 
 /**
  * Initialize the ViewEngine with default variants.
@@ -372,6 +386,11 @@ export function initializeEngine(): void {
     // Gallery & Carousel Layouts
     view_gallery_grid: ViewGalleryGrid,
     view_carousel_snap: ViewCarouselSnap,
+
+    // Kanban Board Variants
+    view_board_columns: ViewBoardColumns,
+    card_kanban_details: CardKanbanDetails,
+    card_kanban_image: CardKanbanImage,
 
     // =========================================
     // LEGACY ALIASES (Backwards Compatibility)

@@ -1396,6 +1396,171 @@ Long-press or right-click shows version history with timestamps and previews.
 
 ---
 
+## Kanban Board (Dec 2024)
+
+### `view_board_columns`
+**Structure:** Horizontal snap-scroll board with multiple columns
+**Use for:** Project management, task boards, workflow visualization
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [←] Project Board                                      [+ Add ▼]  │
+├─────────────────────────────────────────────────────────────────────┤
+│ ┌──────────────┐   ┌──────────────┐   ┌──────────────┐             │
+│ │ To Do        │   │ In Progress  │   │ Done         │   ← Snap   │
+│ │▀▀▀▀▀▀▀▀▀▀▀▀▀▀│   │▀▀▀▀▀▀▀▀▀▀▀▀▀▀│   │▀▀▀▀▀▀▀▀▀▀▀▀▀▀│   scroll    │
+│ │ ┌──────────┐ │   │              │   │              │             │
+│ │ │ Card 1   │ │   │              │   │              │             │
+│ │ └──────────┘ │   │              │   │              │             │
+│ │ ┌──────────┐ │   │              │   │              │             │
+│ │ │ Card 2   │ │   │              │   │              │             │
+│ │ └──────────┘ │   │              │   │              │             │
+│ └──────────────┘   └──────────────┘   └──────────────┘             │
+├─────────────────────────────────────────────────────────────────────┤
+│                         [●] [○] [○]                                 │ ← Indicators
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Architecture:**
+- Mobile-first: Columns are 85% viewport width with snap scrolling
+- Desktop: Fixed-width columns (300-320px)
+- Touch trap prevents parent scroll interference
+- Dot indicators show current column position
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Board title (optional header) |
+| `presentation_mode` | string | Set to 'immersive' for fullscreen overlay |
+
+**Child Node Requirements:**
+Each child represents a **column** and should use `view_list_stack` variant:
+- `column_color` - Colored bottom border (hex color)
+- Children of columns are the actual cards
+
+**Column Context Menu:**
+Cards inside columns automatically get access to "Move to..." context menu action that shows `MoveToColumnSheet` - a column picker bottom sheet.
+
+**Example:**
+```json
+{
+  "id": "board-1",
+  "type": "container",
+  "variant": "view_board_columns",
+  "title": "Project Board",
+  "metadata": { "presentation_mode": "immersive" },
+  "children": [
+    {
+      "id": "col-todo",
+      "type": "container",
+      "variant": "view_list_stack",
+      "title": "To Do",
+      "metadata": { "column_color": "#ef4444" },
+      "children": [
+        { "id": "card-1", "variant": "card_kanban_details", "title": "Design landing", ... }
+      ]
+    },
+    {
+      "id": "col-progress",
+      "type": "container",
+      "variant": "view_list_stack",
+      "title": "In Progress",
+      "metadata": { "column_color": "#fbbf24" },
+      "children": []
+    }
+  ]
+}
+```
+
+---
+
+### `card_kanban_details`
+**Structure:** Text-based Kanban card with priority, dates, and tags
+**Use for:** Task cards within Kanban columns
+
+```
+┌─────────────────────────────────────┐
+│ ▌ headline                          │  ← Left border = priority_color
+│   subtext (truncated 2 lines)       │
+│                                     │
+│   [📅 due_date] [👤 assignee]       │  ← Bottom row
+│   [tag1] [tag2] [tag3]              │
+└─────────────────────────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `headline` | string | Card title (default: node.title) |
+| `subtext` | string | Description text (optional) |
+| `due_date` | string | ISO date for due date badge (optional) |
+| `assignee` | string | Avatar initials or name (optional) |
+| `priority_color` | string | Hex color for left border (optional) |
+| `tags` | string[] | Array of tag strings (optional, max 3 shown) |
+
+**Behavior:**
+- **Long press** → Opens context menu with "Move to..." option
+- **Click** → Could navigate to detail (via target_id)
+- **Due Date Formatting** → "Today", "Tomorrow", or "Dec 1"
+- **Overdue Detection** → Red text if past due
+
+**Example:**
+```json
+{
+  "variant": "card_kanban_details",
+  "title": "Design landing page",
+  "metadata": {
+    "subtext": "Create mockups in Figma",
+    "due_date": "2025-01-15",
+    "priority_color": "#ef4444",
+    "assignee": "JD",
+    "tags": ["design", "urgent", "q1"]
+  }
+}
+```
+
+---
+
+### `card_kanban_image`
+**Structure:** Kanban card with cover image + text details
+**Use for:** Visual task cards, creative project items
+
+```
+┌─────────────────────────────────────┐
+│    [image/media area]               │  ← Configurable height
+│                                     │
+├─────────────────────────────────────┤
+│ ▌ headline                          │  ← Left border = priority_color
+│   subtext (truncated 2 lines)       │
+│                                     │
+│   [📅 due_date] [👤 assignee]       │
+│   [tag1] [tag2] [tag3]              │
+└─────────────────────────────────────┘
+```
+
+**Slots:**
+Same as `card_kanban_details` plus:
+| Slot | Type | Description |
+|------|------|-------------|
+| `media` | string | Cover image URL (optional) |
+| `media_height` | string | CSS class for height (default: 'h-24') |
+
+**Example:**
+```json
+{
+  "variant": "card_kanban_image",
+  "title": "Homepage Hero Banner",
+  "metadata": {
+    "media": "https://example.com/hero-mockup.jpg",
+    "media_height": "h-32",
+    "subtext": "Need to finalize color scheme",
+    "due_date": "2025-01-20"
+  }
+}
+```
+
+---
+
 ### `card_note_large`
 **Structure:** Full-width card with extended preview
 **Use for:** Featured notes, documentation cards (col_span: 6)

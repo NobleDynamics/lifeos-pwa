@@ -47,6 +47,9 @@ export interface EngineActionsValue {
   /** Open the note viewer/editor modal for a note node */
   onOpenNote: (node: Node) => void
 
+  /** Move a node to a new parent (e.g., move card between Kanban columns) */
+  onMoveNode: (nodeId: string, newParentId: string) => void
+
   /** Convert a Node to a minimal Resource for mutation hooks */
   nodeToResource: (node: Node) => Resource
 }
@@ -93,6 +96,9 @@ export interface EngineActionsProviderProps {
 
   /** Callback when opening a note viewer/editor */
   onOpenNote: (node: Node) => void
+
+  /** Callback when moving a node to a new parent */
+  onMoveNode: (nodeId: string, newParentId: string) => void
 
   /** Child components */
   children: ReactNode
@@ -143,6 +149,7 @@ export function EngineActionsProvider({
   onCycleStatus,
   onTriggerBehavior,
   onOpenNote,
+  onMoveNode,
   children,
 }: EngineActionsProviderProps) {
   const nodeToResource = useMemo(
@@ -160,9 +167,10 @@ export function EngineActionsProvider({
       onCycleStatus,
       onTriggerBehavior,
       onOpenNote,
+      onMoveNode,
       nodeToResource,
     }),
-    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, onTriggerBehavior, onOpenNote, nodeToResource]
+    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, onTriggerBehavior, onOpenNote, onMoveNode, nodeToResource]
   )
 
   return (
@@ -241,6 +249,7 @@ export function useEngineActionsWithFallback() {
     onCycleStatus: noOpCycleStatus,
     onTriggerBehavior: useCallback((_n: Node, _c: BehaviorConfig) => { }, []),
     onOpenNote: useCallback((_n: Node) => { }, []),
+    onMoveNode: useCallback((_nodeId: string, _newParentId: string) => { }, []),
     nodeToResource: defaultNodeToResource,
     isInteractive: false,
   }

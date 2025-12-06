@@ -73,6 +73,9 @@ export interface ContextMenuHandlers {
   /** Called when 'move' action is selected */
   onMove?: (node: Node, option: ContextMenuOption) => void
   
+  /** Called when 'move_to_column' action is selected (Kanban) */
+  onMoveToColumn?: (node: Node, option: ContextMenuOption) => void
+  
   /** Called when 'navigate' action is selected */
   onNavigate?: (node: Node, option: ContextMenuOption) => void
   
@@ -179,6 +182,9 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         break
       case 'move':
         handlers.onMove?.(node, option)
+        break
+      case 'move_to_column':
+        handlers.onMoveToColumn?.(node, option)
         break
       case 'navigate':
         handlers.onNavigate?.(node, option)

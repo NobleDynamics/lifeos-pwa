@@ -12,8 +12,10 @@
  * @module engine/components/variants/views/view_grid_fixed
  */
 
+import { useMemo } from 'react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode, NodeProvider } from '../../../context/NodeContext'
+import { SiblingsProvider } from '../../../context/SiblingsContext'
 import { resolveVariant } from '../../../registry'
 import { useSlot } from '../../../hooks/useSlot'
 import { cn } from '@/lib/utils'
@@ -44,11 +46,15 @@ export function ViewGridFixed({ node }: VariantComponentProps) {
 
     // Check if we have children to render
     const hasChildren = node.children && node.children.length > 0
+    
+    // Siblings for context - provides children to descendant components (like thumbnails)
+    const siblings = useMemo(() => node.children || [], [node.children])
 
     // Gap class
     const gapClass = gap === 2 ? 'gap-2' : gap === 3 ? 'gap-3' : gap === 4 ? 'gap-4' : gap === 6 ? 'gap-6' : 'gap-4'
 
     return (
+      <SiblingsProvider siblings={siblings}>
         <div
             className="flex flex-col gap-4 p-4"
             data-variant="view_grid_fixed"
@@ -103,5 +109,6 @@ export function ViewGridFixed({ node }: VariantComponentProps) {
                 </div>
             )}
         </div>
+      </SiblingsProvider>
     )
 }

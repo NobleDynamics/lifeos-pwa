@@ -105,6 +105,15 @@ export type {
   BehaviorConfig,
 } from './context/EngineActionsContext'
 
+// Siblings Context (for sharing media siblings between view and card)
+export {
+  SiblingsProvider,
+  useSiblings,
+  useSiblingsWithFallback,
+} from './context/SiblingsContext'
+
+export type { SiblingsContextValue, SiblingsProviderProps } from './context/SiblingsContext'
+
 // Shell Navigation Context (for persistent shell architecture)
 export {
   ShellNavigationProvider,

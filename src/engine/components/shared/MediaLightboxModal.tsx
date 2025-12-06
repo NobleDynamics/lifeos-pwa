@@ -358,12 +358,14 @@ export function MediaLightboxModal({
 
   /**
    * Handle close via UI interaction (X button, backdrop click, Escape key)
-   * This uses popBackState to properly pop the history entry
+   * Calls onClose directly to ensure modal closes immediately
+   * The useBackButton cleanup handles history on unmount
    */
   const handleClose = useCallback(() => {
-    // Use popBackState to properly pop history and trigger close
-    popBackState('media-lightbox-modal')
-  }, [])
+    // Call onClose directly - this unmounts the component
+    // The useBackButton hook cleanup will handle history state
+    onClose()
+  }, [onClose])
 
   // Prevent body scroll
   useEffect(() => {

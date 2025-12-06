@@ -12,23 +12,14 @@
  * @module engine/components/variants/cards/card_media_thumbnail
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { Image as ImageIcon } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useSlot } from '../../../hooks/useSlot'
-import { useNode } from '../../../context/NodeContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
+import { useSiblingsWithFallback } from '../../../context/SiblingsContext'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
-import type { Node } from '../../../types/node'
-
-/**
- * Check if a node is a media node (has a URL for image/video)
- */
-function isMediaNode(node: Node): boolean {
-  const metadata = node.metadata as Record<string, unknown>
-  return !!(metadata.url || metadata.imageUrl)
-}
 
 /**
  * CardMediaThumbnail - Square image thumbnail card.
@@ -53,8 +44,8 @@ export function CardMediaThumbnail({ node }: VariantComponentProps) {
   const url = useSlot<string>('url')
   const alt = useSlot<string>('alt') ?? node.title ?? 'Thumbnail'
   
-  // Get parent node to access siblings
-  const { node: parentNode } = useNode()
+  // Get siblings from context (provided by parent view like view_grid_fixed)
+  const { siblings, currentIndex } = useSiblingsWithFallback(node)
   
   // Actions context for opening lightbox and context menu
   const actions = useEngineActions()
@@ -74,27 +65,6 @@ export function CardMediaThumbnail({ node }: VariantComponentProps) {
       actions.onOpenContextMenu(syntheticEvent, resource)
     }
   }, [actions, node])
-  
-  // Get media siblings from parent (filter for media nodes only)
-  const { siblings, currentIndex } = useMemo(() => {
-    // parentNode in NodeContext is actually the current node being rendered
-    // We need to get parent's children, but the thumbnail doesn't have direct access
-    // So we'll look for siblings in parent's children if it has them
-    const parent = parentNode
-    
-    if (!parent?.children) {
-      return { siblings: [node], currentIndex: 0 }
-    }
-    
-    // Filter to only include media nodes (nodes with url or imageUrl)
-    const mediaNodes = parent.children.filter(isMediaNode)
-    const index = mediaNodes.findIndex(n => n.id === node.id)
-    
-    return {
-      siblings: mediaNodes.length > 0 ? mediaNodes : [node],
-      currentIndex: index >= 0 ? index : 0
-    }
-  }, [parentNode, node])
   
   // Handle tap to open lightbox
   const handleClick = useCallback(() => {

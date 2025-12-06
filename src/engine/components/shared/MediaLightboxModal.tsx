@@ -8,6 +8,7 @@
  * - Image preloading for adjacent items
  * - Long-press for context menu
  * - Portal rendering to escape SwipeDeck transforms
+ * - Back button integration for Android
  * 
  * @module engine/components/shared/MediaLightboxModal
  */
@@ -18,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, MoreVertical, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Node } from '../../types/node'
-import { useContextMenu } from '../../context/ContextMenuContext'
+import { useBackButton } from '@/hooks/useBackButton'
 
 // =============================================================================
 // TYPES
@@ -35,16 +36,16 @@ export interface MediaLightboxModalProps {
   siblings: Node[]
   /** Initial index in siblings array */
   initialIndex: number
-  /** Optional parent node for context menu inheritance */
-  parentNode?: Node | null
+  /** Callback when context menu should be shown (receives node and position) */
+  onShowContextMenu?: (node: Node, x: number, y: number) => void
 }
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
-const SWIPE_THRESHOLD = 0.2 // 20% of width to trigger page change
-const VELOCITY_THRESHOLD = 0.3 // pixels per ms for flick detection
+const SWIPE_THRESHOLD = 0.15 // 15% of width to trigger page change (lowered for responsiveness)
+const VELOCITY_THRESHOLD = 0.2 // pixels per ms for flick detection (lowered)
 const ANIMATION_DURATION = 250 // ms
 const LONG_PRESS_DELAY = 500 // ms
 
@@ -78,7 +79,7 @@ export function MediaLightboxModal({
   currentNode,
   siblings,
   initialIndex,
-  parentNode = null,
+  onShowContextMenu,
 }: MediaLightboxModalProps) {
   // Current index in siblings array
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
@@ -86,13 +87,12 @@ export function MediaLightboxModal({
   // Swipe state
   const [dragDelta, setDragDelta] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [containerWidth, setContainerWidth] = useState(0)
+  const [containerWidth, setContainerWidth] = useState(window.innerWidth) // Initialize with window width
   
   // Preloaded images
   const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set())
   
   // Long press state
-  const [isLongPressing, setIsLongPressing] = useState(false)
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
   // Refs
@@ -107,13 +107,25 @@ export function MediaLightboxModal({
     directionLocked: null as null | 'horizontal' | 'vertical',
   })
   
-  // Context menu
-  const { showContextMenu } = useContextMenu()
-  
   // Current node based on index
   const activeNode = useMemo(() => {
     return siblings[currentIndex] || currentNode
   }, [siblings, currentIndex, currentNode])
+  
+  // ==========================================================================
+  // BACK BUTTON HANDLER (Android)
+  // ==========================================================================
+  useBackButton({
+    id: 'media-lightbox-modal',
+    priority: 100, // Highest priority - close lightbox before anything else
+    handler: () => {
+      if (isOpen) {
+        onClose()
+        return true // Consumed the back event
+      }
+      return false
+    }
+  })
   
   // Reset state when modal opens
   useEffect(() => {
@@ -122,23 +134,37 @@ export function MediaLightboxModal({
       setDragDelta(0)
       setIsAnimating(false)
       setPreloadedImages(new Set())
+      // Ensure we have a valid width
+      setContainerWidth(window.innerWidth)
     }
   }, [isOpen, initialIndex])
 
   // Measure container width
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!isOpen) return
     
     const updateWidth = () => {
       if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth)
+        const width = containerRef.current.offsetWidth
+        if (width > 0) {
+          setContainerWidth(width)
+        }
       }
     }
     
-    updateWidth()
-    const observer = new ResizeObserver(updateWidth)
-    observer.observe(containerRef.current)
-    return () => observer.disconnect()
+    // Initial measurement after a short delay to ensure rendering
+    const timeout = setTimeout(updateWidth, 50)
+    
+    if (containerRef.current) {
+      const observer = new ResizeObserver(updateWidth)
+      observer.observe(containerRef.current)
+      return () => {
+        clearTimeout(timeout)
+        observer.disconnect()
+      }
+    }
+    
+    return () => clearTimeout(timeout)
   }, [isOpen])
 
   // Preload adjacent images
@@ -179,17 +205,18 @@ export function MediaLightboxModal({
   // SWIPE HANDLERS
   // ==========================================================================
   
-  const getBaseOffset = useCallback(() => {
-    return -currentIndex * containerWidth
-  }, [currentIndex, containerWidth])
-
   const clearLongPressTimer = useCallback(() => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current)
       longPressTimerRef.current = null
     }
-    setIsLongPressing(false)
   }, [])
+
+  const triggerContextMenu = useCallback((x: number, y: number) => {
+    if (onShowContextMenu) {
+      onShowContextMenu(activeNode, x, y)
+    }
+  }, [activeNode, onShowContextMenu])
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     // Stop propagation to prevent SwipeDeck from receiving this event
@@ -208,26 +235,25 @@ export function MediaLightboxModal({
     
     // Start long press timer
     longPressTimerRef.current = setTimeout(() => {
-      setIsLongPressing(true)
       // Show context menu
-      showContextMenu(activeNode, parentNode, { x: touch.clientX, y: touch.clientY })
+      triggerContextMenu(touch.clientX, touch.clientY)
       gestureRef.current.isDragging = false
     }, LONG_PRESS_DELAY)
-  }, [isAnimating, activeNode, parentNode, showContextMenu])
+  }, [isAnimating, triggerContextMenu])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     // Stop propagation to prevent SwipeDeck from receiving this event
     e.stopPropagation()
     
     const gesture = gestureRef.current
-    if (!gesture.isDragging || !containerWidth) return
+    if (!gesture.isDragging) return
     
     const touch = e.touches[0]
     const deltaX = touch.clientX - gesture.startX
     const deltaY = touch.clientY - gesture.startY
     
-    // Cancel long press on movement
-    if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+    // Cancel long press on any movement
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
       clearLongPressTimer()
     }
     
@@ -261,7 +287,7 @@ export function MediaLightboxModal({
     }
     
     setDragDelta(newDelta)
-  }, [containerWidth, currentIndex, siblings.length, clearLongPressTimer])
+  }, [currentIndex, siblings.length, clearLongPressTimer])
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     // Stop propagation to prevent SwipeDeck from receiving this event
@@ -281,8 +307,9 @@ export function MediaLightboxModal({
     gesture.isDragging = false
     gesture.directionLocked = null
     
-    // Determine if we should change page
-    const threshold = containerWidth * SWIPE_THRESHOLD
+    // Use containerWidth for threshold calculation
+    const width = containerWidth || window.innerWidth
+    const threshold = width * SWIPE_THRESHOLD
     const velocityMet = Math.abs(velocity) > VELOCITY_THRESHOLD
     const distanceMet = Math.abs(deltaX) > threshold
     
@@ -305,12 +332,12 @@ export function MediaLightboxModal({
     setTimeout(() => setIsAnimating(false), ANIMATION_DURATION)
   }, [currentIndex, containerWidth, siblings.length, clearLongPressTimer])
 
-  // Mouse handlers for desktop
+  // Mouse handlers for desktop (right-click context menu)
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    showContextMenu(activeNode, parentNode, { x: e.clientX, y: e.clientY })
-  }, [activeNode, parentNode, showContextMenu])
+    triggerContextMenu(e.clientX, e.clientY)
+  }, [triggerContextMenu])
 
   // Navigate to specific index
   const goToIndex = useCallback((index: number) => {
@@ -359,13 +386,10 @@ export function MediaLightboxModal({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, currentIndex, handleClose, goToIndex])
 
-  // Calculate transform
-  const baseOffset = getBaseOffset()
+  // Calculate transform - use pixels for each image width
+  const imageWidth = containerWidth
+  const baseOffset = -currentIndex * imageWidth
   const currentOffset = baseOffset + dragDelta
-
-  // Get current image URL
-  const currentUrl = getMediaUrl(activeNode)
-  const currentAlt = getMediaAlt(activeNode)
 
   // Use portal to render outside SwipeDeck transform context
   const modalContent = (
@@ -410,7 +434,7 @@ export function MediaLightboxModal({
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  showContextMenu(activeNode, parentNode, { x: e.clientX, y: e.clientY })
+                  triggerContextMenu(e.clientX, e.clientY)
                 }}
                 className="p-2 -mr-2 rounded-lg hover:bg-white/10 transition-colors"
                 aria-label="More options"
@@ -428,11 +452,11 @@ export function MediaLightboxModal({
               onTouchEnd={handleTouchEnd}
               style={{ touchAction: 'pan-y pinch-zoom' }}
             >
-              {/* Images strip */}
+              {/* Images strip - each image takes full container width */}
               <div 
                 className="flex h-full"
                 style={{
-                  width: `${siblings.length * 100}%`,
+                  width: `${siblings.length * imageWidth}px`,
                   transform: `translate3d(${currentOffset}px, 0, 0)`,
                   transition: dragDelta !== 0 ? 'none' : `transform ${ANIMATION_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1)`,
                   willChange: 'transform',
@@ -445,8 +469,8 @@ export function MediaLightboxModal({
                   return (
                     <div 
                       key={sibling.id}
-                      className="flex items-center justify-center h-full"
-                      style={{ width: `${100 / siblings.length}%` }}
+                      className="flex items-center justify-center h-full flex-shrink-0"
+                      style={{ width: `${imageWidth}px` }}
                     >
                       {url ? (
                         <img 
@@ -509,4 +533,3 @@ export function MediaLightboxModal({
   // Portal to document.body to escape SwipeDeck's transform containing block
   return createPortal(modalContent, document.body)
 }
-

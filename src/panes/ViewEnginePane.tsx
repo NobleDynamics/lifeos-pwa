@@ -305,6 +305,19 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   }, [])
 
   /**
+   * Handle showing context menu from media lightbox
+   */
+  const handleMediaContextMenu = useCallback((node: Node, x: number, y: number) => {
+    // Find the resource that corresponds to this node
+    const resource = resources?.find(r => r.id === node.id)
+    if (resource) {
+      showContextMenu(x, y, resource)
+    } else {
+      console.warn('[ViewEnginePane] Resource not found for node:', node.id)
+    }
+  }, [resources, showContextMenu])
+
+  /**
    * Handle moving a node to a new parent (e.g., Kanban card between columns)
    */
   const handleMoveNode = useCallback((nodeId: string, newParentId: string) => {
@@ -588,6 +601,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           currentNode={selectedMediaNode}
           siblings={mediaSiblings}
           initialIndex={mediaInitialIndex}
+          onShowContextMenu={handleMediaContextMenu}
         />
       )}
     </div>

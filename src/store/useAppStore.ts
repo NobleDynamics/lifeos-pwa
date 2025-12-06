@@ -53,6 +53,12 @@ interface SubViewState {
   [key: string]: string // Allow dynamic sub-views
 }
 
+// Immersive app info
+export interface ImmersiveApp {
+  context: string
+  title: string
+}
+
 interface AppState {
   // Pane navigation
   paneOrder: PaneType[]
@@ -61,6 +67,9 @@ interface AppState {
   
   // Dynamic Panes
   dynamicPanes: DynamicPane[]
+  
+  // Immersive App (rendered as modal overlay)
+  immersiveApp: ImmersiveApp | null
   
   // Tab state per pane
   tabs: TabState
@@ -104,6 +113,10 @@ interface AppState {
   
   registerDynamicPanes: (panes: DynamicPane[]) => void
   
+  // Immersive App actions
+  openImmersiveApp: (context: string, title: string) => void
+  closeImmersiveApp: () => void
+  
   // === NEW: Navigation actions for State-First Back Navigation ===
   // Forward navigation: push to node stack, set active node
   navigateToNode: (paneId: string, nodeId: string | null, isTab?: boolean) => void
@@ -129,6 +142,7 @@ export const useAppStore = create<AppState>()(
       currentPaneIndex: DEFAULT_PANE_ORDER.indexOf('dashboard'), // Start at dashboard
       paneHistory: [], // Empty history at start
       dynamicPanes: [],
+      immersiveApp: null,
       
       tabs: {
         health: 'nutrition',
@@ -268,6 +282,14 @@ export const useAppStore = create<AppState>()(
       resetPaneOrder: () => set({ paneOrder: DEFAULT_PANE_ORDER }),
       
       registerDynamicPanes: (panes) => set({ dynamicPanes: panes }),
+      
+      // Immersive App actions
+      openImmersiveApp: (context, title) => set({ 
+        immersiveApp: { context, title },
+        isDrawerOpen: false,
+        drawerHeight: 0
+      }),
+      closeImmersiveApp: () => set({ immersiveApp: null }),
       
       // === NEW: Navigation actions for State-First Back Navigation ===
       

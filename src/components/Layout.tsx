@@ -98,7 +98,7 @@ const cyanGlowBarStyle = {
 
 // Combined Drawer + Swipe Handler - drawer follows finger in real-time
 function DrawerWithSwipe() {
-  const { isDrawerOpen, closeDrawer, navigateToPaneTab, navigateToPane, paneOrder } = useAppStore()
+  const { isDrawerOpen, closeDrawer, navigateToPaneTab, navigateToPane, paneOrder, openImmersiveApp } = useAppStore()
   const { apps } = useAppLauncher()
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -513,13 +513,15 @@ function DrawerWithSwipe() {
             onTouchMove={handleContentTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {/* Pane Grid */}
+            {/* Pane Grid - excludes immersive apps (they show separately) */}
             <div className="mb-6">
               <p className="text-xs text-dark-500 uppercase tracking-wider mb-3 px-2">All Panes</p>
               <div className="grid grid-cols-5 gap-2">
                 {paneOrder.map((paneId) => {
                   const appConfig = apps.get(paneId)
                   if (!appConfig) return null
+                  // Immersive apps are shown in separate section
+                  if (appConfig.isImmersive) return null
 
                   const Icon = appConfig.icon
 
@@ -541,6 +543,41 @@ function DrawerWithSwipe() {
                 })}
               </div>
             </div>
+
+            {/* Immersive Apps Grid - Kanban boards, etc. (open as modal) */}
+            {(() => {
+              const immersiveApps = Array.from(apps.entries()).filter(([, config]) => config.isImmersive)
+              if (immersiveApps.length === 0) return null
+              
+              return (
+                <div className="mb-6">
+                  <p className="text-xs text-dark-500 uppercase tracking-wider mb-3 px-2">Immersive Apps</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {immersiveApps.map(([id, config]) => {
+                      const Icon = config.icon
+
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            if (config.context) {
+                              openImmersiveApp(config.context, config.label)
+                            }
+                            animateToHeight(0)
+                          }}
+                          className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-dark-200 transition-colors active:scale-95"
+                        >
+                          <div className={`w-10 h-10 rounded-xl bg-dark-200 flex items-center justify-center ${config.color}`}>
+                            <Icon size={20} />
+                          </div>
+                          <span className="text-[10px] text-dark-500 truncate w-full text-center">{config.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Quick Links by Category */}
             {drawerQuickLinks.map((category) => (

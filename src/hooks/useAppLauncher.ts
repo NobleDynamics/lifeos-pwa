@@ -46,6 +46,7 @@ export interface AppConfig {
     color: string
     isSystem: boolean
     context?: string
+    isImmersive?: boolean  // Apps with horizontal swipe that conflict with global nav
 }
 
 /**
@@ -136,44 +137,64 @@ export function useAppLauncher() {
             })
         })
 
-        // B. Merge/Add Dynamic Apps
-        dynamicPanes.forEach(pane => {
-            // If it matches a system app, it might override metadata (future proofing)
-            // For now, we just ensure it exists.
-
-            if (SYSTEM_APPS[pane.id]) {
-                // It's a system app we already know about
-                return
+        // B. Merge/Add Dynamic Apps (including detecting immersive mode)
+        contextRoots?.forEach(root => {
+            const meta = root.meta_data as Record<string, any> || {}
+            const context = meta.context as string
+            
+            // Skip if it's a system app we already know about
+            if (SYSTEM_APPS[root.id]) return
+            
+            // Check for known system context mappings
+            if (context === 'cloud.files' || context === 'health.dashboard' || context === 'finance.dashboard') {
+                return // These map to system apps
             }
 
             // Resolve icon and color
-            const { Icon, color } = resolveIcon(pane.icon)
+            const { Icon, color } = resolveIcon(meta.icon)
+            
+            // Check if this is an immersive app (horizontal swipe conflicts with global nav)
+            const isImmersive = meta.presentation_mode === 'immersive'
 
             // It's a user app
-            appMap.set(pane.id, {
-                id: pane.id,
-                label: pane.title,
+            appMap.set(root.id, {
+                id: root.id,
+                label: root.title,
                 icon: Icon,
                 // Use parsed color, or default to cyan if not provided
                 color: color ? `text-[${color}]` : 'text-cyan-400',
                 isSystem: false,
-                context: pane.context
+                context: context,
+                isImmersive: isImmersive
             })
         })
 
         return appMap
-    }, [dynamicPanes])
+    }, [contextRoots])
 
-    // 4. Ensure Pane Order includes all apps
+    // 4. Ensure Pane Order includes all NON-IMMERSIVE apps
+    // Immersive apps (like Kanban boards) open as modal overlays, not swipeable panes
     useEffect(() => {
         if (isLoading) return
 
         const currentSet = new Set(paneOrder)
-        const newApps = Array.from(apps.keys()).filter(id => !currentSet.has(id))
+        
+        // Filter out immersive apps - they should NOT be in paneOrder
+        const newApps = Array.from(apps.entries())
+            .filter(([id, config]) => {
+                // Must not already be in paneOrder
+                if (currentSet.has(id)) return false
+                // Must not be an immersive app
+                if (config.isImmersive) return false
+                return true
+            })
+            .map(([id]) => id)
 
         console.log('useAppLauncher: Current paneOrder:', paneOrder)
         console.log('useAppLauncher: Discovered apps:', Array.from(apps.keys()))
-        console.log('useAppLauncher: New apps to add:', newApps)
+        console.log('useAppLauncher: Immersive apps (excluded from panes):', 
+            Array.from(apps.entries()).filter(([, c]) => c.isImmersive).map(([id]) => id))
+        console.log('useAppLauncher: New pane apps to add:', newApps)
 
         if (newApps.length > 0) {
             // Insert new apps before Settings

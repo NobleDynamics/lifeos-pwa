@@ -1396,6 +1396,71 @@ Long-press or right-click shows version history with timestamps and previews.
 
 ---
 
+## Immersive App System (Dec 2024)
+
+The Immersive App System allows apps with horizontal swipe gestures (like Kanban boards) to work without conflicting with the global pane swipe navigation.
+
+### How It Works
+
+1. **Detection:** Context roots with `meta_data.presentation_mode = 'immersive'` are marked as immersive apps
+2. **Filtering:** `useAppLauncher` excludes immersive apps from `paneOrder` (no swipeable pane created)
+3. **Drawer Display:** Immersive apps appear in a separate "Immersive Apps" section in the drawer
+4. **Launch:** Tapping opens `ImmersivePaneModal` (portaled to body with isolated touch events)
+5. **Isolation:** The modal uses `createPortal` to render outside SwipeDeck's transform context
+6. **Back Button:** Modal closes via back button (priority 100 - highest) or X button
+
+### Database Flag
+```sql
+INSERT INTO resources (id, user_id, type, title, meta_data)
+VALUES (
+  gen_random_uuid(),
+  'user-id',
+  'folder',
+  'My Kanban Board',
+  jsonb_build_object(
+    'variant', 'view_board_columns',
+    'is_context_root', true,
+    'is_system_app', true,
+    'context', 'user.projects',
+    'presentation_mode', 'immersive'  -- ← This flag!
+  )
+);
+```
+
+### Store State
+```typescript
+// In useAppStore
+immersiveApp: { context: string; title: string } | null
+
+// Actions
+openImmersiveApp(context: string, title: string)
+closeImmersiveApp()
+```
+
+### ImmersivePaneModal Component
+**Location:** `src/engine/components/shared/ImmersivePaneModal.tsx`
+
+A fullscreen modal that renders ViewEnginePane content isolated from global swipe navigation.
+
+**Props:**
+```typescript
+interface ImmersivePaneModalProps {
+  isOpen: boolean
+  context: string | null  // e.g., 'user.projects'
+  title?: string
+  onClose: () => void
+}
+```
+
+**Features:**
+- Portal to document.body (escapes SwipeDeck transform)
+- Touch event isolation (`stopPropagation` on all touch events)
+- Back button integration (priority 100)
+- Header with close button
+- Renders ViewEnginePane inside with full functionality
+
+---
+
 ## Kanban Board (Dec 2024)
 
 ### `view_board_columns`

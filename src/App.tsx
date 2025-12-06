@@ -2,6 +2,7 @@ import { useAppStore, type PaneType } from '@/store/useAppStore'
 import Layout from '@/components/Layout'
 import SwipeDeck from '@/components/SwipeDeck'
 import { useAppLauncher } from '@/hooks/useAppLauncher'
+import { ImmersivePaneModal } from '@/engine/components/shared/ImmersivePaneModal'
 
 // Pane components
 import DashboardPane from '@/panes/DashboardPane'
@@ -29,7 +30,7 @@ const SYSTEM_PANE_COMPONENTS: Record<string, React.ComponentType> = {
 }
 
 function App() {
-  const { paneOrder, currentPaneIndex, setCurrentPaneIndex } = useAppStore()
+  const { paneOrder, currentPaneIndex, setCurrentPaneIndex, immersiveApp, closeImmersiveApp } = useAppStore()
   const { apps, isLoading } = useAppLauncher()
 
   // Create array of pane components based on current order
@@ -65,15 +66,25 @@ function App() {
   }
 
   return (
-    <Layout>
-      <SwipeDeck
-        currentIndex={currentPaneIndex}
-        onIndexChange={setCurrentPaneIndex}
-        className="h-full w-full"
-      >
-        {paneElements}
-      </SwipeDeck>
-    </Layout>
+    <>
+      <Layout>
+        <SwipeDeck
+          currentIndex={currentPaneIndex}
+          onIndexChange={setCurrentPaneIndex}
+          className="h-full w-full"
+        >
+          {paneElements}
+        </SwipeDeck>
+      </Layout>
+      
+      {/* Immersive App Modal - for Kanban boards and other horizontal-swipe apps */}
+      <ImmersivePaneModal
+        isOpen={!!immersiveApp}
+        context={immersiveApp?.context ?? null}
+        title={immersiveApp?.title}
+        onClose={closeImmersiveApp}
+      />
+    </>
   )
 }
 

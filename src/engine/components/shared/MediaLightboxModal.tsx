@@ -133,8 +133,16 @@ export function MediaLightboxModal({
       setPreloadedImages(new Set())
       // Ensure we have a valid width
       setContainerWidth(window.innerWidth)
+      // Debug: Log the siblings info
+      console.log('[MediaLightbox] Opened:', {
+        currentNode: currentNode.id,
+        siblingsCount: siblings.length,
+        siblingIds: siblings.map(s => s.id),
+        initialIndex,
+        containerWidth: window.innerWidth,
+      })
     }
-  }, [isOpen, initialIndex])
+  }, [isOpen, initialIndex, currentNode, siblings])
 
   // Measure container width
   useEffect(() => {

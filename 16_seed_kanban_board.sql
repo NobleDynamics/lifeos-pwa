@@ -57,7 +57,7 @@ BEGIN
       'variant', 'view_board_columns',
       'is_context_root', true,
       'is_system_app', true,
-      'context_key', 'user.projects',
+      'context', 'user.projects',
       'icon', 'Kanban',
       'presentation_mode', 'immersive',
       'description', 'Kanban-style project management board'

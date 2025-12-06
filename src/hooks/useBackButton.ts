@@ -325,15 +325,23 @@ interface UseBackButtonOptions {
  *   onClose: handleClose,
  *   pushHistory: true,
  * })
+ * 
+ * CONDITIONAL USAGE (safe to pass undefined):
+ * @example
+ * useBackButton(isOpen ? { id: 'modal', handler: close } : undefined)
  */
 export function useBackButton(options?: UseBackButtonOptions): void {
-  // Handle legacy call with no options
-  if (!options) return
-  
-  const { id, onClose, handler, priority = 10, pushHistory = false } = options
+  // Extract options (or use defaults when undefined)
+  // IMPORTANT: Do NOT return early - hooks must always be called in same order
+  const { id, onClose, handler, priority = 10, pushHistory = false } = options || {}
   
   // Generate a stable ID if not provided
   const idRef = useRef(id || `handler-${Math.random().toString(36).substring(2, 11)}`)
+  
+  // Update ID ref if provided id changes
+  if (id && id !== idRef.current) {
+    idRef.current = id
+  }
   
   // Store handlers in refs to always have the latest
   const onCloseRef = useRef(onClose)
@@ -342,6 +350,11 @@ export function useBackButton(options?: UseBackButtonOptions): void {
   handlerRef.current = handler
 
   useEffect(() => {
+    // Early return inside effect is safe - this handles undefined options
+    if (!handler && !onClose) {
+      return
+    }
+    
     const handlerId = idRef.current
     
     // NEW API: Push history on mount (for modals)
@@ -383,7 +396,7 @@ export function useBackButton(options?: UseBackButtonOptions): void {
         unregisterFallbackHandler(handlerId)
       }
     }
-  }, [priority, pushHistory])
+  }, [handler, onClose, priority, pushHistory])
 }
 
 // =============================================================================

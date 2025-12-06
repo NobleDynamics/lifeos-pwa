@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, MoreVertical, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Node } from '../../types/node'
-import { useBackButton } from '@/hooks/useBackButton'
+import { useBackButton, popBackState } from '@/hooks/useBackButton'
 
 // =============================================================================
 // TYPES
@@ -113,18 +113,15 @@ export function MediaLightboxModal({
   }, [siblings, currentIndex, currentNode])
   
   // ==========================================================================
-  // BACK BUTTON HANDLER (Android)
+  // BACK BUTTON HANDLER (Android) - Uses NEW push/pop history API
   // ==========================================================================
+  // When modal mounts (isOpen), pushHistory pushes a state to history
+  // When back is pressed, popstate fires and calls onClose
+  // When closing via X button, we call popBackState() to properly pop history
   useBackButton({
     id: 'media-lightbox-modal',
-    priority: 100, // Highest priority - close lightbox before anything else
-    handler: () => {
-      if (isOpen) {
-        onClose()
-        return true // Consumed the back event
-      }
-      return false
-    }
+    onClose: onClose,
+    pushHistory: true, // This pushes history state when the hook mounts
   })
   
   // Reset state when modal opens
@@ -351,9 +348,14 @@ export function MediaLightboxModal({
   // OTHER HANDLERS
   // ==========================================================================
 
+  /**
+   * Handle close via UI interaction (X button, backdrop click, Escape key)
+   * This uses popBackState to properly pop the history entry
+   */
   const handleClose = useCallback(() => {
-    onClose()
-  }, [onClose])
+    // Use popBackState to properly pop history and trigger close
+    popBackState('media-lightbox-modal')
+  }, [])
 
   // Prevent body scroll
   useEffect(() => {

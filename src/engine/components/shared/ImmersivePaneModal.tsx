@@ -105,7 +105,7 @@ export function ImmersivePaneModal({
     <AnimatePresence mode="wait">
       {isOpen && context && (
         <div 
-          className="fixed inset-x-0 top-0 z-50 flex flex-col bg-dark"
+          className="fixed inset-x-0 top-0 z-40 flex flex-col bg-dark"
           style={{ 
             bottom: `${DRAWER_HANDLE_HEIGHT}px`,
             height: `calc(100vh - ${DRAWER_HANDLE_HEIGHT}px)`
@@ -210,13 +210,12 @@ export function ImmersivePaneModal({
               </div>
             </header>
 
-            {/* Content Area - Fixed Height */}
+            {/* Content Area - Flex container to properly pass height */}
             <div 
-              className="relative bg-dark"
-              style={{ height: contentHeight }}
+              className="flex-1 min-h-0 relative bg-dark flex flex-col"
             >
               <ContextMenuProvider>
-                <div className="h-full w-full overflow-hidden">
+                <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
                   <ViewEnginePane
                     context={context}
                     title={title}

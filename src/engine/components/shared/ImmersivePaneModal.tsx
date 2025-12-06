@@ -7,24 +7,31 @@
  * Features:
  * - Portal to document.body (escapes SwipeDeck transform context)
  * - Touch event isolation for internal gestures
- * - Back button integration with smart navigation
+ * - Push/Pop history for proper Android back button support
  * - Header matching layout_app_shell pattern
  * - ContextMenu support for long-press actions
- * - Bottom padding for drawer handle visibility
+ * - Bottom spacing for drawer handle visibility
  * 
  * @module engine/components/shared/ImmersivePaneModal
  */
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, LayoutGrid, Plus } from 'lucide-react'
+import { ChevronLeft, LayoutGrid, Plus, MoreVertical } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import ViewEnginePane from '@/panes/ViewEnginePane'
-import { useBackButton } from '@/hooks/useBackButton'
+import { pushBackState, popBackState, isInHistoryStack } from '@/hooks/useBackButton'
 import { ContextMenuProvider, ContextMenuSheet } from '@/engine'
 import { DRAWER_HANDLE_HEIGHT } from '@/components/Layout'
 import { cn } from '@/lib/utils'
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const HEADER_HEIGHT = 64 // px - height of the modal header
+const BACK_STATE_ID = 'immersive-modal'
 
 // =============================================================================
 // TYPES
@@ -54,26 +61,44 @@ export function ImmersivePaneModal({
   icon,
   onClose,
 }: ImmersivePaneModalProps) {
-  // Store isOpen in a ref so handler can access current value
-  const isOpenRef = useRef(isOpen)
-  isOpenRef.current = isOpen
+  // Track if we've pushed history for this open session
+  const hasOpenedRef = useRef(false)
   
-  // Store onClose in a ref to avoid recreating handler
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  // Action dropdown state
+  const [showActionMenu, setShowActionMenu] = useState(false)
 
-  // Register back button handler at PRIORITY 100 (highest - modal level)
-  useBackButton({
-    id: 'immersive-modal',
-    priority: 100,
-    handler: () => {
-      if (isOpenRef.current) {
-        onCloseRef.current()
-        return true
-      }
-      return false
+  // Push history when opening, clean up when closing
+  useEffect(() => {
+    if (isOpen && !hasOpenedRef.current) {
+      // Push history state for Android back button
+      pushBackState('modal', BACK_STATE_ID, () => {
+        onClose()
+      })
+      hasOpenedRef.current = true
+      console.log('[ImmersiveModal] Opened - pushed history state')
     }
-  })
+    
+    if (!isOpen && hasOpenedRef.current) {
+      // Clean up if closed via something other than back button
+      if (isInHistoryStack(BACK_STATE_ID)) {
+        // Modal was closed programmatically, need to pop history
+        popBackState(BACK_STATE_ID)
+      }
+      hasOpenedRef.current = false
+      console.log('[ImmersiveModal] Closed')
+    }
+  }, [isOpen, onClose])
+
+  // Handle close button click
+  const handleCloseClick = useCallback(() => {
+    if (isInHistoryStack(BACK_STATE_ID)) {
+      // Use history.back() to properly pop the state
+      popBackState(BACK_STATE_ID)
+    } else {
+      // Fallback: just call onClose
+      onClose()
+    }
+  }, [onClose])
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -89,12 +114,12 @@ export function ImmersivePaneModal({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose()
+        handleCloseClick()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, handleCloseClick])
 
   // Touch event handlers to isolate from parent swipe
   const handleTouchTrap = useCallback((e: React.TouchEvent | React.PointerEvent) => {
@@ -126,21 +151,24 @@ export function ImmersivePaneModal({
             className="absolute inset-0 bg-dark/95 backdrop-blur-sm"
           />
 
-          {/* Modal Content - Full height flex container */}
+          {/* Modal Content */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-            className="relative flex flex-col h-full"
+            className="relative flex flex-col w-full h-full"
           >
-            {/* Header - Matches layout_app_shell pattern */}
-            <div className="flex-shrink-0 px-4 pt-4 pb-2 safe-top z-10 bg-dark-100/90 backdrop-blur-sm border-b border-dark-200">
+            {/* Header - Fixed height, matches layout_app_shell pattern */}
+            <header 
+              className="flex-shrink-0 px-4 pt-4 pb-2 safe-top z-10 bg-dark-100/90 backdrop-blur-sm border-b border-dark-200"
+              style={{ minHeight: `${HEADER_HEIGHT}px` }}
+            >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {/* Back Button */}
                   <button
-                    onClick={onClose}
+                    onClick={handleCloseClick}
                     className="p-1 -ml-1 rounded-lg hover:bg-dark-200 transition-colors"
                     aria-label="Go back"
                   >
@@ -156,50 +184,101 @@ export function ImmersivePaneModal({
                   </h1>
                 </div>
 
-                {/* Action Button Placeholder - Can be extended for "+ Add Card" etc. */}
-                {/* Future: Accept actionConfig prop to enable this */}
-                {/*
-                <button
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
-                    "text-sm font-medium text-white",
-                    "bg-gradient-to-r from-cyan-600 to-cyan-500",
-                    "hover:from-cyan-500 hover:to-cyan-400",
-                    "active:scale-95 transition-all duration-150",
-                    "shadow-lg shadow-cyan-500/20"
-                  )}
-                >
-                  <Plus size={16} />
-                  Add
-                </button>
-                */}
-              </div>
-            </div>
+                {/* Action Button */}
+                <div className="relative flex-shrink-0">
+                  <button
+                    onClick={() => setShowActionMenu(!showActionMenu)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                      "text-sm font-medium text-white",
+                      "bg-gradient-to-r from-cyan-600 to-cyan-500",
+                      "hover:from-cyan-500 hover:to-cyan-400",
+                      "active:scale-95 transition-all duration-150",
+                      "shadow-lg shadow-cyan-500/20"
+                    )}
+                    type="button"
+                  >
+                    <Plus size={16} />
+                    Add
+                  </button>
 
-            {/* Content Area - ViewEnginePane with ContextMenu support */}
-            {/* 
-              Height structure:
-              - flex-1 min-h-0: Fill remaining space after header
-              - Inner div with calculated height: Account for drawer handle
-              - overflow-hidden on outer, overflow managed by inner components
-            */}
+                  {/* Action Dropdown */}
+                  {showActionMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowActionMenu(false)}
+                      />
+                      <div
+                        className={cn(
+                          "absolute right-0 top-full mt-2 z-50",
+                          "min-w-[160px] py-2 rounded-lg shadow-lg",
+                          "bg-dark-100 border border-dark-300"
+                        )}
+                      >
+                        <button
+                          onClick={() => {
+                            setShowActionMenu(false)
+                            // TODO: Implement add card action
+                            console.log('[ImmersiveModal] Add card clicked')
+                          }}
+                          className={cn(
+                            "w-full px-4 py-2.5 text-left text-sm",
+                            "flex items-center gap-3",
+                            "text-white hover:bg-dark-200 transition-colors"
+                          )}
+                        >
+                          <Plus size={16} className="text-cyan-400" />
+                          <span>Add Card</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowActionMenu(false)
+                            // TODO: Implement add column action
+                            console.log('[ImmersiveModal] Add column clicked')
+                          }}
+                          className={cn(
+                            "w-full px-4 py-2.5 text-left text-sm",
+                            "flex items-center gap-3",
+                            "text-white hover:bg-dark-200 transition-colors"
+                          )}
+                        >
+                          <LayoutGrid size={16} className="text-purple-400" />
+                          <span>Add Column</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </header>
+
+            {/* Content Area - Explicit calculated height */}
             <div 
-              className="flex-1 min-h-0 flex flex-col relative bg-dark"
-              onClick={(e) => e.stopPropagation()} // Prevent backdrop click from closing
+              className="relative bg-dark"
+              style={{ 
+                height: `calc(100vh - ${HEADER_HEIGHT}px - ${DRAWER_HANDLE_HEIGHT}px - env(safe-area-inset-top, 0px))`,
+                overflow: 'hidden'
+              }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <div 
-                className="flex-1 min-h-0 overflow-hidden"
-                style={{ marginBottom: `${DRAWER_HANDLE_HEIGHT}px` }}
-              >
-                <ContextMenuProvider>
+              <ContextMenuProvider>
+                <div className="h-full overflow-hidden">
                   <ViewEnginePane
                     context={context}
                     title={title}
                   />
-                  <ContextMenuSheet />
-                </ContextMenuProvider>
-              </div>
+                </div>
+                <ContextMenuSheet />
+              </ContextMenuProvider>
             </div>
+
+            {/* Bottom spacer for drawer handle visibility */}
+            <div 
+              className="flex-shrink-0 bg-dark"
+              style={{ height: `${DRAWER_HANDLE_HEIGHT}px` }}
+              aria-hidden="true"
+            />
           </motion.div>
         </div>
       )}

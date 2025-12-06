@@ -42,25 +42,8 @@ BEGIN
   card_6_id := gen_random_uuid();
 
   -- =============================================================================
-  -- 1. Context Root (Required for User Apps)
-  -- =============================================================================
-  INSERT INTO resources (id, user_id, type, title, parent_id, path, meta_data)
-  VALUES (
-    context_root_id,
-    test_user_id,
-    'context_root',
-    'Projects',
-    NULL,
-    'root.' || REPLACE(context_root_id::text, '-', '_'),
-    jsonb_build_object(
-      'context_key', 'user.projects',
-      'is_context_root', true,
-      'icon', 'Layout'
-    )
-  );
-
-  -- =============================================================================
-  -- 2. App Shell (layout_app_shell) 
+  -- 1. App Shell (view_board_columns) - This IS the Context Root
+  -- Using 'folder' type with is_context_root and is_system_app flags
   -- =============================================================================
   INSERT INTO resources (id, user_id, type, title, parent_id, path, meta_data)
   VALUES (
@@ -68,11 +51,13 @@ BEGIN
     test_user_id,
     'folder',
     'Project Board',
-    context_root_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_'),
+    NULL,
+    'root.' || REPLACE(app_shell_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'view_board_columns',
+      'is_context_root', true,
       'is_system_app', true,
+      'context_key', 'user.projects',
       'icon', 'Kanban',
       'presentation_mode', 'immersive',
       'description', 'Kanban-style project management board'
@@ -91,7 +76,7 @@ BEGIN
     'folder',
     'To Do',
     app_shell_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_todo_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_todo_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'view_list_stack',
       'column_color', '#ef4444',
@@ -107,7 +92,7 @@ BEGIN
     'folder',
     'In Progress',
     app_shell_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_progress_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_progress_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'view_list_stack',
       'column_color', '#fbbf24',
@@ -123,7 +108,7 @@ BEGIN
     'folder',
     'Review',
     app_shell_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_review_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_review_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'view_list_stack',
       'column_color', '#a855f7',
@@ -139,7 +124,7 @@ BEGIN
     'folder',
     'Done',
     app_shell_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_done_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_done_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'view_list_stack',
       'column_color', '#22c55e',
@@ -159,7 +144,7 @@ BEGIN
     'task',
     'Design landing page',
     col_todo_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_todo_id::text, '-', '_') || '.' || REPLACE(card_1_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_todo_id::text, '-', '_') || '.' || REPLACE(card_1_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'card_kanban_details',
       'subtext', 'Create mockups in Figma for the new marketing site',
@@ -178,7 +163,7 @@ BEGIN
     'task',
     'API Integration',
     col_todo_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_todo_id::text, '-', '_') || '.' || REPLACE(card_2_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_todo_id::text, '-', '_') || '.' || REPLACE(card_2_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'card_kanban_details',
       'subtext', 'Connect to payment gateway and sync user data',
@@ -196,7 +181,7 @@ BEGIN
     'task',
     'Hero Banner Design',
     col_progress_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_progress_id::text, '-', '_') || '.' || REPLACE(card_3_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_progress_id::text, '-', '_') || '.' || REPLACE(card_3_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'card_kanban_image',
       'subtext', 'Finalizing the color scheme and typography',
@@ -216,7 +201,7 @@ BEGIN
     'task',
     'Database Schema Update',
     col_progress_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_progress_id::text, '-', '_') || '.' || REPLACE(card_4_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_progress_id::text, '-', '_') || '.' || REPLACE(card_4_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'card_kanban_details',
       'subtext', 'Adding ltree paths and fixing RLS policies',
@@ -234,7 +219,7 @@ BEGIN
     'task',
     'PR #142: Auth Flow',
     col_review_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_review_id::text, '-', '_') || '.' || REPLACE(card_5_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_review_id::text, '-', '_') || '.' || REPLACE(card_5_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'card_kanban_details',
       'subtext', 'Review the new authentication flow implementation',
@@ -251,7 +236,7 @@ BEGIN
     'task',
     'Setup CI/CD Pipeline',
     col_done_id,
-    'root.' || REPLACE(context_root_id::text, '-', '_') || '.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_done_id::text, '-', '_') || '.' || REPLACE(card_6_id::text, '-', '_'),
+    'root.' || REPLACE(app_shell_id::text, '-', '_') || '.' || REPLACE(col_done_id::text, '-', '_') || '.' || REPLACE(card_6_id::text, '-', '_'),
     jsonb_build_object(
       'variant', 'card_kanban_details',
       'subtext', 'GitHub Actions workflow for automated deployments',

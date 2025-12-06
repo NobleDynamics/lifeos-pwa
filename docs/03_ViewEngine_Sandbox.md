@@ -1076,6 +1076,50 @@ All chart cards use **Recharts** and support:
 
 ## Cards (Grid Items)
 
+### `card_media_thumbnail`
+**Structure:** Square image thumbnail with lightbox support
+**Use for:** Photo galleries, image grids
+
+```
+┌─────────────────┐
+│                 │
+│     [image]     │  ← Square aspect ratio (1:1)
+│                 │
+└─────────────────┘
+```
+
+**Slots:**
+| Slot | Type | Description |
+|------|------|-------------|
+| `url` | string | Image URL to display |
+| `alt` | string | Alt text for accessibility (default: node.title) |
+
+**Behavior:**
+- **Tap:** Opens fullscreen MediaLightboxModal with sibling navigation
+- **Long-press / Right-click:** Shows context menu (via ContextMenuContext)
+- **Siblings:** Automatically discovers sibling media nodes from parent for gallery navigation
+
+**Lightbox Features:**
+- Swipe left/right to navigate between images
+- Counter shows "X of Y" position
+- Long-press in lightbox shows context menu
+- Escape key or tap backdrop to close
+- Desktop: Arrow key navigation + navigation buttons
+
+**Example:**
+```json
+{
+  "variant": "card_media_thumbnail",
+  "title": "Mountain Sunset",
+  "metadata": {
+    "url": "https://example.com/photo.jpg",
+    "alt": "Beautiful sunset over mountains"
+  }
+}
+```
+
+---
+
 ### `card_folder`
 **Structure:** Grid-style folder card with icon, title, and count
 **Use for:** Folder navigation in grids (like `row_neon_group` but for grid layouts)

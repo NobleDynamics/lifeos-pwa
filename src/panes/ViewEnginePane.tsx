@@ -34,6 +34,7 @@ import {
   type Node,
 } from '@/engine'
 import { NoteViewerModal, type VersionEntry } from '@/engine/components/shared/NoteViewerModal'
+import { MediaLightboxModal } from '@/engine/components/shared/MediaLightboxModal'
 import { useContextRoot } from '@/hooks/useContextRoot'
 import {
   useResourceTree,
@@ -183,6 +184,11 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
   // Note modal state
   const [selectedNoteNode, setSelectedNoteNode] = useState<Node | null>(null)
 
+  // Media lightbox state
+  const [selectedMediaNode, setSelectedMediaNode] = useState<Node | null>(null)
+  const [mediaSiblings, setMediaSiblings] = useState<Node[]>([])
+  const [mediaInitialIndex, setMediaInitialIndex] = useState(0)
+
   // Step 3: Transform resources to Node tree (memoized for performance)
   // ALWAYS transform from the root - never swap the root node
   const fullNodeTree = useMemo(() => {
@@ -287,6 +293,15 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
    */
   const handleOpenNote = useCallback((node: Node) => {
     setSelectedNoteNode(node)
+  }, [])
+
+  /**
+   * Handle opening the media lightbox
+   */
+  const handleOpenMedia = useCallback((node: Node, siblings: Node[], initialIndex: number) => {
+    setSelectedMediaNode(node)
+    setMediaSiblings(siblings)
+    setMediaInitialIndex(initialIndex)
   }, [])
 
   /**
@@ -484,6 +499,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
             onCycleStatus={handleCycleStatus}
             onTriggerBehavior={handleTriggerBehavior}
             onOpenNote={handleOpenNote}
+            onOpenMedia={handleOpenMedia}
             onMoveNode={handleMoveNode}
           >
             {/* Shell controls its own scroll - no overflow here */}
@@ -536,6 +552,7 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           onCycleStatus={handleCycleStatus}
           onTriggerBehavior={handleTriggerBehavior}
           onOpenNote={handleOpenNote}
+          onOpenMedia={handleOpenMedia}
           onMoveNode={handleMoveNode}
         >
           {/* 
@@ -560,6 +577,17 @@ function ViewEnginePaneContent({ context, title }: ViewEnginePaneProps) {
           onClose={() => setSelectedNoteNode(null)}
           node={selectedNoteNode}
           onSave={handleSaveNote}
+        />
+      )}
+
+      {/* Media Lightbox Modal */}
+      {selectedMediaNode && (
+        <MediaLightboxModal
+          isOpen={!!selectedMediaNode}
+          onClose={() => setSelectedMediaNode(null)}
+          currentNode={selectedMediaNode}
+          siblings={mediaSiblings}
+          initialIndex={mediaInitialIndex}
         />
       )}
     </div>

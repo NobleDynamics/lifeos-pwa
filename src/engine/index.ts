@@ -258,6 +258,9 @@ export { ViewCarouselSnap } from './components/variants/layouts/view_carousel_sn
 export { MoveToColumnSheet } from './components/shared/MoveToColumnSheet'
 export type { MoveToColumnSheetProps } from './components/shared/MoveToColumnSheet'
 
+export { MediaLightboxModal } from './components/shared/MediaLightboxModal'
+export type { MediaLightboxModalProps } from './components/shared/MediaLightboxModal'
+
 // =============================================================================
 // ENGINE INITIALIZATION
 // =============================================================================

@@ -47,6 +47,9 @@ export interface EngineActionsValue {
   /** Open the note viewer/editor modal for a note node */
   onOpenNote: (node: Node) => void
 
+  /** Open the media lightbox for a media node with sibling navigation */
+  onOpenMedia: (node: Node, siblings: Node[], initialIndex: number) => void
+
   /** Move a node to a new parent (e.g., move card between Kanban columns) */
   onMoveNode: (nodeId: string, newParentId: string) => void
 
@@ -96,6 +99,9 @@ export interface EngineActionsProviderProps {
 
   /** Callback when opening a note viewer/editor */
   onOpenNote: (node: Node) => void
+
+  /** Callback when opening the media lightbox */
+  onOpenMedia: (node: Node, siblings: Node[], initialIndex: number) => void
 
   /** Callback when moving a node to a new parent */
   onMoveNode: (nodeId: string, newParentId: string) => void
@@ -149,6 +155,7 @@ export function EngineActionsProvider({
   onCycleStatus,
   onTriggerBehavior,
   onOpenNote,
+  onOpenMedia,
   onMoveNode,
   children,
 }: EngineActionsProviderProps) {
@@ -167,10 +174,11 @@ export function EngineActionsProvider({
       onCycleStatus,
       onTriggerBehavior,
       onOpenNote,
+      onOpenMedia,
       onMoveNode,
       nodeToResource,
     }),
-    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, onTriggerBehavior, onOpenNote, onMoveNode, nodeToResource]
+    [rootId, currentParentId, onOpenCreateForm, onNavigateInto, onOpenContextMenu, onCycleStatus, onTriggerBehavior, onOpenNote, onOpenMedia, onMoveNode, nodeToResource]
   )
 
   return (
@@ -249,6 +257,7 @@ export function useEngineActionsWithFallback() {
     onCycleStatus: noOpCycleStatus,
     onTriggerBehavior: useCallback((_n: Node, _c: BehaviorConfig) => { }, []),
     onOpenNote: useCallback((_n: Node) => { }, []),
+    onOpenMedia: useCallback((_n: Node, _siblings: Node[], _index: number) => { }, []),
     onMoveNode: useCallback((_nodeId: string, _newParentId: string) => { }, []),
     nodeToResource: defaultNodeToResource,
     isInteractive: false,

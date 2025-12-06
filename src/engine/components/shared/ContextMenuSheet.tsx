@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Folder } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
@@ -106,7 +107,9 @@ export function ContextMenuSheet() {
     return null
   }
   
-  return (
+  // Use portal to render outside SwipeDeck transform context
+  // This ensures fixed positioning works correctly relative to viewport
+  const menuContent = (
     <AnimatePresence mode="wait">
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -211,6 +214,9 @@ export function ContextMenuSheet() {
       )}
     </AnimatePresence>
   )
+
+  // Portal to document.body to escape SwipeDeck's transform containing block
+  return createPortal(menuContent, document.body)
 }
 
 export default ContextMenuSheet

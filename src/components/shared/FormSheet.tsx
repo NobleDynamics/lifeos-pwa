@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useBackButton } from '@/hooks/useBackButton'
@@ -84,7 +85,9 @@ export function FormSheet({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleClose])
 
-  return (
+  // Use portal to render outside SwipeDeck transform context
+  // This ensures fixed positioning works correctly relative to viewport
+  const modalContent = (
     <AnimatePresence mode="wait">
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -144,4 +147,7 @@ export function FormSheet({
       )}
     </AnimatePresence>
   )
+
+  // Portal to document.body to escape SwipeDeck's transform containing block
+  return createPortal(modalContent, document.body)
 }

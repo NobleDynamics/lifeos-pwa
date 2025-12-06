@@ -14,6 +14,7 @@
  */
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { FileText, Clock, History, RotateCcw } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useNode } from '../../../context/NodeContext'
@@ -90,7 +91,8 @@ function VersionHistoryMenu({ position, history, onClose, onRestoreVersion }: Co
     zIndex: 100,
   }
 
-  return (
+  // Use portal to render outside SwipeDeck transform context
+  const menuContent = (
     <>
       {/* Backdrop */}
       <div 
@@ -145,6 +147,9 @@ function VersionHistoryMenu({ position, history, onClose, onRestoreVersion }: Co
       </div>
     </>
   )
+
+  // Portal to document.body to escape SwipeDeck's transform containing block
+  return createPortal(menuContent, document.body)
 }
 
 // =============================================================================

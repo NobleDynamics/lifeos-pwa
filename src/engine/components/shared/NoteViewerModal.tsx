@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, History, X, Clock, Edit3, Eye } from 'lucide-react'
 import MDEditor, { commands } from '@uiw/react-md-editor'
@@ -445,7 +446,9 @@ export function NoteViewerModal({
   const baseOffset = getBaseOffset()
   const currentOffset = baseOffset + dragDelta
 
-  return (
+  // Use portal to render outside SwipeDeck transform context
+  // This ensures fixed positioning works correctly relative to viewport
+  const modalContent = (
     <AnimatePresence mode="wait">
       {isOpen && (
         <div className="fixed inset-0 z-50 flex flex-col">
@@ -648,6 +651,9 @@ export function NoteViewerModal({
       )}
     </AnimatePresence>
   )
+
+  // Portal to document.body to escape SwipeDeck's transform containing block
+  return createPortal(modalContent, document.body)
 }
 
 export default NoteViewerModal

@@ -8,6 +8,7 @@
  */
 
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Edit, Trash2 } from 'lucide-react'
 import { useResourceContextMenu, useResourceForm } from '@/store/useResourceStore'
 import { useDeleteResource } from '@/hooks/useResourceData'
@@ -64,7 +65,9 @@ export function ResourceContextMenu() {
     }
   }
 
-  return (
+  // Use portal to render outside SwipeDeck transform context
+  // This ensures fixed positioning works correctly relative to viewport
+  const menuContent = (
     <>
       {/* Backdrop */}
       <div
@@ -138,4 +141,7 @@ export function ResourceContextMenu() {
       </div>
     </>
   )
+
+  // Portal to document.body to escape SwipeDeck's transform containing block
+  return createPortal(menuContent, document.body)
 }

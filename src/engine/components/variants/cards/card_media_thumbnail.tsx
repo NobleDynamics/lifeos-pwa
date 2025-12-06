@@ -7,6 +7,7 @@
  * @module engine/components/variants/cards/card_media_thumbnail
  */
 
+import { useCallback } from 'react'
 import { Image as ImageIcon } from 'lucide-react'
 import type { VariantComponentProps } from '../../../registry'
 import { useSlot } from '../../../hooks/useSlot'
@@ -31,6 +32,15 @@ export function CardMediaThumbnail({ node }: VariantComponentProps) {
   const url = useSlot<string>('url')
   const alt = useSlot<string>('alt') ?? node.title ?? 'Thumbnail'
   
+  // Prevent native browser context menu (e.g., Chrome's "Save image as...")
+  // This ensures our custom interactions (future lightbox) take precedence
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Future: integrate with ContextMenuContext for custom context menu
+    // or trigger lightbox view
+  }, [])
+  
   return (
     <div
       className={cn(
@@ -38,10 +48,12 @@ export function CardMediaThumbnail({ node }: VariantComponentProps) {
         "bg-dark-200/50",
         "border border-dark-200/50 hover:border-cyan-500/30",
         "transition-all duration-200",
-        "hover:shadow-lg hover:shadow-cyan-500/5"
+        "hover:shadow-lg hover:shadow-cyan-500/5",
+        "cursor-pointer select-none" // Indicate interactivity
       )}
       data-variant="card_media_thumbnail"
       data-node-id={node.id}
+      onContextMenu={handleContextMenu}
     >
       {url ? (
         <img 

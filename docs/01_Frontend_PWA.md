@@ -99,9 +99,37 @@ Access: Swipe right from Settings
 
 These reusable components enforce DRY principles across the app:
 
+### Portal Pattern for Modals
+
+**CRITICAL:** All modal/sheet components MUST use `createPortal(content, document.body)` to render outside the SwipeDeck's transform context.
+
+**Why:** The SwipeDeck uses `transform: translate3d()` for page transitions, which creates a new containing block for fixed-positioned elements. Without portals, modals positioned with `fixed inset-0` will be positioned relative to the SwipeDeck container, not the viewport.
+
+**Pattern:**
+```tsx
+import { createPortal } from 'react-dom'
+
+// Inside component:
+const modalContent = (
+  <AnimatePresence>
+    {isOpen && <div className="fixed inset-0 z-50">...</div>}
+  </AnimatePresence>
+)
+
+// Portal to document.body to escape SwipeDeck's transform containing block
+return createPortal(modalContent, document.body)
+```
+
+**Components using this pattern:**
+- `FormSheet` - All add/edit form sheets
+- `NoteViewerModal` - Fullscreen note editor
+- `ContextMenuSheet` - Metadata-driven context menus
+- `ResourceContextMenu` - Legacy resource context menu
+- `VersionHistoryMenu` (in `row_note.tsx`) - Version history popup
+
 | Component | Purpose | Props |
 |-----------|---------|-------|
-| `FormSheet` | Bottom sheet modal for all add/edit forms | `title`, `onClose`, `children`, `maxHeight?`, `isOpen?` |
+| `FormSheet` | Bottom sheet modal for all add/edit forms (uses portal) | `title`, `onClose`, `children`, `maxHeight?`, `isOpen?` |
 | `ViewShell` | Wrapper for all pane layouts with header/footer | `title`, `icon?`, `breadcrumbs?`, `headerActions?`, `footer?`, `onBack?` |
 | `TabBar` | Standard tab bar for ViewShell footer | `tabs`, `activeTab`, `onTabChange` |
 | `CategoryPane` | ViewShell variant with built-in tab management | `title`, `icon`, `tabs`, `tabKey`, `children` |

@@ -18,7 +18,6 @@ import type { VariantComponentProps } from '../../../registry'
 import { useSlot } from '../../../hooks/useSlot'
 import { useNode } from '../../../context/NodeContext'
 import { useEngineActions } from '../../../context/EngineActionsContext'
-import { useContextMenuTrigger } from '../../../context/ContextMenuContext'
 import { useLongPress } from '@/hooks/useLongPress'
 import { cn } from '@/lib/utils'
 import type { Node } from '../../../types/node'
@@ -57,11 +56,24 @@ export function CardMediaThumbnail({ node }: VariantComponentProps) {
   // Get parent node to access siblings
   const { node: parentNode } = useNode()
   
-  // Actions context for opening lightbox
+  // Actions context for opening lightbox and context menu
   const actions = useEngineActions()
   
-  // Context menu trigger
-  const triggerContextMenu = useContextMenuTrigger(node, parentNode)
+  // Create a trigger function using the actions context
+  const triggerContextMenu = useCallback((x: number, y: number) => {
+    if (actions?.nodeToResource && actions?.onOpenContextMenu) {
+      // Convert node to resource and trigger context menu
+      const resource = actions.nodeToResource(node)
+      // Create a synthetic event with the coordinates
+      const syntheticEvent = {
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        clientX: x,
+        clientY: y,
+      } as React.MouseEvent
+      actions.onOpenContextMenu(syntheticEvent, resource)
+    }
+  }, [actions, node])
   
   // Get media siblings from parent (filter for media nodes only)
   const { siblings, currentIndex } = useMemo(() => {
